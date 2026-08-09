@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid #403A77; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.001ms !important; } }
+  .cs-tab:hover { color: #403A77; }
+  .cs-cta:hover { opacity: 0.92; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+  <div style="position:sticky; top:0; z-index:20; background:#FAF8F4; border-bottom:1px solid #E4DFD5;">
+    <div style="max-width:1180px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="font-family:'Fraunces',serif; font-weight:600; font-size:20px; color:#403A77; white-space:nowrap;">SourceSutra</div>
+      <div style="display:flex; gap:6px; overflow-x:auto; flex:1;">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="3">
+          <button class="cs-tab" onClick="{{ tab.onClick }}" disabled="{{ tab.disabled }}" style="background:none; border:none; padding:10px 14px; font-size:14px; font-weight:600; white-space:nowrap; cursor:{{ tab.cursor }}; color:{{ tab.color }}; border-bottom:2px solid {{ tab.border }};">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+      <div style="display:flex; align-items:center; gap:1px; background:#F2EEE6; border:1px solid #E4DFD5; border-radius:8px; padding:2px;">
+        <button style="background:#403A77; color:#FAF8F4; border:none; padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600; cursor:default; white-space:nowrap;">Customer</button>
+        <a href="SourceSutra.dc.html" style="color:#6B6A78; padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600; white-space:nowrap; text-decoration:none;">Supplier</a>
+      </div>
+      <button onClick="{{ onLogout }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap;">Log out</button>
+      <button class="cs-cta" onClick="{{ onOpenCreateRfq }}" style="background:#403A77; color:#FAF8F4; border:none; padding:10px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap;">+ Create RFQ</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ showCreateRfq }}" hint-placeholder-val="{{ false }}">
+    <dc-import name="CustomerCreateRFQ" hint-size="100%,100%" prefill-supplier="{{ rfqPrefillSupplier }}" existing-rfq="{{ resumeRfq }}" on-cancel="{{ closeCreateRfq }}" on-publish="{{ closeCreateRfq }}"></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showProfileNotRfq }}">
+    <dc-import name="CustomerSupplierProfile" hint-size="100%,100%" supplier="{{ selectedSupplier }}" on-back="{{ backToDiscover }}" on-create-rfq="{{ openCreateRfqFor }}"></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showDiscoverTab }}">
+    <dc-import name="CustomerDiscover" hint-size="100%,100%" suppliers="{{ filteredSuppliers }}" total="{{ totalCount }}"
+      company-types="{{ companyTypes }}" locations="{{ locations }}" all-tags="{{ allTags }}"
+      active-type="{{ filterType }}" active-location="{{ filterLocation }}" active-tags="{{ filterTags }}"
+      search-open="{{ searchOpen }}" search-query="{{ searchQuery }}"
+      on-type="{{ setFilterType }}" on-location="{{ setFilterLocation }}" on-toggle-tag="{{ toggleFilterTag }}"
+      on-search-open="{{ openSearch }}" on-search-close="{{ closeSearch }}" on-search-change="{{ setSearchQuery }}"
+      on-clear-filters="{{ clearFilters }}" on-open-supplier="{{ openSupplier }}"
+    ></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showProfileTab }}">
+    <div style="max-width:820px; margin:0 auto; padding:60px 24px; text-align:center;">
+      <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; color:#20202B; margin:0 0 8px;">Buyer profile</h1>
+      <p style="font-size:14px; color:#6B6A78;">Vardhman Textiles · Ludhiana — company and team management arrives in a later phase.</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showRfqTab }}">
+    <dc-import name="CustomerMyRFQs" hint-size="100%,100%" on-resume-draft="{{ onResumeDraft }}" on-view-supplier-profile="{{ onViewSupplierProfile }}"></dc-import>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const SUPPLIERS = [
+  { id: 's1', name: 'Anand Knitfab', mission: 'Single-jersey knits at scale, delivered on schedule.', type: 'Fabric supplier', location: 'Tiruppur', tags: ['Knitted fabric', 'Greige fabric'],
+    logoBg: '#EDECF6', logoFg: '#403A77',
+    catalogue: [{ id: 'c1', fileName: 'single-jersey-lineup.jpg' }, { id: 'c2', fileName: 'greige-stock-sheet.pdf' }],
+    workHistory: [{ client: 'Ramraj Cotton Mills', role: 'Sub-Contractor', frequency: 'Recurring', start: '2019', end: 'present', desc: 'Supply of single-jersey knit greige fabric, 24–32 count, approx. 8,000 kg/month.' }],
+    production: { factoryArea: '9,200 m²', employees: 140, monthlyCapacity: '95,000 kg', productionLines: 10 },
+    tradeTerms: { moq: '1,000 kg', incoterms: 'FOB Chennai', paymentTerms: '30% advance, 70% on shipment', leadTime: '15–20 days' },
+    customizationCapabilities: ['Fabric', 'Colour', 'GSM', 'Packaging'],
+    products: [
+      { name: 'Single-jersey knit greige', category: 'Fabric', material: '100% cotton, 24s count', priceRange: '₹280–₹340/kg' },
+      { name: 'Rib-knit greige', category: 'Fabric', material: '100% cotton, 30s count', priceRange: '₹310–₹360/kg' }
+    ],
+    facilityPhotos: [{}, {}, {}, {}],
+    certifications: [
+      { category: 'Quality Management', name: 'ISO 9001', issuingBody: 'SGS', certNumber: 'SGS-QMS-2023-6612', scope: 'Knitting and greige fabric processing, main unit, Tiruppur.', issueDate: '2023-03-01', expiryDate: '2026-02-28', fieldStatus: 'expired' },
+      { category: 'Recycled Materials', name: 'RCS', issuingBody: 'Control Union', certNumber: 'RCS-CU-2025-3391', scope: 'Recycled cotton blending line, Unit 1.', issueDate: '2025-09-10', expiryDate: '2026-09-10', fieldStatus: 'verified' }
+    ],
+    contact: { name: 'Suresh Anand', title: 'Managing Partner', email: 'suresh@anandknitfab.in', phone: '+91 98430 11234', languages: 'English, Tamil', responseTime: '4–6 hours' } },
+  { id: 's2', name: 'Bhilwara Processors', mission: 'Reactive and vat dyeing, precise shade matching, every batch.', type: 'Dyeing & processing', location: 'Bhilwara', tags: ['Dyeing & processing'],
+    logoBg: '#F2E4D8', logoFg: '#B5654A',
+    catalogue: [{ id: 'c3', fileName: 'shade-card-2026.pdf' }],
+    workHistory: [{ client: 'Malhotra Woollens', role: 'Sub-Contractor', frequency: 'Annual Maintenance Contract', start: '2016', end: 'present', desc: 'Reactive and vat dyeing of woven fabric for winterwear lines, 40,000m/month capacity.' }] },
+  { id: 's3', name: 'Ludhiana Woolworks', mission: 'Woven and knitwear CMT for winterwear, built for volume.', type: 'Garment CMT', location: 'Ludhiana', tags: ['Woven fabric', 'Garment CMT'],
+    logoBg: '#E4EDE4', logoFg: '#5B7A5B',
+    catalogue: [{ id: 'c4', fileName: 'winterwear-line-sheet.pdf' }, { id: 'c5', fileName: 'cmt-sample-photos.jpg' }],
+    workHistory: [{ client: 'Vardhman Textiles', role: 'Sub-Contractor', frequency: 'Recurring', start: '2014', end: 'present', desc: 'Woven fabric sourcing and finishing for shirting lines, approx. 60,000m/quarter.' }],
+    production: { factoryArea: '15,000 m²', employees: 260, monthlyCapacity: '60,000 pieces', productionLines: 18 },
+    tradeTerms: { moq: '2,000 pieces', incoterms: 'FOB Mumbai, EXW', paymentTerms: '30% advance, 70% on shipment', leadTime: '25–30 days (peak: 35–40 days)' },
+    customizationCapabilities: ['Fabric', 'Colour', 'Fit', 'Labels', 'Hangtags', 'Hardware'],
+    products: [
+      { name: 'Wool-blend winter jacket', category: 'Outerwear', material: 'Wool-acrylic blend, 320 GSM', priceRange: '₹850–₹1,100/pc' },
+      { name: 'Shirting fabric, cotton poplin', category: 'Fabric', material: '100% cotton, 120 GSM', priceRange: '₹135–₹165/m' },
+      { name: 'Knit thermal base layer', category: 'Apparel', material: 'Cotton-spandex, 220 GSM', priceRange: '₹210–₹260/pc' }
+    ],
+    facilityPhotos: [{}, {}, {}, {}, {}, {}],
+    certifications: [
+      { category: 'Quality Management', name: 'ISO 9001', issuingBody: 'Bureau Veritas', certNumber: 'BV-QMS-2024-9021', scope: 'Woven fabric sourcing, cutting, and CMT sewing operations, Ludhiana unit.', issueDate: '2024-04-01', expiryDate: '2027-03-31', fieldStatus: 'verified', verificationUrl: 'https://www.bureauveritas.com/certificate-lookup' },
+      { category: 'Social Compliance', name: 'WRAP', issuingBody: 'WRAP Inc.', certNumber: 'WRAP-2025-4471', scope: 'Main production facility, worker welfare and social compliance.', issueDate: '2025-06-15', expiryDate: '2026-09-30', fieldStatus: 'expiring_soon' },
+      { category: 'Indian Regulatory & Legal Compliance', name: 'Factory Licence', issuingBody: 'Punjab Directorate of Factories', certNumber: 'PB-FL-2013-2287', scope: 'Statutory factory operating licence.', issueDate: '2013-05-01', doesNotExpire: true, fieldStatus: 'verified' },
+      { category: 'Buyer / Brand Audits', buyerName: 'Vardhman Textiles', auditType: 'Quality audit', auditDate: '2026-03-12', outcome: 'Passed' }
+    ],
+    contact: { name: 'Harpreet Singh', title: 'Operations Head', email: 'harpreet@ludhianawoolworks.in', phone: '+91 98140 55621', languages: 'English, Punjabi, Hindi', responseTime: '2–3 hours' } },
+  { id: 's4', name: 'Erode Textile Exports', mission: 'Terry towels and bath linen, white-label, export-ready.', type: 'Trading', location: 'Erode', tags: ['White-label article', 'Home textiles'],
+    logoBg: '#E3E9F2', logoFg: '#2E5A8C',
+    catalogue: [{ id: 'c6', fileName: 'terry-towel-lineup.jpg' }, { id: 'c7', fileName: 'bath-linen-catalogue.jpg' }],
+    workHistory: [{ client: 'Welspun India', role: 'Sub-Contractor', frequency: 'Annual Maintenance Contract', start: '2012', end: 'present', desc: 'Terry towel weaving and finishing, private-label programs, ~4,00,000 pieces/year.' }, { client: 'Trident Group', role: 'Sub-Contractor', frequency: 'Recurring', start: '2018', end: '2023', desc: 'Bath linen white-label article supply for retail export orders.' }],
+    production: { factoryArea: '22,000 m²', employees: 410, monthlyCapacity: '38,000 pieces', productionLines: 22 },
+    tradeTerms: { moq: '5,000 pieces', incoterms: 'FOB Chennai, CIF', paymentTerms: 'L/C at sight, or 40% advance / 60% on B/L', leadTime: '30–35 days (peak: 45 days)' },
+    customizationCapabilities: ['Fabric', 'Colour', 'Labels', 'Hangtags', 'Packaging', 'Embroidery'],
+    products: [
+      { name: 'Combed cotton terry towel', category: 'Home Textiles', material: 'Combed cotton, 500 GSM', priceRange: '₹145–₹190/pc' },
+      { name: 'Bath linen set', category: 'Home Textiles', material: 'Cotton terry, 550 GSM', priceRange: '₹620–₹780/set' }
+    ],
+    facilityPhotos: [{}, {}, {}, {}, {}],
+    certifications: [
+      { category: 'Sustainable & Organic Textiles', name: 'OEKO-TEX Standard 100', issuingBody: 'OEKO-TEX', certNumber: 'OTX-2025-11284', scope: 'Finished terry towel and bath linen products, all lines.', issueDate: '2025-01-20', expiryDate: '2026-01-20', fieldStatus: 'needs_correction', correctionReason: 'Uploaded certificate lists a different legal entity name than the one on file — needs a reissued copy or a name-change letter from OEKO-TEX.' },
+      { category: 'Social Compliance', name: 'SMETA / SEDEX', issuingBody: 'SEDEX', certNumber: 'SMETA-2024-8834', scope: 'Ethical trade audit covering labour standards, health & safety, and environment.', issueDate: '2024-11-01', expiryDate: '2026-10-31', fieldStatus: 'verified' },
+      { category: 'Environmental Management', name: 'ISO 14001', issuingBody: 'TÜV SÜD', certNumber: 'TUV-EMS-2023-5502', scope: 'Effluent treatment and environmental management, Erode facility.', issueDate: '2023-08-01', expiryDate: '2026-07-31', fieldStatus: 'expired' }
+    ],
+    contact: { name: 'Kavitha Ramesh', title: 'Export Manager', email: 'kavitha@erodetextile.in', phone: '+91 98421 77654', languages: 'English, Tamil', responseTime: '3–5 hours' } },
+  { id: 's5', name: 'Surat Silk Mills', mission: 'Art silk and synthetic sarees, direct from the loom.', type: 'Fabric supplier', location: 'Surat', tags: ['Woven fabric'],
+    logoBg: '#F2E6EE', logoFg: '#8C3E6E',
+    catalogue: [{ id: 'c8', fileName: 'saree-collection-q3.jpg' }],
+    workHistory: [{ client: 'South India Shopping Mall', role: 'Primary Contractor', frequency: 'Recurring', start: '2017', end: 'present', desc: 'Art silk saree weaving and finishing for retail chains.' }] },
+  { id: 's6', name: 'Panipat Home Textiles', mission: 'Bedspreads and furnishing fabric, recycled and virgin yarns.', type: 'Fabric supplier', location: 'Panipat', tags: ['Woven fabric', 'Home textiles'],
+    logoBg: '#EAE6DC', logoFg: '#7A6A4E',
+    catalogue: [{ id: 'c9', fileName: 'furnishing-swatches.jpg' }],
+    workHistory: [{ client: 'IKEA India sourcing office', role: 'Sub-Contractor', frequency: 'Annual Maintenance Contract', start: '2020', end: 'present', desc: 'Recycled-yarn bedspread and cushion cover weaving.' }],
+    production: { factoryArea: '11,800 m²', employees: 190, monthlyCapacity: '50,000 m', productionLines: 12 },
+    tradeTerms: { moq: '2,500 m', incoterms: 'FOB Mundra', paymentTerms: '50% advance, 50% on shipment', leadTime: '20–25 days' },
+    customizationCapabilities: ['Fabric', 'Colour', 'Pattern', 'Packaging'],
+    products: [
+      { name: 'Recycled-yarn bedspread', category: 'Home Textiles', material: 'Recycled cotton-poly blend, 280 GSM', priceRange: '₹320–₹410/pc' },
+      { name: 'Furnishing fabric', category: 'Home Textiles', material: 'Cotton-poly blend, 240 GSM', priceRange: '₹95–₹130/m' }
+    ],
+    facilityPhotos: [{}, {}, {}],
+    certifications: [
+      { category: 'Recycled Materials', name: 'GRS', issuingBody: 'Control Union', certNumber: 'GRS-CU-2025-7712', scope: 'Recycled-yarn bedspread and cushion cover line, Unit 1.', issueDate: '2025-05-01', expiryDate: '2026-04-30', fieldStatus: 'expired' },
+      { category: 'Responsible Materials', name: 'FSC', issuingBody: 'Control Union', certNumber: 'FSC-CU-2024-2290', scope: 'Packaging cartons and hangtags sourced from FSC-certified paper.', issueDate: '2024-07-01', expiryDate: '2027-06-30', fieldStatus: 'verified' }
+    ],
+    contact: { name: 'Deepak Malhotra', title: 'Sales Director', email: 'deepak@panipathome.in', phone: '+91 98960 33218', languages: 'English, Hindi', responseTime: '5–8 hours' } },
+  { id: 's7', name: 'Tirupur Trims & Accessories', mission: 'Buttons, labels, and drawcords, sampled within 48 hours.', type: 'Trims & accessories', location: 'Tiruppur', tags: ['Trims & accessories'],
+    logoBg: '#EDECF6', logoFg: '#403A77',
+    catalogue: [{ id: 'c10', fileName: 'trims-catalogue-2026.pdf' }],
+    workHistory: [{ client: 'Anand Knitfab', role: 'Sub-Contractor', frequency: 'Recurring', start: '2015', end: 'present', desc: 'Buttons, woven labels, and drawcords for knitwear programs.' }] },
+  { id: 's8', name: 'Ludhiana Embroidery House', mission: 'Schiffli and hand embroidery for knitwear and wovens alike.', type: 'Garment CMT', location: 'Ludhiana', tags: ['Embroidery', 'Garment CMT'],
+    logoBg: '#F5E8D6', logoFg: '#A6702B',
+    catalogue: [{ id: 'c11', fileName: 'embroidery-motifs.jpg' }],
+    workHistory: [{ client: 'Ludhiana Woolworks', role: 'Sub-Contractor', frequency: 'One-time', start: '2022', end: '2022', desc: 'Schiffli embroidery for a winter capsule collection, 12,000 pieces.' }],
+    production: { factoryArea: '4,600 m²', employees: 65, monthlyCapacity: '18,000 pieces', productionLines: 8 },
+    tradeTerms: { moq: '500 pieces', incoterms: 'EXW', paymentTerms: '50% advance, 50% on delivery', leadTime: '10–15 days' },
+    customizationCapabilities: ['Embroidery', 'Labels', 'Pattern'],
+    products: [
+      { name: 'Schiffli embroidered panel', category: 'Embellishment', material: 'Polyester thread on cotton base', priceRange: '₹35–₹65/pc' },
+      { name: 'Hand embroidery, zari work', category: 'Embellishment', material: 'Metallic zari thread', priceRange: '₹80–₹220/pc' }
+    ],
+    facilityPhotos: [{}, {}],
+    certifications: [
+      { category: 'Quality Management', name: 'ISO 9001', issuingBody: 'Bureau Veritas', certNumber: 'BV-QMS-2022-4410', scope: 'Embroidery unit quality management, Ludhiana.', issueDate: '2022-01-01', expiryDate: '2025-12-31', fieldStatus: 'expired' }
+    ],
+    contact: { name: 'Simran Kaur', title: 'Founder', email: 'simran@ludhianaembroidery.in', phone: '+91 98555 21099', languages: 'English, Punjabi', responseTime: '6–8 hours' } },
+  { id: 's9', name: 'Surat Screen Print Co.', mission: 'Screen and digital printing, small runs to bulk.', type: 'Garment CMT', location: 'Surat', tags: ['screen printing', 'digital printing'],
+    logoBg: '#F2E6EE', logoFg: '#8C3E6E',
+    catalogue: [{ id: 'c12', fileName: 'print-samples.jpg' }],
+    workHistory: [{ client: 'Surat Silk Mills', role: 'Sub-Contractor', frequency: 'Recurring', start: '2019', end: 'present', desc: 'Screen printing on synthetic yardage for saree borders.' }] },
+  { id: 's10', name: 'Erode Spinning Mills', mission: 'Combed cotton yarn and greige fabric, consistent count.', type: 'Fabric supplier', location: 'Erode', tags: ['Greige fabric', 'Knitted fabric'],
+    logoBg: '#E3E9F2', logoFg: '#2E5A8C',
+    catalogue: [{ id: 'c13', fileName: 'yarn-count-sheet.pdf' }],
+    workHistory: [{ client: 'Erode Textile Exports', role: 'Sub-Contractor', frequency: 'Recurring', start: '2013', end: 'present', desc: 'Combed cotton yarn and greige fabric supply, 24s–32s count.' }],
+    production: { factoryArea: '18,500 m²', employees: 320, monthlyCapacity: '2,200 tonnes', productionLines: 14 },
+    tradeTerms: { moq: '10 tonnes', incoterms: 'EXW, FOB Chennai', paymentTerms: '30% advance, 70% on delivery', leadTime: '18–22 days' },
+    customizationCapabilities: ['Fabric', 'GSM'],
+    products: [
+      { name: 'Combed cotton yarn, 30s', category: 'Yarn', material: '100% combed cotton', priceRange: '₹255–₹295/kg' },
+      { name: 'Greige knit fabric', category: 'Fabric', material: '100% cotton, 28s count', priceRange: '₹270–₹310/kg' }
+    ],
+    facilityPhotos: [{}, {}, {}, {}],
+    certifications: [
+      { category: 'Sustainable & Organic Textiles', name: 'OCS', issuingBody: 'Control Union', certNumber: 'OCS-CU-2025-9012', scope: 'Organic cotton yarn spinning line, Unit 3.', issueDate: '2025-02-01', expiryDate: '2026-08-25', fieldStatus: 'expiring_soon' },
+      { category: 'Quality Management', name: 'ISO 9001', issuingBody: 'SGS', certNumber: 'SGS-QMS-2024-3387', scope: 'Yarn spinning and greige fabric quality management.', issueDate: '2024-06-01', expiryDate: '2027-05-31', fieldStatus: 'verified' }
+    ],
+    contact: { name: 'Muthu Kumar', title: 'Plant Manager', email: 'muthu@erodespinning.in', phone: '+91 94430 89211', languages: 'English, Tamil', responseTime: '3–4 hours' } },
+  { id: 's11', name: 'Bhilwara Suiting Weavers', mission: 'Wool-blend suiting fabric, mill-direct pricing.', type: 'Fabric supplier', location: 'Bhilwara', tags: ['Woven fabric'],
+    logoBg: '#F2E4D8', logoFg: '#B5654A',
+    catalogue: [{ id: 'c14', fileName: 'suiting-swatch-book.jpg' }],
+    workHistory: [{ client: 'Bhilwara Processors', role: 'Sub-Contractor', frequency: 'Annual Maintenance Contract', start: '2011', end: 'present', desc: 'Wool-blend suiting fabric weaving for formalwear brands.' }] },
+  { id: 's12', name: 'Panipat Trims Co.', mission: 'Zippers, interlinings, and hangtags, one window sourcing.', type: 'Trims & accessories', location: 'Panipat', tags: ['Trims & accessories', 'White-label article'],
+    logoBg: '#EAE6DC', logoFg: '#7A6A4E',
+    catalogue: [{ id: 'c15', fileName: 'trims-lineup.jpg' }],
+    workHistory: [{ client: 'Panipat Home Textiles', role: 'Sub-Contractor', frequency: 'Recurring', start: '2016', end: 'present', desc: 'Zippers, interlinings, and hangtags for home textile packaging.' }] }
+];
+
+class Component extends DCLogic {
+  state = {
+    activeTab: 'discover',
+    selectedSupplierId: null,
+    showCreateRfq: false,
+    rfqPrefillSupplier: null,
+    resumeRfq: null,
+    filterType: '', filterLocation: '', filterTags: [],
+    searchOpen: false, searchQuery: ''
+  };
+
+  setTab = (tab) => this.setState({ activeTab: tab, selectedSupplierId: null });
+  openSupplier = (id) => this.setState({ selectedSupplierId: id });
+  backToDiscover = () => this.setState({ selectedSupplierId: null });
+  openCreateRfq = () => this.setState({ showCreateRfq: true, rfqPrefillSupplier: null, resumeRfq: null });
+  openCreateRfqFor = (supplierName) => this.setState({ showCreateRfq: true, rfqPrefillSupplier: supplierName, resumeRfq: null });
+  onResumeDraft = (rfq) => this.setState({ showCreateRfq: true, rfqPrefillSupplier: null, resumeRfq: rfq });
+  onViewSupplierProfile = (supplierName) => { const s = SUPPLIERS.find(x => x.name === supplierName); if (s) this.setState({ selectedSupplierId: s.id }); };
+  closeCreateRfq = () => this.setState({ showCreateRfq: false, resumeRfq: null });
+
+  setFilterType = (v) => this.setState({ filterType: v });
+  setFilterLocation = (v) => this.setState({ filterLocation: v });
+  toggleFilterTag = (tag) => this.setState(s => ({ filterTags: s.filterTags.includes(tag) ? s.filterTags.filter(t => t !== tag) : [...s.filterTags, tag] }));
+  clearFilters = () => this.setState({ filterType: '', filterLocation: '', filterTags: [], searchQuery: '' });
+  openSearch = () => this.setState({ searchOpen: true });
+  closeSearch = () => { if (!this.state.searchQuery) this.setState({ searchOpen: false }); };
+  setSearchQuery = (v) => this.setState({ searchQuery: v });
+
+  renderVals() {
+    const { activeTab, selectedSupplierId, showCreateRfq, filterType, filterLocation, filterTags, searchOpen, searchQuery, rfqPrefillSupplier } = this.state;
+    const q = searchQuery.trim().toLowerCase();
+    const filtered = SUPPLIERS.filter(s =>
+      (!filterType || s.type === filterType) &&
+      (!filterLocation || s.location === filterLocation) &&
+      (filterTags.length === 0 || filterTags.every(t => s.tags.includes(t))) &&
+      (!q || s.name.toLowerCase().includes(q) || s.mission.toLowerCase().includes(q))
+    );
+    const companyTypes = [...new Set(SUPPLIERS.map(s => s.type))];
+    const locations = [...new Set(SUPPLIERS.map(s => s.location))];
+    const allTags = [...new Set(SUPPLIERS.flatMap(s => s.tags))];
+    const selectedSupplier = SUPPLIERS.find(s => s.id === selectedSupplierId) || null;
+
+    const tabDefs = [
+      { id: 'profile', label: 'Profile' },
+      { id: 'discover', label: 'Discover suppliers' },
+      { id: 'rfq', label: 'My RFQs' }
+    ].map(t => ({ ...t, onClick: showCreateRfq ? undefined : () => this.setTab(t.id), disabled: showCreateRfq, cursor: showCreateRfq ? 'not-allowed' : 'pointer', color: showCreateRfq ? '#C7C5D6' : (activeTab === t.id && !selectedSupplierId ? '#403A77' : '#6B6A78'), border: activeTab === t.id && !selectedSupplierId && !showCreateRfq ? '#403A77' : 'transparent' }));
+
+    return {
+      tabs: tabDefs,
+      onOpenCreateRfq: this.openCreateRfq,
+      onLogout: () => { window.location.href = 'SourceSutra.dc.html'; },
+      showCreateRfq,
+      rfqPrefillSupplier,
+      resumeRfq: this.state.resumeRfq,
+      onResumeDraft: this.onResumeDraft,
+      onViewSupplierProfile: this.onViewSupplierProfile,
+      closeCreateRfq: this.closeCreateRfq,
+      showProfileNotRfq: !showCreateRfq && !!selectedSupplierId,
+      showDiscoverTab: !showCreateRfq && !selectedSupplierId && activeTab === 'discover',
+      showProfileTab: !showCreateRfq && !selectedSupplierId && activeTab === 'profile',
+      showRfqTab: !showCreateRfq && !selectedSupplierId && activeTab === 'rfq',
+      selectedSupplier,
+      backToDiscover: this.backToDiscover,
+      openCreateRfqFor: this.openCreateRfqFor,
+      filteredSuppliers: filtered,
+      totalCount: SUPPLIERS.length,
+      companyTypes, locations, allTags,
+      filterType, filterLocation, filterTags,
+      searchOpen, searchQuery,
+      setFilterType: this.setFilterType,
+      setFilterLocation: this.setFilterLocation,
+      toggleFilterTag: this.toggleFilterTag,
+      openSearch: this.openSearch,
+      closeSearch: this.closeSearch,
+      setSearchQuery: (e) => this.setSearchQuery(e.target.value),
+      clearFilters: this.clearFilters,
+      openSupplier: this.openSupplier
+    };
+  }
+}
+
+</script>
+</body>
+</html>
