@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./rfq-store.js"></script>
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  ::selection { background: #403A77; color: #FAF8F4; }
+  a { color: #403A77; }
+  a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid #403A77; outline-offset: 2px;
+  }
+  @keyframes weaveIn { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+  @keyframes floatUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4; color:#20202B;">
+
+<sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+  <dc-import name="ScreenLanding" hint-size="100%,100%"
+    on-signup="{{ handleSignup }}" stats="{{ stats }}" testimonials="{{ testimonials }}"></dc-import>
+</sc-if>
+
+<sc-if value="{{ isIntro }}">
+  <dc-import name="ScreenIntro" hint-size="100%,100%"
+    step="{{ introStep }}" reduced-motion="{{ prefersReducedMotion }}" on-skip="{{ handleSkipIntro }}"></dc-import>
+</sc-if>
+
+<sc-if value="{{ isDashboard }}">
+  <sc-if value="{{ showSupplierShellTabs }}" hint-placeholder-val="{{ false }}">
+    <div style="position:sticky; top:0; z-index:20; background:#FAF8F4; border-bottom:1px solid #E4DFD5;">
+      <div style="max-width:1080px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; gap:6px; overflow-x:auto;">
+        <sc-for list="{{ supplierTabs }}" as="tab" hint-placeholder-count="3">
+          <button onClick="{{ tab.onClick }}" style="background:none; border:none; padding:9px 14px; font-size:13.5px; font-weight:600; white-space:nowrap; cursor:pointer; color:{{ tab.color }}; border-bottom:2px solid {{ tab.border }};">{{ tab.label }}</button>
+        </sc-for>
+        <sc-if value="{{ showHeaderActions }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-left:auto; display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:1px; background:#F2EEE6; border:1px solid #E4DFD5; border-radius:8px; padding:2px;">
+              <a href="SourceSutraCustomer.dc.html" style="color:#6B6A78; padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600; white-space:nowrap; text-decoration:none;">Customer</a>
+              <button style="background:#403A77; color:#FAF8F4; border:none; padding:7px 12px; border-radius:6px; font-size:12.5px; font-weight:600; cursor:default; white-space:nowrap;">Supplier</button>
+            </div>
+            <button onClick="{{ handleLogout }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap;">Log out</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showMyProfile }}" hint-placeholder-val="{{ true }}">
+    <dc-import name="ScreenDashboard" hint-size="100%,100%"
+      active-section="{{ activeSectionOrNull }}"
+      overall-status="{{ overallStatus }}"
+      overall-status-style="{{ overallStatusStyle }}"
+      overall-status-desc="{{ overallStatusDesc }}"
+      is-onboarding-completed="{{ isOnboardingCompleted }}"
+      progress-percent="{{ progressPercent }}"
+      weave-slots="{{ weaveSlots }}"
+      section-cards="{{ sectionCards }}"
+      scenario="{{ scenario }}"
+      scenario-options="{{ scenarioOptions }}"
+      on-open-section="{{ openSection }}"
+      on-back="{{ backToOverview }}"
+      on-logout="{{ handleLogout }}"
+      identity="{{ identityVals }}"
+      financials="{{ financialsVals }}"
+      portfolio="{{ portfolioVals }}"
+    ></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showDiscoverRfqs }}" hint-placeholder-val="{{ false }}">
+    <dc-import name="SupplierDiscoverRFQs" hint-size="100%,100%"
+      rfqs="{{ filteredRfqs }}" total="{{ rfqsTotal }}"
+      contract-types="{{ rfqContractTypes }}" locations="{{ rfqLocations }}"
+      active-type="{{ rfqFilterType }}" active-location="{{ rfqFilterLocation }}" search-query="{{ rfqSearchQuery }}"
+      on-type="{{ setRfqFilterTypeH }}" on-location="{{ setRfqFilterLocationH }}" on-search-change="{{ setRfqSearchQueryH }}"
+      on-clear-filters="{{ clearRfqFilters }}" on-open-rfq="{{ openRfq }}"
+    ></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showRfqDetail }}" hint-placeholder-val="{{ false }}">
+    <dc-import name="SupplierRFQDetail" hint-size="100%,100%"
+      rfq="{{ selectedRfq }}" existing-quote="{{ existingQuoteForRfq }}"
+      on-back="{{ backToDiscoverRfqs }}" on-create-quote="{{ startQuote }}" on-view-quote="{{ editQuote }}"
+    ></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showCreateQuote }}" hint-placeholder-val="{{ false }}">
+    <dc-import name="SupplierCreateQuote" hint-size="100%,100%"
+      rfq="{{ selectedRfq }}" existing-quote="{{ existingQuoteForRfq }}" supplier-capabilities="{{ portfolioVals.customizationCapabilities }}" supplier-certifications="{{ portfolioVals.certifications }}"
+      on-back="{{ backToRfqDetailH }}" on-save-draft="{{ saveQuoteDraft }}" on-submit="{{ submitQuote }}" on-discard="{{ discardQuote }}"
+    ></dc-import>
+  </sc-if>
+
+  <sc-if value="{{ showQuotations }}" hint-placeholder-val="{{ false }}">
+    <dc-import name="SupplierQuotations" hint-size="100%,100%"
+      quotes="{{ quotesWithRfq }}" invitations="{{ invitationsWithRfq }}"
+      on-open-quote="{{ openQuoteFromList }}" on-open-invitation="{{ openRfq }}"
+    ></dc-import>
+  </sc-if>
+</sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CERT_CATEGORIES = ['Quality Management', 'Environmental Management', 'Health & Safety', 'Social Compliance', 'Sustainable & Organic Textiles', 'Recycled Materials', 'Chemical & Product Safety', 'Responsible Materials', 'Indian Regulatory & Legal Compliance', 'Buyer / Brand Audits', 'Other'];
+const CERT_NAME_OPTIONS = {
+  'Quality Management': ['ISO 9001', 'Other — type your own'],
+  'Environmental Management': ['ISO 14001', 'ISO 50001', 'Other — type your own'],
+  'Health & Safety': ['ISO 45001', 'Other — type your own'],
+  'Social Compliance': ['SA8000', 'WRAP', 'BSCI', 'SMETA / SEDEX', 'Other — type your own'],
+  'Sustainable & Organic Textiles': ['GOTS', 'OCS', 'OEKO-TEX Standard 100', 'Other — type your own'],
+  'Recycled Materials': ['GRS', 'RCS', 'Other — type your own'],
+  'Responsible Materials': ['RDS (Responsible Down Standard)', 'RWS (Responsible Wool Standard)', 'RMS (Responsible Mohair Standard)', 'FSC', 'Other — type your own'],
+  'Indian Regulatory & Legal Compliance': ['Import Export Code (IEC)', 'Factory Licence', 'Pollution Control / Environmental Consent', 'BIS Certification', 'Other — type your own']
+};
+const CERT_FREE_TEXT_CATEGORIES = ['Chemical & Product Safety', 'Other'];
+const AUDIT_TYPE_OPTIONS = ['Social compliance audit', 'Quality audit', 'Ethical audit', 'Technical/capability audit', 'Other'];
+const AUDIT_OUTCOME_OPTIONS = ['Passed', 'Passed with corrective actions', 'Failed', 'Pending result'];
+const INVITED_RFQ_IDS = ['rfq1', 'rfq4'];
+
+function computeCertBadge(c) {
+  if (c.category === 'Buyer / Brand Audits') return { label: c.outcome || 'Pending result', bg: c.outcome === 'Passed' ? '#EFF3EE' : c.outcome === 'Failed' ? '#F7ECE8' : '#F2EEE6', fg: c.outcome === 'Passed' ? '#5B7A5B' : c.outcome === 'Failed' ? '#B5654A' : '#6B6A78' };
+  if (c.fieldStatus === 'needs_correction') return { label: 'Needs correction', bg: '#F7ECE8', fg: '#B5654A' };
+  const expired = !c.doesNotExpire && c.expiryDate && new Date(c.expiryDate) < new Date();
+  if (expired) return { label: 'Expired', bg: '#F7ECE8', fg: '#B5654A' };
+  const daysToExpiry = (!c.doesNotExpire && c.expiryDate) ? (new Date(c.expiryDate) - new Date()) / 86400000 : null;
+  const expiringSoon = daysToExpiry !== null && daysToExpiry >= 0 && daysToExpiry <= 60;
+  if (expiringSoon) return { label: 'Expiring soon', bg: '#FBF1DE', fg: '#B07A17' };
+  if (c.fieldStatus === 'verified') return { label: 'Verified', bg: '#EFF3EE', fg: '#5B7A5B' };
+  return { label: 'Self-declared', bg: '#EDECF6', fg: '#403A77' };
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: 'landing',
+    activeSection: null,
+    introStep: 0,
+    supplierScreen: 'profile',
+    selectedRfqId: null,
+    rfqs: (window.RFQStore ? window.RFQStore.getRfqs() : []),
+    quotes: (window.RFQStore ? window.RFQStore.getQuotes() : []),
+    editingQuoteId: null,
+    rfqFilterType: '', rfqFilterLocation: '', rfqSearchQuery: '',
+    scenario: 'to_be_started',
+    identity: {
+      company: '', contactName: '', designation: 'Owner',
+      aadhaarVerified: false, aadhaarLast4: '', aadhaarStage: 'idle',
+      email: '', emailOtpStage: 'idle', emailVerified: false, emailLanguage: 'English',
+      phone: '', phoneOtpStage: 'idle', phoneVerified: false,
+      altContact: '', website: '',
+      directors: [],
+      established: '', natureOfBusiness: '', yearsInBusiness: '',
+      docs: {
+        gst: { number: '', numberLabel: 'GST number *', docLabel: 'GSTIN certificate *', status: 'empty', fileName: '', fieldStatus: 'pending', error: '' },
+        pan: { number: '', numberLabel: 'PAN number *', docLabel: 'PAN card *', status: 'empty', fileName: '', fieldStatus: 'pending', error: '' },
+        msme: { number: '', numberLabel: 'MSME / Udyam number', docLabel: 'MSME / Udyam certificate', status: 'empty', fileName: '', fieldStatus: 'pending', error: '' },
+        cin: { number: '', numberLabel: 'CIN', docLabel: 'Certificate of incorporation (with CIN)', status: 'empty', fileName: '', fieldStatus: 'pending', error: '' }
+      },
+      status: 'not_started'
+    },
+    financials: {
+      bankCountry: 'India', bankName: '', beneficiaryName: '',
+      routingType: 'IFSC', routingCode: '', accountNumber: '', confirmAccountNumber: '',
+      billing: { line1: '', line2: '', landmark: '', city: '', state: '', pincode: '' },
+      legal: { line1: '', line2: '', landmark: '', city: '', state: '', pincode: '', taxCode: '', taxDocStatus: 'empty', taxDocFile: '' },
+      mgt7: [
+        { id: 'fy2223', year: 'FY 2022–23', status: 'empty', fileName: '' },
+        { id: 'fy2324', year: 'FY 2023–24', status: 'empty', fileName: '' },
+        { id: 'fy2425', year: 'FY 2024–25', status: 'empty', fileName: '' }
+      ],
+      signedFormStatus: 'empty', signedFormFile: '',
+      rptStatus: 'empty', rptFile: '',
+      otherDocs: [],
+      status: 'not_started'
+    },
+    portfolio: {
+      companyLogo: { status: 'empty', fileName: '' },
+      companyMission: '',
+      factoryArea: '', employees: '', monthlyCapacity: '', productionLines: '',
+      moq: '', incoterms: '', paymentTerms: '', leadTime: '',
+      customizationCapabilities: [],
+      products: [],
+      certifications: [],
+      facilityPhotos: [],
+      workHistory: [],
+      catalogue: [],
+      tags: [],
+      tagDraft: '',
+      status: 'not_started'
+    }
+  };
+
+  // ---------- navigation ----------
+  componentDidMount() {
+    this._prm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!window.RFQStore || this.state.rfqs.length === 0) {
+      const tryLoad = () => {
+        if (window.RFQStore) this.setState({ rfqs: window.RFQStore.getRfqs(), quotes: window.RFQStore.getQuotes() });
+        else setTimeout(tryLoad, 50);
+      };
+      tryLoad();
+    }
+  }
+  handleSignup = () => {
+    this.setState({ screen: 'intro', introStep: 0 });
+    if (this._prm) { this.setState({ introStep: 3 }); this._goDashboard(); return; }
+    this._timer1 = setTimeout(() => this.setState({ introStep: 1 }), 700);
+    this._timer2 = setTimeout(() => this.setState({ introStep: 2 }), 1500);
+    this._timer3 = setTimeout(() => this.setState({ introStep: 3 }), 2300);
+    this._timer4 = setTimeout(() => this._goDashboard(), 3300);
+  };
+  handleSkipIntro = () => {
+    [this._timer1, this._timer2, this._timer3, this._timer4].forEach(t => t && clearTimeout(t));
+    this._goDashboard();
+  };
+  _goDashboard = () => this.setState({ screen: 'dashboard' });
+
+  openSection = (id) => {
+    if (id === 'financials' && this.isFinancialsLocked()) return;
+    this.setState({ activeSection: id });
+  };
+  backToOverview = () => this.setState({ activeSection: null });
+  handleLogout = () => this.setState({ screen: 'landing', supplierScreen: 'profile', selectedRfqId: null });
+
+  goSupplierScreen = (screen) => this.setState({ supplierScreen: screen, selectedRfqId: null });
+  openRfq = (id) => this.setState({ supplierScreen: 'rfq_detail', selectedRfqId: id });
+  backToDiscoverRfqs = () => this.setState({ supplierScreen: 'discover_rfqs', selectedRfqId: null });
+  backToRfqDetail = (id) => this.setState({ supplierScreen: 'rfq_detail', selectedRfqId: id });
+  startQuote = (rfqId) => this.setState({ supplierScreen: 'create_quote', selectedRfqId: rfqId });
+  editQuote = (quoteId) => { const q = this.state.quotes.find(x => x.id === quoteId); this.setState({ supplierScreen: 'create_quote', selectedRfqId: q ? q.rfqId : null, editingQuoteId: quoteId }); };
+  setRfqFilterType = (v) => this.setState({ rfqFilterType: v });
+  setRfqFilterLocation = (v) => this.setState({ rfqFilterLocation: v });
+  setRfqSearchQuery = (v) => this.setState({ rfqSearchQuery: v });
+
+  saveQuoteDraft = (quoteData) => {
+    this.setState(s => {
+      const existing = s.quotes.find(q => q.id === quoteData.id);
+      const supplierName = s.identity.company || 'Your company';
+      const full = { ...(existing || {}), ...quoteData, status: 'draft', supplierName };
+      if (window.RFQStore) window.RFQStore.upsertQuote(full);
+      const quotes = existing ? s.quotes.map(q => q.id === quoteData.id ? full : q) : [...s.quotes, full];
+      return { quotes, editingQuoteId: null };
+    });
+  };
+  submitQuote = (quoteData) => {
+    this.setState(s => {
+      const existing = s.quotes.find(q => q.id === quoteData.id);
+      const submittedDate = new Date().toISOString().slice(0, 10);
+      const supplierName = s.identity.company || 'Your company';
+      const full = { ...(existing || {}), ...quoteData, status: 'submitted', submittedDate, supplierName };
+      if (window.RFQStore) window.RFQStore.upsertQuote(full);
+      const quotes = existing ? s.quotes.map(q => q.id === quoteData.id ? full : q) : [...s.quotes, full];
+      return { quotes, supplierScreen: 'quotations', editingQuoteId: null };
+    });
+  };
+  discardQuote = (quoteId) => { if (window.RFQStore) window.RFQStore.deleteQuote(quoteId); this.setState(s => ({ quotes: s.quotes.filter(q => q.id !== quoteId), supplierScreen: 'quotations', editingQuoteId: null })); };
+
+  isFinancialsLocked() {
+    const s = this.state.identity.status;
+    return s === 'not_started' || s === 'draft';
+  }
+
+  // ---------- scenario presets ----------
+  applyScenario = (name) => {
+    const base = () => ({
+      identity: { ...this.state.identity, directors: [], docs: { ...this.state.identity.docs } },
+      financials: { ...this.state.financials },
+      portfolio: { ...this.state.portfolio }
+    });
+    let s = base();
+    const mkDoc = (num, status, error, fieldStatus) => ({ number: num, status, fileName: status === 'uploaded' ? num.toLowerCase() + '.pdf' : '', error: error || '', fieldStatus: fieldStatus || (status === 'uploaded' ? 'verified' : 'pending') });
+
+    if (name === 'to_be_started') {
+      s.identity = { ...s.identity, company: '', contactName: '', aadhaarVerified: false, email: '', emailVerified: false, phone: '', phoneVerified: false, established: '', natureOfBusiness: '', yearsInBusiness: '', status: 'not_started', docs: { gst: { ...s.identity.docs.gst, ...mkDoc('', 'empty') }, pan: { ...s.identity.docs.pan, ...mkDoc('', 'empty') }, msme: { ...s.identity.docs.msme, ...mkDoc('', 'empty') }, cin: { ...s.identity.docs.cin, ...mkDoc('', 'empty') } } };
+      s.financials = { ...s.financials, status: 'not_started' };
+      s.portfolio = { ...s.portfolio, workHistory: [], catalogue: [], tags: [], certifications: [], status: 'not_started' };
+    } else if (name === 'draft') {
+      s.identity = { ...s.identity, company: 'Anand Knitfab', contactName: 'Suresh Anand', designation: 'Partner', aadhaarVerified: true, aadhaarLast4: '4821', email: 'suresh@anandknitfab.in', emailVerified: true, phone: '', phoneVerified: false, established: '2011-04-01', natureOfBusiness: 'Knit fabric manufacturing & garment CMT', yearsInBusiness: '15', status: 'draft', docs: { gst: { ...s.identity.docs.gst, ...mkDoc('33AANFA5678K1Z2', 'uploaded') }, pan: { ...s.identity.docs.pan, ...mkDoc('AANFA5678K', 'empty') }, msme: { ...s.identity.docs.msme, ...mkDoc('', 'empty') }, cin: { ...s.identity.docs.cin, ...mkDoc('', 'empty') } } };
+      s.financials = { ...s.financials, status: 'not_started' };
+      s.portfolio = { ...s.portfolio, companyMission: 'Precision knit fabric, delivered on time, every time.', companyLogo: { status: 'uploaded', fileName: 'company-logo.png' }, workHistory: [this._mkWork('Ramraj Cotton Mills', 'Sub-Contractor', 'Recurring', '2019', 'present', 'Supply of single-jersey knit greige fabric, 24–32 count, approx. 8,000 kg/month.')], catalogue: [], tags: ['Knitted fabric', 'Greige fabric'], status: 'draft' };
+    } else if (name === 'remediation') {
+      s.identity = { ...s.identity, company: 'Anand Knitfab', contactName: 'Suresh Anand', designation: 'Partner', aadhaarVerified: true, aadhaarLast4: '4821', email: 'suresh@anandknitfab.in', emailVerified: true, phone: '+91 98430 11267', phoneVerified: true, established: '2011-04-01', natureOfBusiness: 'Knit fabric manufacturing & garment CMT', yearsInBusiness: '15', status: 'remediation', docs: {
+        gst: { ...s.identity.docs.gst, ...mkDoc('33AANFA5678K1Z2', 'uploaded', "Name on the GST certificate reads 'Anand Knit Fabrics' — this doesn't match the company name entered, 'Anand Knitfab'. Update one of the two to match.", 'needs_correction') },
+        pan: { ...s.identity.docs.pan, ...mkDoc('AANFA5678K', 'uploaded') },
+        msme: { ...s.identity.docs.msme, ...mkDoc('UDYAM-TN-03-0041267', 'uploaded') },
+        cin: { ...s.identity.docs.cin, ...mkDoc('', 'empty') }
+      } };
+      s.financials = { ...s.financials, status: 'not_started' };
+      s.portfolio = { ...s.portfolio, companyMission: 'Precision knit fabric, delivered on time, every time.', companyLogo: { status: 'uploaded', fileName: 'company-logo.png' }, workHistory: [this._mkWork('Ramraj Cotton Mills', 'Sub-Contractor', 'Recurring', '2019', 'present', 'Supply of single-jersey knit greige fabric, 24–32 count, approx. 8,000 kg/month.')], catalogue: [], tags: ['Knitted fabric', 'Greige fabric'], status: 'draft' };
+    } else if (name === 'in_progress') {
+      s.identity = { ...s.identity, company: 'Bhilwara Processors', contactName: 'Kavita Sharma', designation: 'Director', aadhaarVerified: true, aadhaarLast4: '7734', email: 'kavita@bhilwaraprocessors.in', emailVerified: true, phone: '+91 94141 22890', phoneVerified: true, established: '2005-09-15', natureOfBusiness: 'Fabric dyeing & processing', yearsInBusiness: '21', status: 'submitted_pending', docs: {
+        gst: { ...s.identity.docs.gst, ...mkDoc('08AAECB1234F1Z6', 'uploaded', '', 'in_progress') },
+        pan: { ...s.identity.docs.pan, ...mkDoc('AAECB1234F', 'uploaded', '', 'in_progress') },
+        msme: { ...s.identity.docs.msme, ...mkDoc('UDYAM-RJ-05-0009876', 'uploaded', '', 'verified') },
+        cin: { ...s.identity.docs.cin, ...mkDoc('U17200RJ2005PTC020456', 'uploaded', '', 'in_progress') }
+      } };
+      s.financials = { ...s.financials, bankName: 'Union Bank of India', beneficiaryName: 'Bhilwara Processors', accountNumber: '', confirmAccountNumber: '', status: 'draft' };
+      s.portfolio = { ...s.portfolio, companyMission: 'Reactive and vat dyeing, precise shade matching, every batch.', companyLogo: { status: 'uploaded', fileName: 'company-logo.png' }, workHistory: [this._mkWork('Malhotra Woollens', 'Sub-Contractor', 'Annual Maintenance Contract', '2016', 'present', 'Reactive and vat dyeing of woven fabric for winterwear lines, 40,000m/month capacity.')], catalogue: [], tags: ['Dyeing', 'Fabric processing'], status: 'draft' };
+    } else if (name === 'portfolio_required') {
+      s.identity = { ...s.identity, company: 'Ludhiana Woolworks', contactName: 'Harpreet Singh', designation: 'Owner', aadhaarVerified: true, aadhaarLast4: '3390', email: 'harpreet@ludhianawoolworks.in', emailVerified: true, phone: '+91 98140 55321', phoneVerified: true, established: '2008-01-20', natureOfBusiness: 'Woven & knitwear manufacturing', yearsInBusiness: '18', status: 'verified', docs: {
+        gst: { ...s.identity.docs.gst, ...mkDoc('03AABCL7890Q1Z4', 'uploaded', '', 'verified') },
+        pan: { ...s.identity.docs.pan, ...mkDoc('AABCL7890Q', 'uploaded', '', 'verified') },
+        msme: { ...s.identity.docs.msme, ...mkDoc('UDYAM-PB-02-0032190', 'uploaded', '', 'verified') },
+        cin: { ...s.identity.docs.cin, ...mkDoc('U18101PB2008PTC031456', 'uploaded', '', 'verified') }
+      } };
+      s.financials = { ...s.financials, bankName: 'Punjab National Bank', beneficiaryName: 'Ludhiana Woolworks', accountNumber: '04452100019876', confirmAccountNumber: '04452100019876', routingCode: 'PUNB0044521', status: 'verified', signedFormStatus: 'uploaded', signedFormFile: 'signed-company-form.pdf', rptStatus: 'uploaded', rptFile: 'rpt-declaration.pdf' };
+      s.portfolio = { ...s.portfolio, companyMission: 'Woven and knitwear CMT for winterwear, built for volume.', companyLogo: { status: 'uploaded', fileName: 'company-logo.png' }, workHistory: [this._mkWork('Vardhman Textiles', 'Sub-Contractor', 'Recurring', '2014', 'present', 'Woven fabric sourcing and finishing for shirting lines, approx. 60,000m/quarter.')], catalogue: [], tags: ['Woven fabric', 'Garment CMT'], status: 'draft' };
+    } else if (name === 'completed') {
+      s.identity = { ...s.identity, company: 'Erode Textile Exports', contactName: 'Muthu Raman', designation: 'Director', aadhaarVerified: true, aadhaarLast4: '6612', email: 'muthu@erodetextile.in', emailVerified: true, phone: '+91 90031 44562', phoneVerified: true, established: '2002-06-10', natureOfBusiness: 'Home textile & terry towel manufacturing', yearsInBusiness: '24', status: 'verified', docs: {
+        gst: { ...s.identity.docs.gst, ...mkDoc('33AAACE4567R1Z9', 'uploaded', '', 'verified') },
+        pan: { ...s.identity.docs.pan, ...mkDoc('AAACE4567R', 'uploaded', '', 'verified') },
+        msme: { ...s.identity.docs.msme, ...mkDoc('UDYAM-TN-04-0055123', 'uploaded', '', 'verified') },
+        cin: { ...s.identity.docs.cin, ...mkDoc('U17299TN2002PTC048123', 'uploaded', '', 'verified') }
+      } };
+      s.financials = { ...s.financials, bankName: 'HDFC Bank', beneficiaryName: 'Erode Textile Exports', accountNumber: '50100234567890', confirmAccountNumber: '50100234567890', routingCode: 'HDFC0001234', status: 'verified', signedFormStatus: 'uploaded', signedFormFile: 'signed-company-form.pdf', rptStatus: 'uploaded', rptFile: 'rpt-declaration.pdf' };
+      s.portfolio = { ...s.portfolio, companyMission: 'Terry towels and bath linen, white-label, export-ready.', companyLogo: { status: 'uploaded', fileName: 'company-logo.png' }, workHistory: [
+        this._mkWork('Welspun India', 'Sub-Contractor', 'Annual Maintenance Contract', '2012', 'present', 'Terry towel weaving and finishing, private-label programs, ~4,00,000 pieces/year.'),
+        this._mkWork('Trident Group', 'Sub-Contractor', 'Recurring', '2018', '2023', 'Bath linen white-label article supply for retail export orders.')
+      ], catalogue: [{ id: 'c1', status: 'uploaded', fileName: 'terry-towel-lineup.jpg' }, { id: 'c2', status: 'uploaded', fileName: 'bath-linen-catalogue.jpg' }], tags: ['White-label article', 'Home textiles', 'Terry weaving'], status: 'submitted_pending',
+        certifications: [
+          this._mkCertRecord({ category: 'Quality Management', certName: 'ISO 9001', issuingBody: 'Bureau Veritas', certNumber: 'BV-QMS-2024-1187', scope: 'Quality management system covering weaving, dyeing, and finishing of terry towels and bath linen.', facility: 'Main unit, Erode', issueDate: '2024-02-01', expiryDate: '2027-01-31', certDocument: { status: 'uploaded', fileName: 'iso-9001-certificate.pdf' }, fieldStatus: 'verified', expanded: false }),
+          this._mkCertRecord({ category: 'Sustainable & Organic Textiles', certName: 'GOTS', issuingBody: 'Control Union', certNumber: 'GOTS-CU-2023-00542', scope: 'Organic cotton terry towel processing, Unit 2 — from greige to finished, dyed article.', facility: 'Unit 2, Erode', issueDate: '2023-09-15', expiryDate: '2026-09-20', certDocument: { status: 'uploaded', fileName: 'gots-certificate.pdf' }, fieldStatus: 'verified', expanded: false }),
+          this._mkCertRecord({ category: 'Indian Regulatory & Legal Compliance', certName: 'Factory Licence', issuingBody: 'Tamil Nadu Directorate of Industrial Safety & Health', certNumber: 'TN-FL-2019-08821', scope: 'Statutory factory operating licence for the Erode manufacturing unit.', facility: 'Main unit, Erode', issueDate: '2019-04-01', doesNotExpire: true, certDocument: { status: 'uploaded', fileName: 'factory-licence.pdf' }, fieldStatus: 'verified', expanded: false }),
+          this._mkCertRecord({ category: 'Buyer / Brand Audits', buyerName: 'Welspun India', auditType: 'Social compliance audit', auditDate: '2025-11-10', outcome: 'Passed with corrective actions', auditReportDoc: { status: 'uploaded', fileName: 'welspun-audit-report.pdf' }, expanded: false }),
+          this._mkCertRecord({ category: 'Social Compliance', certName: 'SA8000', issuingBody: 'SGS', certNumber: 'SA8K-2022-3390', scope: 'Social accountability management system, Main unit, Erode.', facility: 'Main unit, Erode', issueDate: '2022-06-01', expiryDate: '2025-05-31', certDocument: { status: 'uploaded', fileName: 'sa8000-certificate.pdf' }, fieldStatus: 'needs_correction', correctionReason: "Company name on the SA8000 certificate reads 'Erode Textile Exports Pvt Ltd' — this doesn't exactly match the registered name 'Erode Textile Exports'. Please re-upload with matching name or provide a name-change confirmation.", expanded: false })
+        ]
+      };
+    }
+    this.setState({ scenario: name, ...s });
+  };
+  _mkWork(client, role, freq, start, end, desc) { return { id: 'w' + Math.random().toString(36).slice(2, 8), clientName: client, role, frequency: freq, startYear: start, endYear: end, description: desc, expanded: false }; }
+
+  // ---------- generic field setters ----------
+  setIdentity = (field, value) => this.setState(s => ({ identity: { ...s.identity, [field]: value } }));
+  setIdentityDoc = (docId, field, value) => this.setState(s => ({ identity: { ...s.identity, docs: { ...s.identity.docs, [docId]: { ...s.identity.docs[docId], [field]: value } } } }));
+  setFinancials = (field, value) => this.setState(s => ({ financials: { ...s.financials, [field]: value } }));
+  setFinancialsNested = (group, field, value) => this.setState(s => ({ financials: { ...s.financials, [group]: { ...s.financials[group], [field]: value } } }));
+  setPortfolio = (field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, [field]: value } }));
+
+  // ---------- aadhaar ----------
+  startAadhaar = () => this.setState(s => ({ identity: { ...s.identity, aadhaarStage: 'sent' } }));
+  confirmAadhaar = () => this.setState(s => ({ identity: { ...s.identity, aadhaarVerified: true, aadhaarStage: 'done', aadhaarLast4: '4821' } }));
+  startAadhaarDirector = (id) => this.setState(s => ({ identity: { ...s.identity, directors: s.identity.directors.map(d => d.id === id ? { ...d, aadhaarStage: 'sent' } : d) } }));
+  confirmAadhaarDirector = (id) => this.setState(s => ({ identity: { ...s.identity, directors: s.identity.directors.map(d => d.id === id ? { ...d, aadhaarVerified: true, aadhaarStage: 'done', aadhaarLast4: Math.floor(1000 + Math.random() * 8999).toString() } : d) } }));
+
+  // ---------- otp ----------
+  sendEmailOtp = () => this.setState(s => ({ identity: { ...s.identity, emailOtpStage: 'sent' } }));
+  confirmEmailOtp = () => this.setState(s => ({ identity: { ...s.identity, emailOtpStage: 'done', emailVerified: true } }));
+  sendPhoneOtp = () => this.setState(s => ({ identity: { ...s.identity, phoneOtpStage: 'sent' } }));
+  confirmPhoneOtp = () => this.setState(s => ({ identity: { ...s.identity, phoneOtpStage: 'done', phoneVerified: true } }));
+
+  // ---------- directors ----------
+  addDirector = () => this.setState(s => ({ identity: { ...s.identity, directors: [...s.identity.directors, { id: 'd' + Math.random().toString(36).slice(2, 8), name: '', contact: '', email: '', aadhaarVerified: false, aadhaarStage: 'idle', aadhaarLast4: '' }] } }));
+  removeDirector = (id) => this.setState(s => ({ identity: { ...s.identity, directors: s.identity.directors.filter(d => d.id !== id) } }));
+  setDirectorField = (id, field, value) => this.setState(s => ({ identity: { ...s.identity, directors: s.identity.directors.map(d => d.id === id ? { ...d, [field]: value } : d) } }));
+
+  // ---------- generic upload sim ----------
+  uploadIdentityDoc = (docId) => { this.setIdentityDoc(docId, 'status', 'uploading'); setTimeout(() => this.setState(s => ({ identity: { ...s.identity, docs: { ...s.identity.docs, [docId]: { ...s.identity.docs[docId], status: 'uploaded', fileName: docId + '-certificate.pdf', fieldStatus: 'pending' } } } })), 700); };
+  removeIdentityDoc = (docId) => this.setState(s => ({ identity: { ...s.identity, docs: { ...s.identity.docs, [docId]: { ...s.identity.docs[docId], status: 'empty', fileName: '' } } } }));
+
+  uploadFinLegalTax = () => { this.setFinancialsNested('legal', 'taxDocStatus', 'uploading'); setTimeout(() => this.setState(s => ({ financials: { ...s.financials, legal: { ...s.financials.legal, taxDocStatus: 'uploaded', taxDocFile: 'tax-registration.pdf' } } })), 700); };
+  removeFinLegalTax = () => this.setFinancialsNested('legal', 'taxDocStatus', 'empty');
+
+  uploadMgt7 = (id) => { this.setState(s => ({ financials: { ...s.financials, mgt7: s.financials.mgt7.map(m => m.id === id ? { ...m, status: 'uploading' } : m) } })); setTimeout(() => this.setState(s => ({ financials: { ...s.financials, mgt7: s.financials.mgt7.map(m => m.id === id ? { ...m, status: 'uploaded', fileName: 'mgt7-' + id + '.pdf' } : m) } })), 700); };
+  removeMgt7 = (id) => this.setState(s => ({ financials: { ...s.financials, mgt7: s.financials.mgt7.map(m => m.id === id ? { ...m, status: 'empty', fileName: '' } : m) } }));
+
+  uploadSignedForm = () => { this.setFinancials('signedFormStatus', 'uploading'); setTimeout(() => this.setState(s => ({ financials: { ...s.financials, signedFormStatus: 'uploaded', signedFormFile: 'signed-company-form.pdf' } })), 700); };
+  removeSignedForm = () => this.setFinancials('signedFormStatus', 'empty');
+  uploadRpt = () => { this.setFinancials('rptStatus', 'uploading'); setTimeout(() => this.setState(s => ({ financials: { ...s.financials, rptStatus: 'uploaded', rptFile: 'rpt-declaration.pdf' } })), 700); };
+  removeRpt = () => this.setFinancials('rptStatus', 'empty');
+
+  addOtherDoc = () => this.setState(s => ({ financials: { ...s.financials, otherDocs: [...s.financials.otherDocs, { id: 'o' + Math.random().toString(36).slice(2, 8), status: 'empty', fileName: '' }] } }));
+  uploadOtherDoc = (id) => { this.setState(s => ({ financials: { ...s.financials, otherDocs: s.financials.otherDocs.map(o => o.id === id ? { ...o, status: 'uploading' } : o) } })); setTimeout(() => this.setState(s => ({ financials: { ...s.financials, otherDocs: s.financials.otherDocs.map(o => o.id === id ? { ...o, status: 'uploaded', fileName: 'supporting-doc.pdf' } : o) } })), 700); };
+  removeOtherDoc = (id) => this.setState(s => ({ financials: { ...s.financials, otherDocs: s.financials.otherDocs.filter(o => o.id !== id) } }));
+
+  // ---------- portfolio ----------
+  uploadLogo = () => { this.setState(s => ({ portfolio: { ...s.portfolio, companyLogo: { ...s.portfolio.companyLogo, status: 'uploading' } } })); setTimeout(() => this.setState(s => ({ portfolio: { ...s.portfolio, companyLogo: { status: 'uploaded', fileName: 'company-logo.png' } } })), 700); };
+  removeLogo = () => this.setPortfolio('companyLogo', { status: 'empty', fileName: '' });
+  setMission = (v) => this.setPortfolio('companyMission', v.slice(0, 100));
+
+  addWork = () => this.setState(s => ({ portfolio: { ...s.portfolio, workHistory: [...s.portfolio.workHistory, { id: 'w' + Math.random().toString(36).slice(2, 8), clientName: '', role: 'Sub-Contractor', frequency: 'One-time', startYear: '', endYear: '', description: '', expanded: true }] } }));
+  removeWork = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, workHistory: s.portfolio.workHistory.filter(w => w.id !== id) } }));
+  setWorkField = (id, field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, workHistory: s.portfolio.workHistory.map(w => w.id === id ? { ...w, [field]: value } : w) } }));
+  toggleWork = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, workHistory: s.portfolio.workHistory.map(w => w.id === id ? { ...w, expanded: !w.expanded } : w) } }));
+
+  addCatalogueItem = () => { const id = 'c' + Math.random().toString(36).slice(2, 8); this.setState(s => ({ portfolio: { ...s.portfolio, catalogue: [...s.portfolio.catalogue, { id, status: 'uploading', fileName: '' }] } })); setTimeout(() => this.setState(s => ({ portfolio: { ...s.portfolio, catalogue: s.portfolio.catalogue.map(c => c.id === id ? { ...c, status: 'uploaded', fileName: 'catalogue-image.jpg' } : c) } })), 700); };
+  removeCatalogueItem = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, catalogue: s.portfolio.catalogue.filter(c => c.id !== id) } }));
+
+  setProduction = (field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, [field]: value } }));
+  setTradeTerms = (field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, [field]: value } }));
+  toggleCapability = (cap) => this.setState(s => ({ portfolio: { ...s.portfolio, customizationCapabilities: s.portfolio.customizationCapabilities.includes(cap) ? s.portfolio.customizationCapabilities.filter(c => c !== cap) : [...s.portfolio.customizationCapabilities, cap] } }));
+
+  addProduct = () => this.setState(s => ({ portfolio: { ...s.portfolio, products: [...s.portfolio.products, { id: 'p' + Math.random().toString(36).slice(2, 8), name: '', category: '', material: '', moq: '', priceRange: '', expanded: true }] } }));
+  removeProduct = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, products: s.portfolio.products.filter(p => p.id !== id) } }));
+  setProductField = (id, field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, products: s.portfolio.products.map(p => p.id === id ? { ...p, [field]: value } : p) } }));
+  toggleProduct = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, products: s.portfolio.products.map(p => p.id === id ? { ...p, expanded: !p.expanded } : p) } }));
+
+  addCertification = () => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: [...s.portfolio.certifications, this._mkCertRecord()] } }));
+  removeCertification = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.filter(c => c.id !== id) } }));
+  setCertField = (id, field, value) => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(c => c.id === id ? { ...c, [field]: value } : c) } }));
+  toggleCertification = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(c => c.id === id ? { ...c, expanded: !c.expanded } : c) } }));
+  addSupportingEvidence = (certId) => { const eid = 'ev' + Math.random().toString(36).slice(2, 8); this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(c => c.id === certId ? { ...c, supportingEvidence: [...c.supportingEvidence, { id: eid, status: 'uploading', fileName: '' }] } : c) } })); setTimeout(() => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(c => c.id === certId ? { ...c, supportingEvidence: c.supportingEvidence.map(e => e.id === eid ? { ...e, status: 'uploaded', fileName: 'evidence-doc.pdf' } : e) } : c) } })), 700); };
+  removeSupportingEvidence = (certId, eid) => this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(c => c.id === certId ? { ...c, supportingEvidence: c.supportingEvidence.filter(e => e.id !== eid) } : c) } }));
+  uploadCertDoc = (certId) => { this.setCertField(certId, 'certDocument', { status: 'uploading', fileName: '' }); setTimeout(() => this.setCertField(certId, 'certDocument', { status: 'uploaded', fileName: 'certificate.pdf' }), 700); };
+  removeCertDoc = (certId) => this.setCertField(certId, 'certDocument', { status: 'empty', fileName: '' });
+  uploadAuditReport = (certId) => { this.setCertField(certId, 'auditReportDoc', { status: 'uploading', fileName: '' }); setTimeout(() => this.setCertField(certId, 'auditReportDoc', { status: 'uploaded', fileName: 'audit-report.pdf' }), 700); };
+  removeAuditReport = (certId) => this.setCertField(certId, 'auditReportDoc', { status: 'empty', fileName: '' });
+
+  _mkCertRecord(overrides) {
+    return {
+      id: 'cert' + Math.random().toString(36).slice(2, 8),
+      category: '', certName: '', customName: '',
+      certNumber: '', issuingBody: '', scope: '', facility: '',
+      issueDate: '', expiryDate: '', doesNotExpire: false,
+      lastAuditDate: '', nextAuditDate: '', verificationUrl: '',
+      certDocument: { status: 'empty', fileName: '' },
+      supportingEvidence: [],
+      fieldStatus: 'self_declared', correctionReason: '',
+      buyerName: '', auditType: '', auditDate: '', outcome: '',
+      auditReportDoc: { status: 'empty', fileName: '' },
+      expanded: true,
+      ...(overrides || {})
+    };
+  }
+
+  addFacilityPhoto = () => { const id = 'fp' + Math.random().toString(36).slice(2, 8); this.setState(s => ({ portfolio: { ...s.portfolio, facilityPhotos: [...s.portfolio.facilityPhotos, { id, status: 'uploading', fileName: '' }] } })); setTimeout(() => this.setState(s => ({ portfolio: { ...s.portfolio, facilityPhotos: s.portfolio.facilityPhotos.map(f => f.id === id ? { ...f, status: 'uploaded', fileName: 'facility-photo.jpg' } : f) } })), 700); };
+  removeFacilityPhoto = (id) => this.setState(s => ({ portfolio: { ...s.portfolio, facilityPhotos: s.portfolio.facilityPhotos.filter(f => f.id !== id) } }));
+
+  setTagDraft = (v) => this.setPortfolio('tagDraft', v);
+  addTag = (tag) => { const t = (tag || this.state.portfolio.tagDraft || '').trim(); if (!t || this.state.portfolio.tags.includes(t)) { this.setPortfolio('tagDraft', ''); return; } this.setState(s => ({ portfolio: { ...s.portfolio, tags: [...s.portfolio.tags, t], tagDraft: '' } })); };
+  removeTag = (tag) => this.setState(s => ({ portfolio: { ...s.portfolio, tags: s.portfolio.tags.filter(t => t !== tag) } }));
+
+  // ---------- section-level actions ----------
+  saveDraft = (section) => this.setState(s => ({ [section]: { ...s[section], status: s[section].status === 'not_started' ? 'draft' : s[section].status } }));
+  submitSection = (section) => {
+    this.setState(s => ({ [section]: { ...s[section], status: 'submitted_pending' }, activeSection: null }));
+    setTimeout(() => this.setState(s => s[section].status === 'submitted_pending' ? ({ [section]: { ...s[section], status: 'verified' } }) : null), 3200);
+  };
+  cancelSection = () => this.setState({ activeSection: null });
+
+  // ---------- computed ----------
+  computeOverallStatus() {
+    const { identity, financials, portfolio } = this.state;
+    if (identity.status === 'remediation' || financials.status === 'remediation') return 'Verification – Remediation Required';
+    if (identity.status === 'submitted_pending' || financials.status === 'submitted_pending') return 'Verification In Progress';
+    if (identity.status === 'verified' && financials.status === 'verified') {
+      if (portfolio.status === 'submitted_pending' || portfolio.status === 'verified') return 'Onboarding Completed';
+      return 'Verification Completed – Portfolio Required';
+    }
+    if (identity.status === 'not_started' && financials.status === 'not_started' && portfolio.status === 'not_started') return 'To be Started';
+    return 'Draft';
+  }
+
+  statusStyle(label) {
+    const map = {
+      'To be Started': { bg: '#F2EEE6', fg: '#6B6A78', border: '#E4DFD5' },
+      'Draft': { bg: '#EDECF6', fg: '#403A77', border: '#D6D4EC' },
+      'Verification In Progress': { bg: '#403A77', fg: '#FAF8F4', border: '#403A77' },
+      'Verification – Remediation Required': { bg: '#F7ECE8', fg: '#B5654A', border: '#EAD1C7' },
+      'Verification Completed – Portfolio Required': { bg: '#EFF3EE', fg: '#5B7A5B', border: '#D6E3D6' },
+      'Onboarding Completed': { bg: '#5B7A5B', fg: '#FAF8F4', border: '#5B7A5B' }
+    };
+    return map[label] || map['To be Started'];
+  }
+
+  sectionWeight(status) {
+    const map = { not_started: 0, draft: 0.45, submitted_pending: 0.8, remediation: 0.6, verified: 1 };
+    return map[status] ?? 0;
+  }
+
+  computeProgressPercent() {
+    const { identity, financials, portfolio } = this.state;
+    const pct = (this.sectionWeight(identity.status) * 0.4 + this.sectionWeight(financials.status) * 0.4 + this.sectionWeight(portfolio.status) * 0.2) * 100;
+    return Math.round(pct);
+  }
+
+  weaveSlots() {
+    const pct = this.computeProgressPercent();
+    const total = 18;
+    const filledCount = Math.round((pct / 100) * total);
+    const arr = [];
+    for (let i = 0; i < total; i++) arr.push({ id: i, filled: i < filledCount });
+    return arr;
+  }
+
+  sectionStatusLabel(status) {
+    const map = { not_started: 'To be started', draft: 'Draft', submitted_pending: 'In verification', remediation: 'Needs correction', verified: 'Verified' };
+    return map[status] || 'To be started';
+  }
+
+  renderVals() {
+    const { screen, identity, financials, portfolio, scenario, activeSection, introStep, supplierScreen, selectedRfqId, quotes, rfqs, rfqFilterType, rfqFilterLocation, rfqSearchQuery } = this.state;
+    const overallStatus = this.computeOverallStatus();
+    const isOnboardingCompleted = overallStatus === 'Onboarding Completed';
+
+    const q = rfqSearchQuery.trim().toLowerCase();
+    const filteredRfqs = rfqs.filter(r =>
+      r.status === 'active' &&
+      (!rfqFilterType || r.contractType === rfqFilterType) &&
+      (!rfqFilterLocation || r.buyerLocation === rfqFilterLocation) &&
+      (!q || r.title.toLowerCase().includes(q) || r.buyer.toLowerCase().includes(q))
+    );
+    const rfqContractTypes = [...new Set(rfqs.map(r => r.contractType))];
+    const rfqLocations = [...new Set(rfqs.map(r => r.buyerLocation))];
+    const selectedRfq = rfqs.find(r => r.id === selectedRfqId) || null;
+    const existingQuoteForRfq = selectedRfq ? (quotes.find(qt => qt.rfqId === selectedRfq.id) || null) : null;
+    const quotesWithRfq = quotes.map(qt => ({ ...qt, rfq: rfqs.find(r => r.id === qt.rfqId) })).filter(qt => qt.rfq);
+    const invitationsWithRfq = INVITED_RFQ_IDS.map(id => rfqs.find(r => r.id === id)).filter(Boolean).map(r => ({ rfq: r, alreadyQuoted: quotes.some(qt => qt.rfqId === r.id) }));
+    const overallStatusStyle = this.statusStyle(overallStatus);
+    const financialsLocked = this.isFinancialsLocked();
+
+    const descMap = {
+      'To be Started': 'Begin with Identity — it unlocks Financials once submitted.',
+      'Draft': 'Pick up where you left off. Portfolio can be filled any time.',
+      'Verification In Progress': "We're checking your submitted details. This usually takes a few days.",
+      'Verification – Remediation Required': 'One field needs a fix before we can continue verifying you.',
+      'Verification Completed – Portfolio Required': 'Identity and Financials are verified. Submit your Portfolio to finish.',
+      'Onboarding Completed': "You're a verified supplier, discoverable by manufacturers across the network."
+    };
+
+    const sectionCards = [
+      { id: 'identity', title: 'Identity', desc: 'Company details, directors, and registration documents.', status: identity.status, statusLabel: this.sectionStatusLabel(identity.status), locked: false, lockReason: '', style: this.statusStyle(identity.status === 'not_started' ? 'To be Started' : identity.status === 'draft' ? 'Draft' : identity.status === 'submitted_pending' ? 'Verification In Progress' : identity.status === 'remediation' ? 'Verification – Remediation Required' : 'Onboarding Completed') },
+      { id: 'financials', title: 'Financials', desc: 'Bank details, addresses, and company filings.', status: financials.status, statusLabel: this.sectionStatusLabel(financials.status), locked: financialsLocked, lockReason: 'Complete Identity first — submit it for verification to unlock Financials.', style: this.statusStyle(financials.status === 'not_started' ? 'To be Started' : financials.status === 'draft' ? 'Draft' : financials.status === 'submitted_pending' ? 'Verification In Progress' : financials.status === 'remediation' ? 'Verification – Remediation Required' : 'Onboarding Completed') },
+      { id: 'portfolio', title: 'Portfolio', desc: 'Work history, catalogue, and tags — fillable any time, submitted last.', status: portfolio.status, statusLabel: this.sectionStatusLabel(portfolio.status), locked: false, lockReason: '', style: this.statusStyle(portfolio.status === 'not_started' ? 'To be Started' : portfolio.status === 'draft' ? 'Draft' : portfolio.status === 'submitted_pending' ? 'Verification In Progress' : 'Onboarding Completed') }
+    ];
+
+    const scenarioOptions = [
+      { id: 'to_be_started', label: 'To be started' },
+      { id: 'draft', label: 'Draft' },
+      { id: 'in_progress', label: 'Verification in progress' },
+      { id: 'remediation', label: 'Remediation required' },
+      { id: 'portfolio_required', label: 'Portfolio required' },
+      { id: 'completed', label: 'Onboarding completed' }
+    ].map(o => ({ ...o, onClick: () => this.applyScenario(o.id), active: o.id === scenario }));
+
+    // Identity vals
+    const docIds = ['gst', 'pan', 'msme', 'cin'];
+    const identityDocs = docIds.map(id => {
+      const d = identity.docs[id];
+      return { id, ...d, onNumberChange: (e) => this.setIdentityDoc(id, 'number', e.target.value), onUpload: () => this.uploadIdentityDoc(id), onRemove: () => this.removeIdentityDoc(id) };
+    });
+    const directors = identity.directors.map(d => ({
+      ...d,
+      onNameChange: (e) => this.setDirectorField(d.id, 'name', e.target.value),
+      onContactChange: (e) => this.setDirectorField(d.id, 'contact', e.target.value),
+      onEmailChange: (e) => this.setDirectorField(d.id, 'email', e.target.value),
+      onRemove: () => this.removeDirector(d.id),
+      onAadhaarStart: () => this.startAadhaarDirector(d.id),
+      onAadhaarConfirm: () => this.confirmAadhaarDirector(d.id)
+    }));
+
+    const identityVals = {
+      ...identity,
+      docs: identityDocs,
+      directorsList: directors,
+      statusLabel: this.sectionStatusLabel(identity.status),
+      designationOptions: ['Owner', 'Partner', 'Director', 'Sales Lead', 'Sales Manager', 'Procurement Lead', 'Procurement Manager', 'Employee'],
+      languageOptions: ['English', 'Hindi', 'Tamil', 'Gujarati', 'Punjabi'],
+      onField: (f) => (e) => this.setIdentity(f, e.target.value),
+      onAadhaarStart: this.startAadhaar,
+      onAadhaarConfirm: this.confirmAadhaar,
+      onEmailOtpSend: this.sendEmailOtp,
+      onEmailOtpConfirm: this.confirmEmailOtp,
+      onPhoneOtpSend: this.sendPhoneOtp,
+      onPhoneOtpConfirm: this.confirmPhoneOtp,
+      onAddDirector: this.addDirector,
+      onSave: () => this.saveDraft('identity'),
+      onSubmit: () => this.submitSection('identity'),
+      onCancel: this.cancelSection
+    };
+
+    // Financials vals
+    const mgt7 = financials.mgt7.map(m => ({ ...m, onUpload: () => this.uploadMgt7(m.id), onRemove: () => this.removeMgt7(m.id) }));
+    const otherDocs = financials.otherDocs.map(o => ({ ...o, onUpload: () => this.uploadOtherDoc(o.id), onRemove: () => this.removeOtherDoc(o.id) }));
+    const accountMismatch = financials.confirmAccountNumber.length > 0 && financials.accountNumber !== financials.confirmAccountNumber;
+    const financialsVals = {
+      ...financials,
+      mgt7List: mgt7,
+      otherDocsList: otherDocs,
+      accountMismatch,
+      statusLabel: this.sectionStatusLabel(financials.status),
+      locked: financialsLocked,
+      routingTypeOptions: ['IFSC', 'Bank Code', 'BSB', 'Sort Code', 'Transit Number & Institution Number'],
+      onField: (f) => (e) => this.setFinancials(f, e.target.value),
+      onBilling: (f) => (e) => this.setFinancialsNested('billing', f, e.target.value),
+      onLegal: (f) => (e) => this.setFinancialsNested('legal', f, e.target.value),
+      onTaxUpload: this.uploadFinLegalTax,
+      onTaxRemove: this.removeFinLegalTax,
+      onSignedUpload: this.uploadSignedForm,
+      onSignedRemove: this.removeSignedForm,
+      onRptUpload: this.uploadRpt,
+      onRptRemove: this.removeRpt,
+      onAddOtherDoc: this.addOtherDoc,
+      onSave: () => this.saveDraft('financials'),
+      onSubmit: () => this.submitSection('financials'),
+      onCancel: this.cancelSection
+    };
+
+    // Portfolio vals
+    const workList = portfolio.workHistory.map(w => ({
+      ...w,
+      onToggle: () => this.toggleWork(w.id),
+      onRemove: () => this.removeWork(w.id),
+      onClient: (e) => this.setWorkField(w.id, 'clientName', e.target.value),
+      onRole: (e) => this.setWorkField(w.id, 'role', e.target.value),
+      onFreq: (e) => this.setWorkField(w.id, 'frequency', e.target.value),
+      onStart: (e) => this.setWorkField(w.id, 'startYear', e.target.value),
+      onEnd: (e) => this.setWorkField(w.id, 'endYear', e.target.value),
+      onDesc: (e) => this.setWorkField(w.id, 'description', e.target.value.slice(0, 1000))
+    }));
+    const catalogueList = portfolio.catalogue.map(c => ({ ...c, onRemove: () => this.removeCatalogueItem(c.id) }));
+    const tagsList = portfolio.tags.map(t => ({ value: t, onRemove: () => this.removeTag(t) }));
+    const suggestedTags = ['Knitted fabric', 'Woven fabric', 'Garment CMT', 'Embroidery', 'Dyeing & processing', 'Trims & accessories', 'White-label article', 'Greige fabric'].filter(t => !portfolio.tags.includes(t)).map(t => ({ value: t, onAdd: () => this.addTag(t) }));
+
+    const capabilityTaxonomy = ['Fabric', 'Colour', 'GSM', 'Fit', 'Pattern', 'Labels', 'Hangtags', 'Packaging', 'Embroidery', 'Screen printing', 'Digital printing', 'Heat transfer', 'Wash/finish', 'Hardware', 'Trims'];
+    const capabilityChips = capabilityTaxonomy.map(cap => {
+      const active = portfolio.customizationCapabilities.includes(cap);
+      return { value: cap, active, onClick: () => this.toggleCapability(cap), bg: active ? '#403A77' : '#fff', fg: active ? '#FAF8F4' : '#403A77', border: active ? '#403A77' : '#D6D4EC' };
+    });
+
+    const productList = portfolio.products.map(p => ({
+      ...p,
+      headerLabel: p.name ? (p.name + (p.category ? ' · ' + p.category : '')) : 'New product',
+      onToggle: () => this.toggleProduct(p.id),
+      onRemove: () => this.removeProduct(p.id),
+      onName: (e) => this.setProductField(p.id, 'name', e.target.value),
+      onCategory: (e) => this.setProductField(p.id, 'category', e.target.value),
+      onMaterial: (e) => this.setProductField(p.id, 'material', e.target.value),
+      onMoq: (e) => this.setProductField(p.id, 'moq', e.target.value),
+      onPriceRange: (e) => this.setProductField(p.id, 'priceRange', e.target.value)
+    }));
+
+    const certList = portfolio.certifications.map(c => {
+      const isAudit = c.category === 'Buyer / Brand Audits';
+      const isFreeTextCategory = CERT_FREE_TEXT_CATEGORIES.includes(c.category);
+      const nameOptions = CERT_NAME_OPTIONS[c.category] || [];
+      const showCustomName = isFreeTextCategory || c.certName === 'Other — type your own';
+      const badge = computeCertBadge(c);
+      const displayName = isAudit ? (c.buyerName || 'New audit') : (showCustomName ? (c.customName || 'New certification') : (c.certName || 'New certification'));
+      return {
+        ...c, isAudit, isAuditNegated: !isAudit, isFreeTextCategory, showCustomName,
+        showNameDropdown: !showCustomName && nameOptions.length > 0,
+        customNamePlaceholder: c.category === 'Chemical & Product Safety' ? 'Standard / programme name (e.g. ZDHC, REACH) *' : 'Certification / licence name *',
+        expiryOpacity: c.doesNotExpire ? 0.5 : 1,
+        nameOptions,
+        badge,
+        headerLabel: isAudit ? ('Audit — ' + displayName) : displayName,
+        onToggle: () => this.toggleCertification(c.id),
+        onRemove: () => this.removeCertification(c.id),
+        onCategory: (e) => { const cat = e.target.value; this.setState(s => ({ portfolio: { ...s.portfolio, certifications: s.portfolio.certifications.map(x => x.id === c.id ? { ...x, category: cat, certName: '', customName: '' } : x) } })); },
+        onCertName: (e) => this.setCertField(c.id, 'certName', e.target.value),
+        onCustomName: (e) => this.setCertField(c.id, 'customName', e.target.value),
+        onNumber: (e) => this.setCertField(c.id, 'certNumber', e.target.value),
+        onIssuingBody: (e) => this.setCertField(c.id, 'issuingBody', e.target.value),
+        onScope: (e) => this.setCertField(c.id, 'scope', e.target.value),
+        onFacility: (e) => this.setCertField(c.id, 'facility', e.target.value),
+        onIssueDate: (e) => this.setCertField(c.id, 'issueDate', e.target.value),
+        onExpiryDate: (e) => this.setCertField(c.id, 'expiryDate', e.target.value),
+        onToggleDoesNotExpire: () => this.setCertField(c.id, 'doesNotExpire', !c.doesNotExpire),
+        onLastAuditDate: (e) => this.setCertField(c.id, 'lastAuditDate', e.target.value),
+        onNextAuditDate: (e) => this.setCertField(c.id, 'nextAuditDate', e.target.value),
+        onVerificationUrl: (e) => this.setCertField(c.id, 'verificationUrl', e.target.value),
+        onUploadCertDoc: () => this.uploadCertDoc(c.id),
+        onRemoveCertDoc: () => this.removeCertDoc(c.id),
+        certDocIsEmpty: c.certDocument.status === 'empty', certDocIsUploading: c.certDocument.status === 'uploading', certDocIsUploaded: c.certDocument.status === 'uploaded',
+        evidenceList: c.supportingEvidence.map(e => ({ ...e, isUploading: e.status === 'uploading', isUploaded: e.status === 'uploaded', onRemove: () => this.removeSupportingEvidence(c.id, e.id) })),
+        onAddEvidence: () => this.addSupportingEvidence(c.id),
+        onBuyerName: (e) => this.setCertField(c.id, 'buyerName', e.target.value),
+        onAuditType: (e) => this.setCertField(c.id, 'auditType', e.target.value),
+        onAuditDate: (e) => this.setCertField(c.id, 'auditDate', e.target.value),
+        onOutcome: (e) => this.setCertField(c.id, 'outcome', e.target.value),
+        onUploadAuditReport: () => this.uploadAuditReport(c.id),
+        onRemoveAuditReport: () => this.removeAuditReport(c.id),
+        auditReportIsEmpty: c.auditReportDoc.status === 'empty', auditReportIsUploading: c.auditReportDoc.status === 'uploading', auditReportIsUploaded: c.auditReportDoc.status === 'uploaded'
+      };
+    });
+    const certVerifiedCount = certList.filter(c => c.badge.label === 'Verified').length;
+    const certExpiringCount = certList.filter(c => c.badge.label === 'Expiring soon').length;
+    const certExpiredCount = certList.filter(c => c.badge.label === 'Expired').length;
+    const certCategoriesCovered = new Set(portfolio.certifications.map(c => c.category).filter(Boolean)).size;
+    const certSummary = { total: certList.length, verified: certVerifiedCount, expiringSoon: certExpiringCount, expired: certExpiredCount, categoriesCovered: certCategoriesCovered, categoriesTotal: CERT_CATEGORIES.length };
+
+    const facilityPhotoList = portfolio.facilityPhotos.map(f => ({ ...f, isUploading: f.status === 'uploading', isUploaded: f.status === 'uploaded', onRemove: () => this.removeFacilityPhoto(f.id) }));
+
+    const portfolioVals = {
+      ...portfolio,
+      statusLabel: this.sectionStatusLabel(portfolio.status),
+      workList,
+      catalogueList,
+      tagsList,
+      suggestedTags,
+      capabilityChips,
+      productList,
+      noProducts: productList.length === 0,
+      certList,
+      noCerts: certList.length === 0,
+      certSummary,
+      certCategoryOptions: CERT_CATEGORIES,
+      auditTypeOptions: AUDIT_TYPE_OPTIONS,
+      outcomeOptions: AUDIT_OUTCOME_OPTIONS,
+      facilityPhotoList,
+      missionCount: portfolio.companyMission.length,
+      roleOptions: ['Primary Contractor', 'Sub-Contractor'],
+      freqOptions: ['One-time', 'Recurring', 'Annual Maintenance Contract'],
+      onUploadLogo: this.uploadLogo,
+      onRemoveLogo: this.removeLogo,
+      onMissionChange: (e) => this.setMission(e.target.value),
+      onFactoryArea: (e) => this.setProduction('factoryArea', e.target.value),
+      onEmployees: (e) => this.setProduction('employees', e.target.value),
+      onMonthlyCapacity: (e) => this.setProduction('monthlyCapacity', e.target.value),
+      onProductionLines: (e) => this.setProduction('productionLines', e.target.value),
+      onMoq: (e) => this.setTradeTerms('moq', e.target.value),
+      onIncoterms: (e) => this.setTradeTerms('incoterms', e.target.value),
+      onPaymentTerms: (e) => this.setTradeTerms('paymentTerms', e.target.value),
+      onLeadTime: (e) => this.setTradeTerms('leadTime', e.target.value),
+      onAddWork: this.addWork,
+      onAddCatalogue: this.addCatalogueItem,
+      onAddProduct: this.addProduct,
+      onAddCertification: this.addCertification,
+      onAddFacilityPhoto: this.addFacilityPhoto,
+      onTagDraftChange: (e) => this.setTagDraft(e.target.value),
+      onTagKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addTag(); } },
+      onTagAddClick: () => this.addTag(),
+      onSave: () => this.saveDraft('portfolio'),
+      onSubmit: () => this.submitSection('portfolio'),
+      onCancel: this.cancelSection
+    };
+
+    return {
+      isLanding: screen === 'landing',
+      isIntro: screen === 'intro',
+      isDashboard: screen === 'dashboard',
+      handleSignup: this.handleSignup,
+      handleSkipIntro: this.handleSkipIntro,
+      introStep,
+      prefersReducedMotion: !!this._prm,
+      stats: [
+        { value: '2,400+', label: 'Verified suppliers on the network' },
+        { value: '₹840 Cr', label: 'Articles sourced through verified suppliers' },
+        { value: '9 days', label: 'Average time to verified, once submitted' }
+      ],
+      testimonials: [
+        { quote: "We used to redo the same KYC paperwork for every new manufacturer that reached out. Getting verified once on SourceSutra and staying discoverable has cut that entirely — we just get called now.", name: 'Suresh Anand', role: 'Partner, Anand Knitfab', place: 'Tiruppur' },
+        { quote: "Manufacturers found us for dyeing work we'd never have won through cold outreach. The verification took about a week, and we haven't had to repeat it since.", name: 'Kavita Sharma', role: 'Director, Bhilwara Processors', place: 'Bhilwara' }
+      ],
+      activeSectionOrNull: activeSection,
+      isOnboardingCompleted,
+      overallStatus, overallStatusStyle,
+      overallStatusDesc: descMap[overallStatus],
+      progressPercent: this.computeProgressPercent(),
+      weaveSlots: this.weaveSlots(),
+      sectionCards,
+      scenario, scenarioOptions,
+      openSection: this.openSection,
+      backToOverview: this.backToOverview,
+      handleLogout: this.handleLogout,
+      identityVals, financialsVals, portfolioVals,
+
+      showSupplierShellTabs: isOnboardingCompleted && !activeSection && screen === 'dashboard',
+      showHeaderActions: isOnboardingCompleted && !activeSection && screen === 'dashboard' && supplierScreen !== 'profile',
+      supplierTabs: [
+        { id: 'profile', label: 'My profile' },
+        { id: 'discover_rfqs', label: 'Discover RFQs' },
+        { id: 'quotations', label: 'Quotations & invitations' }
+      ].map(t => ({ ...t, onClick: () => this.goSupplierScreen(t.id), color: (supplierScreen === t.id || (t.id === 'discover_rfqs' && (supplierScreen === 'rfq_detail' || supplierScreen === 'create_quote'))) ? '#403A77' : '#6B6A78', border: (supplierScreen === t.id || (t.id === 'discover_rfqs' && (supplierScreen === 'rfq_detail' || supplierScreen === 'create_quote'))) ? '#403A77' : 'transparent' })),
+      showMyProfile: supplierScreen === 'profile' || !isOnboardingCompleted,
+      showDiscoverRfqs: isOnboardingCompleted && supplierScreen === 'discover_rfqs',
+      showRfqDetail: isOnboardingCompleted && supplierScreen === 'rfq_detail',
+      showCreateQuote: isOnboardingCompleted && supplierScreen === 'create_quote',
+      showQuotations: isOnboardingCompleted && supplierScreen === 'quotations',
+
+      filteredRfqs, rfqsTotal: rfqs.filter(r => r.status === 'active').length,
+      rfqContractTypes, rfqLocations,
+      rfqFilterType, rfqFilterLocation, rfqSearchQuery,
+      setRfqFilterTypeH: (v) => this.setRfqFilterType(v),
+      setRfqFilterLocationH: (v) => this.setRfqFilterLocation(v),
+      setRfqSearchQueryH: (v) => this.setRfqSearchQuery(v),
+      clearRfqFilters: () => this.setState({ rfqFilterType: '', rfqFilterLocation: '', rfqSearchQuery: '' }),
+      openRfq: this.openRfq,
+      backToDiscoverRfqs: this.backToDiscoverRfqs,
+      backToRfqDetailH: () => this.backToRfqDetail(selectedRfqId),
+      selectedRfq, existingQuoteForRfq,
+      startQuote: this.startQuote,
+      editQuote: this.editQuote,
+      saveQuoteDraft: this.saveQuoteDraft,
+      submitQuote: this.submitQuote,
+      discardQuote: this.discardQuote,
+      quotesWithRfq, invitationsWithRfq,
+      openQuoteFromList: this.editQuote
+    };
+  }
+}
+
+</script>
+</body>
+</html>

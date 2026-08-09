@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  .qi-card:hover { border-color: #C9C4E8; }
+  .qi-tab:hover { color: #403A77; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:1080px; margin:0 auto; padding:0 24px 80px;">
+
+  <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 18px; color:#20202B;">Quotations &amp; invitations</h1>
+
+  <div style="display:flex; gap:4px; border-bottom:1px solid #E4DFD5; margin-bottom:22px;">
+    <button class="qi-tab" onClick="{{ onQuotationsTab }}" style="background:none; border:none; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; color:{{ quotationsColor }}; border-bottom:2px solid {{ quotationsBorder }};">Quotations ({{ quotationsCount }})</button>
+    <button class="qi-tab" onClick="{{ onInvitationsTab }}" style="background:none; border:none; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; color:{{ invitationsColor }}; border-bottom:2px solid {{ invitationsBorder }};">Invitations ({{ invitationsCount }})</button>
+  </div>
+
+  <sc-if value="{{ showQuotations }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ hasQuotations }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ quotationCards }}" as="q" hint-placeholder-count="3">
+          <button class="qi-card" onClick="{{ q.onClick }}" style="text-align:left; background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:16px 20px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:220px;">
+              <div style="font-size:14.5px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ q.title }}</div>
+              <div style="font-size:12.5px; color:#6C6AA0;">{{ q.buyer }} · {{ q.dateLabel }}</div>
+            </div>
+            <span style="background:{{ q.bg }}; color:{{ q.fg }}; font-size:12px; font-weight:600; padding:5px 12px; border-radius:99px; white-space:nowrap;">{{ q.statusLabel }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ noQuotations }}">
+      <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+        <p style="font-size:14.5px; margin:0;">No quotes yet — head to Discover RFQs to find one worth bidding on.</p>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ showInvitations }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ hasInvitations }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ invitationCards }}" as="inv" hint-placeholder-count="2">
+          <button class="qi-card" onClick="{{ inv.onClick }}" style="text-align:left; background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:16px 20px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:220px;">
+              <div style="font-size:14.5px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ inv.title }}</div>
+              <div style="font-size:12.5px; color:#6C6AA0;">{{ inv.buyer }} · {{ inv.quantityLabel }} · bids close {{ inv.bidEnd }}</div>
+            </div>
+            <span style="background:{{ inv.bg }}; color:{{ inv.fg }}; font-size:12px; font-weight:600; padding:5px 12px; border-radius:99px; white-space:nowrap;">{{ inv.statusLabel }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ noInvitations }}">
+      <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+        <p style="font-size:14.5px; margin:0;">No direct invitations yet — buyers can invite you to bid on a specific RFQ.</p>
+      </div>
+    </sc-if>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080},&quot;quotes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;array&quot;},&quot;invitations&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;array&quot;},&quot;onOpenQuote&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onOpenInvitation&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+const QUOTE_STATUS_STYLE = {
+  draft: { label: 'Draft', bg: '#F2EEE6', fg: '#6B6A78' },
+  submitted: { label: 'Submitted', bg: '#EDECF6', fg: '#403A77' },
+  under_review: { label: 'Under review', bg: '#FBF1DE', fg: '#B07A17' },
+  shortlisted: { label: 'Shortlisted', bg: '#EFF3EE', fg: '#5B7A5B' },
+  awarded: { label: 'Awarded', bg: '#5B7A5B', fg: '#fff' },
+  not_selected: { label: 'Not selected', bg: '#F7ECE8', fg: '#B5654A' },
+  closed: { label: 'Closed', bg: '#F2EEE6', fg: '#6B6A78' }
+};
+
+class Component extends DCLogic {
+  state = { tab: 'quotations' };
+  setTab = (t) => this.setState({ tab: t });
+
+  renderVals() {
+    const p = this.props;
+    const quotes = p.quotes || [];
+    const invitations = p.invitations || [];
+    const quotationCards = quotes.map(q => {
+      const st = QUOTE_STATUS_STYLE[q.status];
+      return { title: q.rfq.title, buyer: q.rfq.buyer, dateLabel: q.status === 'draft' ? 'Draft' : ('Submitted ' + q.submittedDate), statusLabel: st.label, bg: st.bg, fg: st.fg, onClick: () => p.onOpenQuote(q.id) };
+    });
+    const invitationCards = invitations.map(inv => ({
+      title: inv.rfq.title, buyer: inv.rfq.buyer, quantityLabel: inv.rfq.quantity.toLocaleString() + ' ' + inv.rfq.unit, bidEnd: inv.rfq.bidEnd,
+      statusLabel: inv.alreadyQuoted ? 'Quoted' : 'Respond',
+      bg: inv.alreadyQuoted ? '#EFF3EE' : '#403A77', fg: inv.alreadyQuoted ? '#5B7A5B' : '#FAF8F4',
+      onClick: () => p.onOpenInvitation(inv.rfq.id)
+    }));
+    return {
+      showQuotations: this.state.tab === 'quotations', showInvitations: this.state.tab === 'invitations',
+      onQuotationsTab: () => this.setTab('quotations'), onInvitationsTab: () => this.setTab('invitations'),
+      quotationsColor: this.state.tab === 'quotations' ? '#403A77' : '#6B6A78', quotationsBorder: this.state.tab === 'quotations' ? '#403A77' : 'transparent',
+      invitationsColor: this.state.tab === 'invitations' ? '#403A77' : '#6B6A78', invitationsBorder: this.state.tab === 'invitations' ? '#403A77' : 'transparent',
+      quotationsCount: quotes.length, invitationsCount: invitations.length,
+      hasQuotations: quotes.length > 0, noQuotations: quotes.length === 0, quotationCards,
+      hasInvitations: invitations.length > 0, noInvitations: invitations.length === 0, invitationCards
+    };
+  }
+}
+
+</script>
+</body>
+</html>

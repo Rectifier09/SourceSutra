@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./rfq-store.js"></script>
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid #403A77; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.001ms !important; } }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:760px; margin:0 auto; padding:0 20px 140px;">
+
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ true }}">
+
+    <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 4px; color:#20202B;">Create sourcing request</h1>
+    <p style="font-size:13.5px; color:#6B6A78; margin:0 0 20px;">Tell suppliers what you need — the more detail you give, the better we can match you.</p>
+
+    <sc-if value="{{ hasPrefill }}">
+      <div style="background:#EDECF6; border:1px solid #D6D4EC; border-radius:8px; padding:10px 14px; font-size:13px; color:#403A77; margin-bottom:18px;">Inviting: {{ prefillSupplier }}</div>
+    </sc-if>
+
+    <!-- STEP INDICATOR -->
+    <div style="display:flex; align-items:flex-start; gap:4px; margin-bottom:8px; overflow-x:auto; padding-bottom:6px;">
+      <sc-for list="{{ stepList }}" as="st" hint-placeholder-count="5">
+        <button onClick="{{ st.onClick }}" style="flex:1; min-width:64px; background:none; border:none; cursor:pointer; text-align:center; padding:4px;">
+          <div style="width:26px; height:26px; border-radius:50%; background:{{ st.dotBg }}; color:{{ st.dotFg }}; border:1.5px solid {{ st.dotBorder }}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; margin:0 auto 6px;">{{ st.dotLabel }}</div>
+          <div style="font-size:10.5px; color:{{ st.textColor }}; font-weight:600; line-height:1.3;">{{ st.label }}</div>
+        </button>
+      </sc-for>
+    </div>
+    <div style="height:2px; background:#E4DFD5; border-radius:1px; margin-bottom:24px; position:relative;">
+      <div style="height:2px; background:#403A77; border-radius:1px; width:{{ progressBarWidth }};"></div>
+    </div>
+
+    <sc-if value="{{ draftSaved }}">
+      <div style="background:#EFF3EE; color:#5B7A5B; border:1px solid #D6E3D6; border-radius:8px; padding:9px 14px; font-size:12.5px; margin-bottom:16px;">Draft saved.</div>
+    </sc-if>
+
+    <!-- ===================== STEP 1 ===================== -->
+    <sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; gap:18px;">
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Sourcing request title <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <input value="{{ title }}" onChange="{{ onTitle }}" placeholder="e.g. Single-jersey T-shirts, 12,000 pcs" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Product category <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <select value="{{ category }}" onChange="{{ onCategory }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+            <option value="">Select a category</option>
+            <sc-for list="{{ categoryOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+          </select>
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Type of contract / service needed <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <select value="{{ contractType }}" onChange="{{ onContractType }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+            <option value="">Select a contract type</option>
+            <sc-for list="{{ contractOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+          </select>
+        </label>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Manufacturing arrangement <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <sc-for list="{{ arrangementOptions }}" as="opt" hint-placeholder-count="5">
+              <button onClick="{{ opt.onClick }}" style="background:{{ opt.bg }}; color:{{ opt.fg }}; border:1px solid {{ opt.border }}; border-radius:99px; padding:8px 14px; font-size:12.5px; cursor:pointer;">{{ opt.value }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ showCustomization }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#F2EEE6; border:1px solid #E4DFD5; border-radius:10px; padding:16px;">
+            <div style="font-size:13px; color:#6B6A78; font-weight:600; margin-bottom:10px;">Customization needs <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <sc-for list="{{ customizationChips }}" as="chip" hint-placeholder-count="6">
+                <button onClick="{{ chip.onClick }}" style="background:{{ chip.bg }}; color:{{ chip.fg }}; border:1px solid {{ chip.border }}; border-radius:99px; padding:7px 13px; font-size:12.5px; cursor:pointer;">{{ chip.value }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Primary material <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></span>
+          <input value="{{ primaryMaterial }}" onChange="{{ onPrimaryMaterial }}" placeholder="e.g. 100% cotton knit, single jersey" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:6px; max-width:220px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Fabric weight / GSM <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <input type="number" value="{{ gsm }}" onChange="{{ onGsm }}" placeholder="e.g. 180" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Size range <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;">
+            <sc-for list="{{ sizeTags }}" as="t" hint-placeholder-count="0">
+              <span style="display:flex; align-items:center; gap:6px; background:#EDECF6; color:#403A77; border-radius:99px; padding:6px 12px; font-size:13px;">{{ t.value }} <button onClick="{{ t.onRemove }}" style="background:none; border:none; color:#403A77; cursor:pointer;">×</button></span>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input value="{{ sizeDraft }}" onChange="{{ onSizeDraft }}" onKeyDown="{{ onSizeKeyDown }}" placeholder="e.g. M" style="flex:1; padding:9px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+            <button onClick="{{ onSizeAdd }}" style="background:#403A77; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer;">Add</button>
+          </div>
+        </div>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Colours required <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;">
+            <sc-for list="{{ colourTags }}" as="t" hint-placeholder-count="0">
+              <span style="display:flex; align-items:center; gap:6px; background:#EDECF6; color:#403A77; border-radius:99px; padding:6px 12px; font-size:13px;">{{ t.value }} <button onClick="{{ t.onRemove }}" style="background:none; border:none; color:#403A77; cursor:pointer;">×</button></span>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input value="{{ colourDraft }}" onChange="{{ onColourDraft }}" onKeyDown="{{ onColourKeyDown }}" placeholder="e.g. Navy or Pantone 19-4052" style="flex:1; padding:9px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+            <button onClick="{{ onColourAdd }}" style="background:#403A77; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer;">Add</button>
+          </div>
+        </div>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Target market / intended use <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <input value="{{ targetMarket }}" onChange="{{ onTargetMarket }}" placeholder="e.g. EU retail, basics line" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Additional requirements <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <textarea value="{{ additionalRequirements }}" onChange="{{ onAdditionalRequirements }}" rows="3" placeholder="Anything else suppliers should know" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+        </label>
+
+        <p style="font-size:12px; color:#6C6AA0; margin:0;">Design files and tech packs are uploaded in Step 4 — Logistics &amp; documents.</p>
+      </div>
+    </sc-if>
+
+    <!-- ===================== STEP 2 ===================== -->
+    <sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:18px;">
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Total quantity required <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+            <input type="number" value="{{ totalQuantity }}" onChange="{{ onTotalQuantity }}" placeholder="e.g. 12000" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 140px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Unit</span>
+            <select value="{{ quantityUnit }}" onChange="{{ onQuantityUnit }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+              <sc-for list="{{ unitOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+            </select>
+          </label>
+        </div>
+
+        <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#6B6A78; font-weight:600;">
+          <input type="checkbox" checked="{{ breakdownEnabled }}" onChange="{{ onToggleBreakdown }}"/> Break down by colour/size <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span>
+        </label>
+
+        <sc-if value="{{ breakdownEnabled }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid #E4DFD5; border-radius:10px; padding:14px; background:#fff;">
+            <div style="display:flex; gap:8px; font-size:11.5px; color:#6B6A78; font-weight:600; margin-bottom:8px;">
+              <div style="flex:1;">Colour</div><div style="flex:1;">Size</div><div style="flex:1;">Quantity</div><div style="width:24px;"></div>
+            </div>
+            <sc-for list="{{ breakdownRows }}" as="row" hint-placeholder-count="0">
+              <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
+                <input value="{{ row.colour }}" onChange="{{ row.onColour }}" style="flex:1; padding:8px 10px; border:1px solid #E4DFD5; border-radius:6px; font-size:13px;"/>
+                <input value="{{ row.size }}" onChange="{{ row.onSize }}" style="flex:1; padding:8px 10px; border:1px solid #E4DFD5; border-radius:6px; font-size:13px;"/>
+                <input type="number" value="{{ row.qty }}" onChange="{{ row.onQty }}" style="flex:1; padding:8px 10px; border:1px solid #E4DFD5; border-radius:6px; font-size:13px;"/>
+                <button onClick="{{ row.onRemove }}" style="width:24px; background:none; border:none; color:#B5654A; cursor:pointer; font-size:15px;">×</button>
+              </div>
+            </sc-for>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+              <button onClick="{{ onAddBreakdownRow }}" style="background:none; border:1px solid #403A77; color:#403A77; padding:6px 12px; border-radius:7px; font-size:12.5px; cursor:pointer;">+ Add row</button>
+              <span style="font-size:12.5px; color:#6B6A78;">Running total: <strong style="color:#20202B;">{{ breakdownTotal }}</strong></span>
+            </div>
+          </div>
+        </sc-if>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Pricing approach <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <sc-for list="{{ pricingOptions }}" as="opt" hint-placeholder-count="3">
+              <button onClick="{{ opt.onClick }}" style="background:{{ opt.bg }}; color:{{ opt.fg }}; border:1px solid {{ opt.border }}; border-radius:99px; padding:8px 14px; font-size:12.5px; cursor:pointer;">{{ opt.value }}</button>
+            </sc-for>
+          </div>
+          <p style="font-size:11.5px; color:#6C6AA0; margin:8px 0 0;">You're never required to disclose your target price.</p>
+        </div>
+
+        <sc-if value="{{ showTargetPrice }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 100px; max-width:120px;">
+              <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Currency</span>
+              <select value="{{ currency }}" onChange="{{ onCurrency }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;">
+                <option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+              <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Target unit price</span>
+              <input type="number" value="{{ targetPrice }}" onChange="{{ onTargetPrice }}" placeholder="e.g. 220" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;"/>
+            </label>
+          </div>
+        </sc-if>
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Bid window — start <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+            <input type="date" value="{{ bidStart }}" onChange="{{ onBidStart }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Bid window — end <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+            <input type="date" value="{{ bidEnd }}" onChange="{{ onBidEnd }}" style="padding:11px 12px; border:1px solid {{ bidEndBorder }}; border-radius:8px; font-size:14px; background:#fff;"/>
+          </label>
+        </div>
+        <sc-if value="{{ bidErrorShown }}"><div style="font-size:12.5px; color:#B5654A; margin-top:-10px;">Bid window end must be after the start date.</div></sc-if>
+
+        <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#6B6A78; font-weight:600;">
+          <input type="checkbox" checked="{{ sampleRequired }}" onChange="{{ onToggleSampleRequired }}"/> Sample required <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span>
+        </label>
+
+        <sc-if value="{{ sampleRequired }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid #E4DFD5; border-radius:10px; padding:16px; background:#fff; display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:14px; flex-wrap:wrap;">
+              <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+                <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Sample type <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></span>
+                <select value="{{ sampleType }}" onChange="{{ onSampleType }}" style="padding:9px 11px; border:1px solid #E4DFD5; border-radius:7px; font-size:13.5px; background:#fff;">
+                  <option value="">Select</option>
+                  <sc-for list="{{ sampleTypeOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+                </select>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 120px;">
+                <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Number of samples</span>
+                <input type="number" value="{{ sampleCount }}" onChange="{{ onSampleCount }}" style="padding:9px 11px; border:1px solid #E4DFD5; border-radius:7px; font-size:13.5px;"/>
+              </label>
+            </div>
+            <div style="display:flex; gap:14px; flex-wrap:wrap;">
+              <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+                <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Sample deadline</span>
+                <input type="date" value="{{ sampleDeadline }}" onChange="{{ onSampleDeadline }}" style="padding:9px 11px; border:1px solid #E4DFD5; border-radius:7px; font-size:13.5px;"/>
+              </label>
+              <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+                <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">Who pays for sample shipping</span>
+                <select value="{{ sampleShipping }}" onChange="{{ onSampleShipping }}" style="padding:9px 11px; border:1px solid #E4DFD5; border-radius:7px; font-size:13.5px; background:#fff;">
+                  <option value="">Select</option>
+                  <sc-for list="{{ sampleShippingOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+                </select>
+              </label>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== STEP 3 ===================== -->
+    <sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:22px;">
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Required certifications <span style="color:#6C6AA0; font-size:11px; font-weight:700;">RECOMMENDED</span></span>
+          <div style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+            <sc-for list="{{ certGroups }}" as="grp" hint-placeholder-count="8">
+              <div>
+                <div style="font-size:11.5px; font-weight:600; color:#6C6AA0; text-transform:uppercase; margin-bottom:6px;">{{ grp.category }}</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <sc-for list="{{ grp.items }}" as="it" hint-placeholder-count="0">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid #E4DFD5; border-radius:8px; padding:8px 12px; background:#fff;">
+                      <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:#20202B; cursor:pointer;">
+                        <input type="checkbox" checked="{{ it.selected }}" onChange="{{ it.onToggle }}"/> {{ it.name }}
+                      </label>
+                      <sc-if value="{{ it.selected }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; gap:6px;">
+                          <button onClick="{{ it.onMust }}" style="background:{{ it.mustBg }}; color:{{ it.mustFg }}; border:1px solid {{ it.mustBorder }}; border-radius:99px; padding:4px 10px; font-size:11px; cursor:pointer;">Must-have</button>
+                          <button onClick="{{ it.onNice }}" style="background:{{ it.niceBg }}; color:{{ it.niceFg }}; border:1px solid {{ it.niceBorder }}; border-radius:99px; padding:4px 10px; font-size:11px; cursor:pointer;">Nice-to-have</button>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Additional compliance notes <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <textarea value="{{ complianceNotes }}" onChange="{{ onComplianceNotes }}" rows="2" placeholder="e.g. a specific chemical restriction not covered above" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+        </label>
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Minimum years of manufacturing experience <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+            <input type="number" value="{{ minYearsExperience }}" onChange="{{ onMinYearsExperience }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Preferred supplier location <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+            <select value="{{ preferredLocation }}" onChange="{{ onPreferredLocation }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+              <option value="">Any location</option>
+              <sc-for list="{{ locationOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Who can respond <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+            <sc-for list="{{ whoCanRespondOptions }}" as="opt" hint-placeholder-count="3">
+              <label style="display:flex; align-items:center; gap:10px; border:1px solid {{ opt.border }}; background:{{ opt.bg }}; border-radius:8px; padding:11px 14px; font-size:13.5px; color:#20202B; cursor:pointer;">
+                <input type="radio" name="whoCanRespond" checked="{{ opt.checked }}" onChange="{{ opt.onSelect }}"/> {{ opt.label }}
+              </label>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ showInviteList }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid #E4DFD5; border-radius:10px; padding:14px; background:#fff;">
+            <input value="{{ inviteSearch }}" onChange="{{ onInviteSearch }}" placeholder="Search suppliers by name" style="width:100%; padding:9px 11px; border:1px solid #E4DFD5; border-radius:7px; font-size:13.5px; margin-bottom:10px;"/>
+            <div style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;">
+              <sc-for list="{{ inviteCandidates }}" as="c" hint-placeholder-count="4">
+                <label style="display:flex; align-items:center; gap:8px; font-size:13.5px; color:#20202B; padding:6px 4px; cursor:pointer;">
+                  <input type="checkbox" checked="{{ c.checked }}" onChange="{{ c.onToggle }}"/> {{ c.name }}
+                </label>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:#6B6A78; font-weight:600;">
+          <input type="checkbox" checked="{{ verifiedOnly }}" onChange="{{ onToggleVerifiedOnly }}"/> Require verified suppliers only <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span>
+        </label>
+      </div>
+    </sc-if>
+
+    <!-- ===================== STEP 4 ===================== -->
+    <sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:18px;">
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Required delivery date <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+            <input type="date" value="{{ requiredDeliveryDate }}" onChange="{{ onRequiredDeliveryDate }}" style="padding:11px 12px; border:1px solid {{ deliveryBorder }}; border-radius:8px; font-size:14px; background:#fff;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Preferred production lead time (days) <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+            <input type="number" value="{{ leadTimeDays }}" onChange="{{ onLeadTimeDays }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+          </label>
+        </div>
+        <sc-if value="{{ deliveryErrorShown }}"><div style="font-size:12.5px; color:#B5654A; margin-top:-10px;">Delivery date must be after the bid window ends.</div></sc-if>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Delivery location <span style="color:#B5654A; font-size:11px; font-weight:700;">REQUIRED</span></span>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:6px;">
+            <input value="{{ city }}" onChange="{{ onCity }}" placeholder="City" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;"/>
+            <div style="display:flex; gap:10px;">
+              <input value="{{ stateVal }}" onChange="{{ onState }}" placeholder="State" style="flex:1; padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;"/>
+              <input value="{{ pincode }}" onChange="{{ onPincode }}" placeholder="Pincode" style="flex:1; padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;"/>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Shipping method <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+            <select value="{{ shippingMethod }}" onChange="{{ onShippingMethod }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+              <option value="">Select</option>
+              <sc-for list="{{ shippingMethodOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+            </select>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 140px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Incoterm <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+            <select value="{{ incoterm }}" onChange="{{ onIncoterm }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+              <option value="">Select</option>
+              <sc-for list="{{ incotermOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+            </select>
+          </label>
+        </div>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Payment terms <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <input value="{{ paymentTerms }}" onChange="{{ onPaymentTerms }}" placeholder="e.g. 30% advance, 70% on delivery" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Packaging &amp; labelling requirements <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <textarea value="{{ packagingNotes }}" onChange="{{ onPackagingNotes }}" rows="2" placeholder="Carton specs, hangtag/label needs, barcode requirements" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+        </label>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Documents &amp; attachments <span style="color:#6B6A78; font-size:11px; font-weight:700;">OPTIONAL</span></span>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+            <sc-for list="{{ documents }}" as="doc" hint-placeholder-count="0">
+              <div style="display:flex; align-items:center; gap:10px; border:1px solid #E4DFD5; border-radius:8px; padding:10px 12px; background:#fff; flex-wrap:wrap;">
+                <span style="font-size:13px; color:#20202B; flex:1 1 140px;">📄 {{ doc.fileName }}</span>
+                <select value="{{ doc.docType }}" onChange="{{ doc.onDocType }}" style="padding:6px 8px; border:1px solid #E4DFD5; border-radius:6px; font-size:12px;">
+                  <sc-for list="{{ doc.docTypeOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+                </select>
+                <span style="font-size:11.5px; color:#6B6A78;">{{ doc.size }}</span>
+                <button onClick="{{ doc.onRemove }}" style="background:none; border:none; color:#B5654A; cursor:pointer; font-size:12px;">Remove</button>
+              </div>
+            </sc-for>
+            <button onClick="{{ onAddDocument }}" style="align-self:flex-start; background:#F2EEE6; border:1px dashed #C9C4E8; color:#403A77; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer;">+ Upload document</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===================== STEP 5 ===================== -->
+    <sc-if value="{{ isStep5 }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <div style="background:#F2EEE6; border:1px solid #E4DFD5; border-radius:12px; padding:18px;">
+          <div style="font-size:13px; font-weight:600; color:#20202B; margin-bottom:10px;">Completion</div>
+          <div style="display:flex; gap:18px; flex-wrap:wrap; font-size:13px; color:#6B6A78;">
+            <div><strong style="color:#403A77;">{{ requiredCompleteCount }}</strong> of {{ requiredTotalCount }} required fields complete</div>
+            <div><strong style="color:#403A77;">{{ documentCount }}</strong> attachments</div>
+            <div><strong style="color:#403A77;">{{ matchingSupplierCount }}</strong> suppliers match your criteria</div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #E4DFD5; border-radius:12px; padding:16px; background:#fff;">
+          <div style="font-size:13px; font-weight:600; color:#20202B; margin-bottom:12px;">Timeline</div>
+          <div style="display:flex; gap:0; flex-wrap:wrap;">
+            <sc-for list="{{ timelineItems }}" as="tl" hint-placeholder-count="3">
+              <div style="flex:1 1 120px; padding-right:12px; border-right:1px solid #E4DFD5;">
+                <div style="font-size:11px; color:#6C6AA0; text-transform:uppercase; font-weight:600; margin-bottom:4px;">{{ tl.label }}</div>
+                <div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ tl.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-for list="{{ summaryGroups }}" as="grp" hint-placeholder-count="4">
+          <div style="border:1px solid #E4DFD5; border-radius:12px; padding:16px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div style="font-size:13.5px; font-weight:600; color:#20202B;">{{ grp.title }}</div>
+              <button onClick="{{ grp.onEdit }}" style="background:none; border:none; color:#403A77; font-size:12.5px; cursor:pointer; text-decoration:underline;">Edit</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ grp.rows }}" as="row" hint-placeholder-count="2">
+                <div style="display:flex; justify-content:space-between; gap:10px; font-size:13px;">
+                  <span style="color:#6B6A78;">{{ row.label }}</span>
+                  <span style="color:#20202B; font-weight:500; text-align:right;">{{ row.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+
+        <div style="background:#EDECF6; border:1px solid #D6D4EC; border-radius:10px; padding:14px 16px; font-size:13px; color:#403A77;">{{ visibilityMicrocopy }}</div>
+      </div>
+    </sc-if>
+
+    <!-- STEP NAV -->
+    <div style="position:sticky; bottom:0; background:#FAF8F4; border-top:1px solid #E4DFD5; padding:14px 4px; display:flex; gap:8px; justify-content:space-between; margin-top:28px; flex-wrap:wrap;">
+      <div style="display:flex; gap:8px;">
+        <button onClick="{{ onCancel }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:11px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Cancel</button>
+        <sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ onBack }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:11px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Back</button>
+        </sc-if>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onClick="{{ onSaveDraft }}" style="background:none; border:1px solid #403A77; color:#403A77; padding:11px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Save as draft</button>
+        <sc-if value="{{ showNext }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ onNext }}" style="background:#403A77; border:none; color:#FAF8F4; padding:11px 20px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Next</button>
+        </sc-if>
+        <sc-if value="{{ showPublish }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ onPublishClick }}" style="background:#403A77; border:none; color:#FAF8F4; padding:11px 20px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Publish sourcing request</button>
+        </sc-if>
+      </div>
+    </div>
+
+  </sc-if>
+
+  <sc-if value="{{ isConfirmed }}">
+    <div style="text-align:center; padding:80px 20px;">
+      <div style="width:56px; height:56px; border-radius:50%; background:#5B7A5B; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 20px;">✓</div>
+      <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:500; margin:0 0 10px; color:#20202B;">RFQ published</h1>
+      <p style="font-size:14.5px; color:#6B6A78; margin:0 0 28px;">You'll see responses under My RFQs.</p>
+      <button onClick="{{ onPublish }}" style="background:#403A77; color:#fff; border:none; padding:11px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Done</button>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760},&quot;prefillSupplier&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string|null&quot;},&quot;existingRfq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object|null&quot;},&quot;onCancel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onPublish&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+const STEP_LABELS = ['Product & requirements', 'Quantity, pricing & samples', 'Compliance & preferences', 'Logistics & documents', 'Review & publish'];
+const CATEGORY_OPTIONS = ["Men's Apparel", "Women's Apparel", 'Kids & Baby', 'Sportswear', 'Activewear', 'Workwear', 'Uniforms', 'Outerwear', 'Knitwear', 'Denim', 'Innerwear', 'Fashion Accessories', 'Home Textiles', 'Other'];
+const CONTRACT_OPTIONS = ['Fabric supply', 'Yarn supply', 'Dyeing & processing', 'Printing (screen/digital)', 'Embroidery', 'Cut-Make-Trim (CMT)', 'Full-package / white-label article', 'Trims & accessories', 'Sampling / development', 'Finishing & washing', 'Other'];
+const ARRANGEMENT_OPTIONS = ['Standard Product', 'OEM', 'ODM', 'Private Label', 'Custom Manufacturing'];
+const CUSTOMIZATION_TAXONOMY = ['Fabric', 'Colour', 'GSM / Fabric weight', 'Fit', 'Pattern', 'Labels', 'Hangtags', 'Packaging', 'Embroidery', 'Screen printing', 'Digital printing', 'Heat transfer', 'Wash / finish', 'Hardware', 'Trims'];
+const UNIT_OPTIONS = ['Pieces', 'Metres', 'Kg'];
+const PRICING_OPTIONS = ['I have a target price', 'Ask suppliers to quote', 'Open to negotiation'];
+const SAMPLE_TYPE_OPTIONS = ['Proto', 'Fit', 'Size set', 'Pre-production', 'Production', 'Other'];
+const SAMPLE_SHIPPING_OPTIONS = ['Buyer', 'Supplier', 'Negotiable'];
+const CERT_TAXONOMY = {
+  'Quality Management': ['ISO 9001'],
+  'Environmental Management': ['ISO 14001', 'ISO 50001'],
+  'Health & Safety': ['ISO 45001'],
+  'Social Compliance': ['SA8000', 'WRAP', 'BSCI', 'SMETA / SEDEX'],
+  'Sustainable & Organic Textiles': ['GOTS', 'OCS', 'OEKO-TEX Standard 100'],
+  'Recycled Materials': ['GRS', 'RCS'],
+  'Responsible Materials': ['RDS', 'RWS', 'RMS', 'FSC'],
+  'Indian Regulatory & Legal Compliance': ['Import Export Code (IEC)', 'Factory Licence', 'Pollution Control / Environmental Consent', 'BIS Certification']
+};
+const LOCATION_OPTIONS = ['Tiruppur', 'Bhilwara', 'Ludhiana', 'Erode', 'Surat', 'Panipat'];
+const SHIPPING_METHOD_OPTIONS = ['Road', 'Rail', 'Air', 'Sea', 'Courier', 'Let supplier recommend'];
+const INCOTERM_OPTIONS = ['EXW', 'FOB', 'CIF', 'DDP'];
+const DOC_TYPE_OPTIONS = ['Tech pack', 'Reference images', 'Size chart', 'Bill of materials', 'Brand guidelines', 'Other'];
+const SUPPLIER_NAMES = ['Anand Knitfab', 'Bhilwara Processors', 'Ludhiana Woolworks', 'Erode Textile Exports', 'Surat Silk Mills', 'Panipat Home Textiles', 'Tirupur Trims & Accessories', 'Ludhiana Embroidery House', 'Surat Screen Print Co.', 'Erode Spinning Mills', 'Bhilwara Suiting Weavers', 'Panipat Trims Co.'];
+const STEP_CAPTIONS = [
+];
+
+const BUYER_IDENTITY = { name: 'Vardhman Textiles', location: 'Ludhiana, Punjab' };
+
+class Component extends DCLogic {
+  state = {
+    id: '', step: 1, published: false, showErrors: false, draftSaved: false,
+    title: '', category: '', contractType: '', arrangement: '', customizationNeeds: [],
+    primaryMaterial: '', gsm: '', sizeTags: [], sizeDraft: '', colourTags: [], colourDraft: '',
+    targetMarket: '', additionalRequirements: '',
+    totalQuantity: '', quantityUnit: 'Pieces', breakdownEnabled: false, breakdownRows: [],
+    pricingApproach: '', targetPrice: '', currency: 'INR',
+    bidStart: '', bidEnd: '', sampleRequired: false, sampleType: '', sampleCount: '', sampleDeadline: '', sampleShipping: '',
+    selectedCerts: {}, complianceNotes: '', minYearsExperience: '', preferredLocation: '',
+    whoCanRespond: '', inviteSearch: '', invitedSuppliers: [], verifiedOnly: false,
+    requiredDeliveryDate: '', leadTimeDays: '', city: '', stateVal: '', pincode: '',
+    shippingMethod: '', incoterm: '', paymentTerms: '', packagingNotes: '', documents: []
+  };
+
+  componentDidMount() {
+    const existing = this.props.existingRfq;
+    if (existing && existing.wizardState) {
+      this.setState({ ...existing.wizardState, id: existing.id, published: false, showErrors: false });
+    } else if (existing) {
+      this.setState({ ...this.mapNormalizedToWizard(existing), id: existing.id, published: false, showErrors: false });
+    } else {
+      this.setState({ id: 'rfq' + Math.random().toString(36).slice(2, 8) });
+      if (this.props.prefillSupplier) this.setState({ whoCanRespond: 'invite', invitedSuppliers: [this.props.prefillSupplier] });
+    }
+  }
+  mapNormalizedToWizard(r) {
+    const selectedCerts = {};
+    (r.requiredCerts || []).forEach(c => { selectedCerts[c.category + '::' + c.name] = c.priority; });
+    const [city, ...stateParts] = (r.deliveryLocation || '').split(',').map(s => s.trim());
+    return {
+      title: r.title || '', category: r.category || '', contractType: r.contractType || '',
+      arrangement: r.arrangement || '', customizationNeeds: r.customizationNeeds || [],
+      primaryMaterial: r.primaryMaterial || '', gsm: r.gsm || '',
+      sizeTags: r.sizeRange || [], colourTags: r.colours || [],
+      totalQuantity: r.quantity ? String(r.quantity) : '', quantityUnit: r.unit || 'Pieces',
+      pricingApproach: r.pricingApproach || '', targetPrice: r.targetPrice || '', currency: r.currency || 'INR',
+      bidStart: r.bidStart || '', bidEnd: r.bidEnd || '',
+      sampleRequired: !!r.sampleRequired, sampleType: r.sampleType || '',
+      selectedCerts,
+      requiredDeliveryDate: r.deliveryDate || '',
+      city: city || '', stateVal: (stateParts || []).join(', ') || ''
+    };
+  }
+
+  set = (field) => (e) => this.setState({ [field]: e.target.value });
+  goStep = (n) => this.setState({ step: n, showErrors: false });
+  goBack = () => this.setState(s => ({ step: Math.max(1, s.step - 1), showErrors: false }));
+  goNext = () => {
+    if (this.state.step === 2) {
+      const { bidStart, bidEnd } = this.state;
+      if (bidStart && bidEnd && bidEnd <= bidStart) { this.setState({ showErrors: true }); return; }
+    }
+    this.setState(s => ({ step: Math.min(5, s.step + 1), showErrors: false }));
+  };
+  saveDraft = () => {
+    if (window.RFQStore) window.RFQStore.upsertRfq(this.buildSharedRfq('draft'));
+    this.setState({ draftSaved: true });
+    setTimeout(() => this.setState({ draftSaved: false }), 2200);
+  };
+  buildSharedRfq(status) {
+    const s = this.state;
+    const requiredCerts = Object.entries(s.selectedCerts).map(([key, priority]) => { const [category, name] = key.split('::'); return { category, name, priority }; });
+    return {
+      id: s.id, wizardState: { ...s, published: false, showErrors: false, draftSaved: false },
+      title: s.title, category: s.category, contractType: s.contractType,
+      buyer: BUYER_IDENTITY.name, buyerLocation: BUYER_IDENTITY.location,
+      quantity: parseInt(s.totalQuantity) || 0, unit: s.quantityUnit,
+      bidStart: s.bidStart, bidEnd: s.bidEnd,
+      deliveryDate: s.requiredDeliveryDate, deliveryLocation: [s.city, s.stateVal].filter(Boolean).join(', ') || BUYER_IDENTITY.location,
+      primaryMaterial: s.primaryMaterial, gsm: s.gsm,
+      sizeRange: s.sizeTags, colours: s.colourTags,
+      arrangement: s.arrangement, customizationNeeds: s.customizationNeeds,
+      requiredCerts,
+      pricingApproach: s.pricingApproach, targetPrice: s.targetPrice, currency: s.currency,
+      sampleRequired: s.sampleRequired, sampleType: s.sampleType,
+      tags: [s.contractType, s.city].filter(Boolean),
+      status, publishedDate: status === 'active' ? new Date().toISOString().slice(0, 10) : '',
+      applicationsCount: 0
+    };
+  }
+  publish = () => {
+    const { bidStart, bidEnd, requiredDeliveryDate } = this.state;
+    const bidOk = !bidStart || !bidEnd || bidEnd > bidStart;
+    const delOk = !bidEnd || !requiredDeliveryDate || requiredDeliveryDate > bidEnd;
+    if (!bidOk || !delOk) { this.setState({ showErrors: true, step: !bidOk ? 2 : 4 }); return; }
+    if (window.RFQStore) window.RFQStore.upsertRfq(this.buildSharedRfq('active'));
+    this.setState({ published: true });
+  };
+
+  toggleArrangement = (v) => this.setState({ arrangement: v, customizationNeeds: v === 'Standard Product' ? [] : this.state.customizationNeeds });
+  toggleCustomization = (v) => this.setState(s => ({ customizationNeeds: s.customizationNeeds.includes(v) ? s.customizationNeeds.filter(x => x !== v) : [...s.customizationNeeds, v] }));
+
+  addSize = () => { const v = this.state.sizeDraft.trim(); if (!v) return; this.setState(s => ({ sizeTags: [...s.sizeTags, v], sizeDraft: '' })); };
+  removeSize = (v) => this.setState(s => ({ sizeTags: s.sizeTags.filter(t => t !== v) }));
+  addColour = () => { const v = this.state.colourDraft.trim(); if (!v) return; this.setState(s => ({ colourTags: [...s.colourTags, v], colourDraft: '' })); };
+  removeColour = (v) => this.setState(s => ({ colourTags: s.colourTags.filter(t => t !== v) }));
+
+  toggleBreakdown = () => this.setState(s => ({ breakdownEnabled: !s.breakdownEnabled }));
+  addBreakdownRow = () => this.setState(s => ({ breakdownRows: [...s.breakdownRows, { id: 'r' + Math.random().toString(36).slice(2, 8), colour: '', size: '', qty: '' }] }));
+  removeBreakdownRow = (id) => this.setState(s => ({ breakdownRows: s.breakdownRows.filter(r => r.id !== id) }));
+  setBreakdownField = (id, field, value) => this.setState(s => ({ breakdownRows: s.breakdownRows.map(r => r.id === id ? { ...r, [field]: value } : r) }));
+
+  setPricingApproach = (v) => this.setState({ pricingApproach: v });
+  toggleSampleRequired = () => this.setState(s => ({ sampleRequired: !s.sampleRequired }));
+
+  toggleCert = (key) => this.setState(s => { const cur = { ...s.selectedCerts }; if (cur[key]) delete cur[key]; else cur[key] = 'must'; return { selectedCerts: cur }; });
+  setCertPriority = (key, priority) => this.setState(s => ({ selectedCerts: { ...s.selectedCerts, [key]: priority } }));
+
+  setWhoCanRespond = (v) => this.setState({ whoCanRespond: v });
+  toggleInvited = (name) => this.setState(s => ({ invitedSuppliers: s.invitedSuppliers.includes(name) ? s.invitedSuppliers.filter(n => n !== name) : [...s.invitedSuppliers, name] }));
+  toggleVerifiedOnly = () => this.setState(s => ({ verifiedOnly: !s.verifiedOnly }));
+
+  addDocument = () => { const id = 'd' + Math.random().toString(36).slice(2, 8); this.setState(s => ({ documents: [...s.documents, { id, fileName: 'reference-file-' + (s.documents.length + 1) + '.pdf', docType: 'Tech pack', size: '1.2 MB' }] })); };
+  removeDocument = (id) => this.setState(s => ({ documents: s.documents.filter(d => d.id !== id) }));
+  setDocType = (id, v) => this.setState(s => ({ documents: s.documents.map(d => d.id === id ? { ...d, docType: v } : d) }));
+
+  renderVals() {
+    const s = this.state;
+    const bidBad = s.showErrors && s.bidStart && s.bidEnd && s.bidEnd <= s.bidStart;
+    const delBad = s.showErrors && s.bidEnd && s.requiredDeliveryDate && s.requiredDeliveryDate <= s.bidEnd;
+
+    const stepList = STEP_LABELS.map((label, i) => {
+      const n = i + 1;
+      const done = n < s.step, active = n === s.step;
+      return {
+        label, onClick: () => this.goStep(n),
+        dotLabel: done ? '✓' : String(n),
+        dotBg: active ? '#403A77' : done ? '#5B7A5B' : '#fff',
+        dotFg: (active || done) ? '#FAF8F4' : '#6B6A78',
+        dotBorder: active ? '#403A77' : done ? '#5B7A5B' : '#E4DFD5',
+        textColor: active ? '#403A77' : '#6B6A78'
+      };
+    });
+    const progressBarWidth = ((s.step - 1) / 4 * 100) + '%';
+
+    const arrangementOptions = ARRANGEMENT_OPTIONS.map(v => ({ value: v, onClick: () => this.toggleArrangement(v), bg: s.arrangement === v ? '#403A77' : '#fff', fg: s.arrangement === v ? '#FAF8F4' : '#403A77', border: s.arrangement === v ? '#403A77' : '#D6D4EC' }));
+    const showCustomization = !!s.arrangement && s.arrangement !== 'Standard Product';
+    const customizationChips = CUSTOMIZATION_TAXONOMY.map(v => { const active = s.customizationNeeds.includes(v); return { value: v, onClick: () => this.toggleCustomization(v), bg: active ? '#403A77' : '#fff', fg: active ? '#FAF8F4' : '#403A77', border: active ? '#403A77' : '#D6D4EC' }; });
+    const sizeTags = s.sizeTags.map(t => ({ value: t, onRemove: () => this.removeSize(t) }));
+    const colourTags = s.colourTags.map(t => ({ value: t, onRemove: () => this.removeColour(t) }));
+
+    const breakdownRows = s.breakdownRows.map(r => ({ ...r, onColour: (e) => this.setBreakdownField(r.id, 'colour', e.target.value), onSize: (e) => this.setBreakdownField(r.id, 'size', e.target.value), onQty: (e) => this.setBreakdownField(r.id, 'qty', e.target.value), onRemove: () => this.removeBreakdownRow(r.id) }));
+    const breakdownTotal = s.breakdownRows.reduce((sum, r) => sum + (parseInt(r.qty) || 0), 0);
+    const pricingOptions = PRICING_OPTIONS.map(v => ({ value: v, onClick: () => this.setPricingApproach(v), bg: s.pricingApproach === v ? '#403A77' : '#fff', fg: s.pricingApproach === v ? '#FAF8F4' : '#403A77', border: s.pricingApproach === v ? '#403A77' : '#D6D4EC' }));
+    const showTargetPrice = s.pricingApproach === 'I have a target price';
+
+    const certGroups = Object.keys(CERT_TAXONOMY).map(cat => ({
+      category: cat,
+      items: CERT_TAXONOMY[cat].map(name => {
+        const key = cat + '::' + name;
+        const selected = !!s.selectedCerts[key];
+        const isMust = s.selectedCerts[key] === 'must';
+        return {
+          name, selected, onToggle: () => this.toggleCert(key),
+          onMust: () => this.setCertPriority(key, 'must'), onNice: () => this.setCertPriority(key, 'nice'),
+          mustBg: isMust ? '#403A77' : '#fff', mustFg: isMust ? '#FAF8F4' : '#403A77', mustBorder: isMust ? '#403A77' : '#D6D4EC',
+          niceBg: selected && !isMust ? '#403A77' : '#fff', niceFg: selected && !isMust ? '#FAF8F4' : '#403A77', niceBorder: selected && !isMust ? '#403A77' : '#D6D4EC'
+        };
+      })
+    }));
+
+    const whoCanRespondOptions = [
+      { value: 'all', label: 'All verified suppliers on the network' },
+      { value: 'matching', label: 'Suppliers matching my requirements automatically' },
+      { value: 'invite', label: 'Invite specific suppliers only' }
+    ].map(o => ({ ...o, checked: s.whoCanRespond === o.value, onSelect: () => this.setWhoCanRespond(o.value), bg: s.whoCanRespond === o.value ? '#EDECF6' : '#fff', border: s.whoCanRespond === o.value ? '#403A77' : '#E4DFD5' }));
+    const showInviteList = s.whoCanRespond === 'invite';
+    const q = s.inviteSearch.trim().toLowerCase();
+    const inviteCandidates = SUPPLIER_NAMES.filter(n => !q || n.toLowerCase().includes(q)).map(n => ({ name: n, checked: s.invitedSuppliers.includes(n), onToggle: () => this.toggleInvited(n) }));
+
+    const documents = s.documents.map(d => ({ ...d, docTypeOptions: DOC_TYPE_OPTIONS, onDocType: (e) => this.setDocType(d.id, e.target.value), onRemove: () => this.removeDocument(d.id) }));
+
+    // Required fields checklist
+    const reqFields = [
+      !!s.title, !!s.category, !!s.contractType, !!s.arrangement,
+      !!s.totalQuantity, !!s.pricingApproach, !!s.bidStart, !!s.bidEnd, true /* sample toggle always answered */,
+      !!s.whoCanRespond,
+      !!s.requiredDeliveryDate, !!(s.city && s.stateVal && s.pincode)
+    ];
+    const requiredCompleteCount = reqFields.filter(Boolean).length;
+    const requiredTotalCount = reqFields.length;
+
+    const timelineItems = [
+      { label: 'Bid window', value: (s.bidStart || '—') + ' → ' + (s.bidEnd || '—') },
+      ...(s.sampleRequired && s.sampleDeadline ? [{ label: 'Sample deadline', value: s.sampleDeadline }] : []),
+      { label: 'Required delivery', value: s.requiredDeliveryDate || '—' }
+    ];
+
+    const certRows = Object.entries(s.selectedCerts).map(([key, priority]) => { const [cat, name] = key.split('::'); return { label: name, value: priority === 'must' ? 'Must-have' : 'Nice-to-have' }; });
+
+    const summaryGroups = [
+      { title: 'Product & requirements', onEdit: () => this.goStep(1), rows: [
+        { label: 'Title', value: s.title || '—' },
+        { label: 'Category', value: s.category || '—' },
+        { label: 'Contract type', value: s.contractType || '—' },
+        { label: 'Arrangement', value: s.arrangement || '—' },
+        ...(s.customizationNeeds.length ? [{ label: 'Customization needs', value: s.customizationNeeds.join(', ') }] : []),
+        ...(s.primaryMaterial ? [{ label: 'Primary material', value: s.primaryMaterial }] : []),
+        ...(s.sizeTags.length ? [{ label: 'Sizes', value: s.sizeTags.join(', ') }] : []),
+        ...(s.colourTags.length ? [{ label: 'Colours', value: s.colourTags.join(', ') }] : [])
+      ] },
+      { title: 'Quantity, pricing & samples', onEdit: () => this.goStep(2), rows: [
+        { label: 'Total quantity', value: (s.totalQuantity || '—') + ' ' + s.quantityUnit },
+        { label: 'Pricing approach', value: s.pricingApproach || '—' },
+        ...(showTargetPrice && s.targetPrice ? [{ label: 'Target price', value: s.currency + ' ' + s.targetPrice }] : []),
+        { label: 'Bid window', value: (s.bidStart || '—') + ' – ' + (s.bidEnd || '—') },
+        { label: 'Sample required', value: s.sampleRequired ? 'Yes' : 'No' }
+      ] },
+      { title: 'Compliance & preferences', onEdit: () => this.goStep(3), rows: [
+        ...(certRows.length ? certRows : [{ label: 'Certifications', value: 'None specified' }]),
+        { label: 'Who can respond', value: (whoCanRespondOptions.find(o => o.checked) || {}).label || '—' },
+        { label: 'Verified suppliers only', value: s.verifiedOnly ? 'Yes' : 'No' }
+      ] },
+      { title: 'Logistics & documents', onEdit: () => this.goStep(4), rows: [
+        { label: 'Required delivery date', value: s.requiredDeliveryDate || '—' },
+        { label: 'Delivery location', value: [s.city, s.stateVal, s.pincode].filter(Boolean).join(', ') || '—' },
+        { label: 'Incoterm', value: s.incoterm || '—' },
+        { label: 'Documents', value: s.documents.length ? (s.documents.length + ' attached') : 'None' }
+      ] }
+    ];
+
+    const visibilityMicrocopy = s.whoCanRespond === 'invite'
+      ? 'Your request will be shared only with the suppliers you invite.'
+      : s.whoCanRespond === 'matching'
+      ? 'Your request will be shared with suppliers matching your requirements automatically.'
+      : 'Your request will be shared with all verified suppliers on the network.';
+
+    return {
+      isForm: !s.published, isConfirmed: s.published,
+      hasPrefill: !!this.props.prefillSupplier, prefillSupplier: this.props.prefillSupplier,
+      stepCaption: STEP_CAPTIONS[s.step - 1],
+      stepList, progressBarWidth,
+      isStep1: s.step === 1, isStep2: s.step === 2, isStep3: s.step === 3, isStep4: s.step === 4, isStep5: s.step === 5,
+      draftSaved: s.draftSaved,
+
+      title: s.title, onTitle: this.set('title'),
+      category: s.category, categoryOptions: CATEGORY_OPTIONS, onCategory: this.set('category'),
+      contractType: s.contractType, contractOptions: CONTRACT_OPTIONS, onContractType: this.set('contractType'),
+      arrangementOptions, showCustomization, customizationChips,
+      primaryMaterial: s.primaryMaterial, onPrimaryMaterial: this.set('primaryMaterial'),
+      gsm: s.gsm, onGsm: this.set('gsm'),
+      sizeTags, sizeDraft: s.sizeDraft, onSizeDraft: this.set('sizeDraft'), onSizeAdd: this.addSize,
+      onSizeKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addSize(); } },
+      colourTags, colourDraft: s.colourDraft, onColourDraft: this.set('colourDraft'), onColourAdd: this.addColour,
+      onColourKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addColour(); } },
+      targetMarket: s.targetMarket, onTargetMarket: this.set('targetMarket'),
+      additionalRequirements: s.additionalRequirements, onAdditionalRequirements: this.set('additionalRequirements'),
+
+      totalQuantity: s.totalQuantity, onTotalQuantity: this.set('totalQuantity'),
+      quantityUnit: s.quantityUnit, unitOptions: UNIT_OPTIONS, onQuantityUnit: this.set('quantityUnit'),
+      breakdownEnabled: s.breakdownEnabled, onToggleBreakdown: this.toggleBreakdown,
+      breakdownRows, breakdownTotal, onAddBreakdownRow: this.addBreakdownRow,
+      pricingOptions, showTargetPrice,
+      currency: s.currency, onCurrency: this.set('currency'),
+      targetPrice: s.targetPrice, onTargetPrice: this.set('targetPrice'),
+      bidStart: s.bidStart, onBidStart: this.set('bidStart'),
+      bidEnd: s.bidEnd, onBidEnd: this.set('bidEnd'),
+      bidEndBorder: bidBad ? '#B5654A' : '#E4DFD5', bidErrorShown: bidBad,
+      sampleRequired: s.sampleRequired, onToggleSampleRequired: this.toggleSampleRequired,
+      sampleType: s.sampleType, sampleTypeOptions: SAMPLE_TYPE_OPTIONS, onSampleType: this.set('sampleType'),
+      sampleCount: s.sampleCount, onSampleCount: this.set('sampleCount'),
+      sampleDeadline: s.sampleDeadline, onSampleDeadline: this.set('sampleDeadline'),
+      sampleShipping: s.sampleShipping, sampleShippingOptions: SAMPLE_SHIPPING_OPTIONS, onSampleShipping: this.set('sampleShipping'),
+
+      certGroups,
+      complianceNotes: s.complianceNotes, onComplianceNotes: this.set('complianceNotes'),
+      minYearsExperience: s.minYearsExperience, onMinYearsExperience: this.set('minYearsExperience'),
+      preferredLocation: s.preferredLocation, locationOptions: LOCATION_OPTIONS, onPreferredLocation: this.set('preferredLocation'),
+      whoCanRespondOptions, showInviteList,
+      inviteSearch: s.inviteSearch, onInviteSearch: this.set('inviteSearch'), inviteCandidates,
+      verifiedOnly: s.verifiedOnly, onToggleVerifiedOnly: this.toggleVerifiedOnly,
+
+      requiredDeliveryDate: s.requiredDeliveryDate, onRequiredDeliveryDate: this.set('requiredDeliveryDate'),
+      deliveryBorder: delBad ? '#B5654A' : '#E4DFD5', deliveryErrorShown: delBad,
+      leadTimeDays: s.leadTimeDays, onLeadTimeDays: this.set('leadTimeDays'),
+      city: s.city, onCity: this.set('city'),
+      stateVal: s.stateVal, onState: this.set('stateVal'),
+      pincode: s.pincode, onPincode: this.set('pincode'),
+      shippingMethod: s.shippingMethod, shippingMethodOptions: SHIPPING_METHOD_OPTIONS, onShippingMethod: this.set('shippingMethod'),
+      incoterm: s.incoterm, incotermOptions: INCOTERM_OPTIONS, onIncoterm: this.set('incoterm'),
+      paymentTerms: s.paymentTerms, onPaymentTerms: this.set('paymentTerms'),
+      packagingNotes: s.packagingNotes, onPackagingNotes: this.set('packagingNotes'),
+      documents, onAddDocument: this.addDocument,
+
+      requiredCompleteCount, requiredTotalCount,
+      documentCount: s.documents.length,
+      matchingSupplierCount: 14,
+      timelineItems, summaryGroups, visibilityMicrocopy,
+
+      showBack: s.step > 1,
+      showNext: s.step < 5,
+      showPublish: s.step === 5,
+      onBack: this.goBack, onNext: this.goNext,
+      onCancel: this.props.onCancel,
+      onSaveDraft: this.saveDraft,
+      onPublishClick: this.publish,
+      onPublish: this.props.onPublish
+    };
+  }
+}
+
+</script>
+</body>
+</html>

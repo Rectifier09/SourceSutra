@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:720px; margin:0 auto; padding:0 24px 140px;">
+
+  <sc-if value="{{ isForm }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ onBack }}" style="background:none; border:none; color:#403A77; font-size:14px; cursor:pointer; padding:20px 0; text-decoration:underline;">← Back to RFQ</button>
+
+    <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:500; margin:0 0 4px; color:#20202B;">Quote for: {{ rfqTitle }}</h1>
+    <p style="font-size:12.5px; color:#6B6A78; margin:0 0 24px;">Fields marked with <span style="color:#B5654A;">*</span> are required.</p>
+
+    <div style="display:flex; flex-direction:column; gap:18px;">
+
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 120px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Unit price <span style="color:#B5654A;">*</span></span>
+          <input type="number" value="{{ unitPrice }}" onChange="{{ onUnitPrice }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 90px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Currency</span>
+          <select value="{{ currency }}" onChange="{{ onCurrency }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;">
+            <option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option>
+          </select>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 140px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Basis</span>
+          <select value="{{ priceBasis }}" onChange="{{ onPriceBasis }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;">
+            <option value="Per piece">Per piece</option><option value="Per metre">Per metre</option><option value="Per kg">Per kg</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Quantity you can fulfil <span style="color:#B5654A;">*</span></span>
+          <input type="number" value="{{ quantityFulfil }}" onChange="{{ onQuantityFulfil }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 120px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Your MOQ</span>
+          <input type="number" value="{{ moq }}" onChange="{{ onMoq }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+        </label>
+      </div>
+
+      <sc-if value="{{ rfqWantsSample }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; gap:14px; flex-wrap:wrap;">
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 140px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Sample price</span>
+            <input type="number" value="{{ samplePrice }}" onChange="{{ onSamplePrice }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 160px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Sample lead time (days)</span>
+            <input type="number" value="{{ sampleLeadTime }}" onChange="{{ onSampleLeadTime }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+          </label>
+        </div>
+      </sc-if>
+
+      <label style="display:flex; flex-direction:column; gap:6px; max-width:220px;">
+        <span style="font-size:13px; color:#6B6A78; font-weight:600;">Bulk production lead time (days) <span style="color:#B5654A;">*</span></span>
+        <input type="number" value="{{ bulkLeadTime }}" onChange="{{ onBulkLeadTime }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+      </label>
+
+      <div>
+        <span style="font-size:13px; color:#6B6A78; font-weight:600;">Required certifications</span>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+          <sc-for list="{{ certMatches }}" as="c" hint-placeholder-count="0">
+            <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid #E4DFD5; border-radius:8px; padding:9px 12px; background:#fff;">
+              <span style="font-size:13px; color:#20202B;">{{ c.name }}</span>
+              <span style="background:{{ c.bg }}; color:{{ c.fg }}; font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;">{{ c.label }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noCertsRequired }}"><p style="font-size:12.5px; color:#6B6A78; margin:0;">No certifications required for this RFQ.</p></sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasCustomizationNeeds }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Customization you can meet</span>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+            <sc-for list="{{ customizationChips }}" as="chip" hint-placeholder-count="0">
+              <button onClick="{{ chip.onClick }}" style="background:{{ chip.bg }}; color:{{ chip.fg }}; border:1px solid {{ chip.border }}; border-radius:99px; padding:7px 13px; font-size:12.5px; cursor:pointer;">{{ chip.value }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 140px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Incoterm offered</span>
+          <select value="{{ incoterm }}" onChange="{{ onIncoterm }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; background:#fff;">
+            <option value="">Select</option>
+            <option value="EXW">EXW</option><option value="FOB">FOB</option><option value="CIF">CIF</option><option value="DDP">DDP</option>
+          </select>
+        </label>
+        <label style="display:flex; flex-direction:column; gap:6px; flex:1 1 180px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Quote validity date</span>
+          <input type="date" value="{{ quoteValidity }}" onChange="{{ onQuoteValidity }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+        </label>
+      </div>
+
+      <label style="display:flex; flex-direction:column; gap:6px;">
+        <span style="font-size:13px; color:#6B6A78; font-weight:600;">Payment terms offered</span>
+        <input value="{{ paymentTerms }}" onChange="{{ onPaymentTerms }}" placeholder="e.g. 30% advance, 70% on shipment" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+      </label>
+
+      <label style="display:flex; flex-direction:column; gap:6px;">
+        <span style="font-size:13px; color:#6B6A78; font-weight:600;">Notes</span>
+        <textarea value="{{ notes }}" onChange="{{ onNotes }}" rows="3" placeholder="Anything the buyer should know about your quote" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+      </label>
+    </div>
+
+    <div style="position:sticky; bottom:0; background:#FAF8F4; border-top:1px solid #E4DFD5; padding:16px 4px; display:flex; gap:10px; justify-content:space-between; margin-top:28px; flex-wrap:wrap;">
+      <sc-if value="{{ showDiscard }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onDiscardClick }}" style="background:none; border:1px solid #E4DFD5; color:#B5654A; padding:11px 18px; border-radius:8px; font-size:14px; cursor:pointer;">Discard</button>
+      </sc-if>
+      <div style="display:flex; gap:10px; margin-left:auto;">
+        <button onClick="{{ onSaveDraftClick }}" style="background:none; border:1px solid #403A77; color:#403A77; padding:11px 18px; border-radius:8px; font-size:14px; cursor:pointer;">Save draft</button>
+        <button onClick="{{ onSubmitClick }}" style="background:#403A77; border:none; color:#FAF8F4; padding:11px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Submit quote</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isConfirmed }}">
+    <div style="text-align:center; padding:80px 20px;">
+      <div style="width:56px; height:56px; border-radius:50%; background:#5B7A5B; color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 20px;">✓</div>
+      <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:500; margin:0 0 10px; color:#20202B;">Quote submitted</h1>
+      <p style="font-size:14.5px; color:#6B6A78; margin:0 0 28px;">You'll see its status under Quotations &amp; Invitations.</p>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:720},&quot;rfq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;existingQuote&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object|null&quot;},&quot;supplierCapabilities&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;supplierCertifications&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;array&quot;},&quot;onBack&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSaveDraft&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSubmit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onDiscard&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+class Component extends DCLogic {
+  state = null; // lazily initialized from props on first render
+
+  initFromProps() {
+    const r = this.props.rfq || {};
+    const eq = this.props.existingQuote;
+    return {
+      id: (eq && eq.id) || 'q' + Math.random().toString(36).slice(2, 8),
+      rfqId: r.id,
+      unitPrice: (eq && eq.unitPrice) || '', currency: (eq && eq.currency) || 'INR', priceBasis: (eq && eq.priceBasis) || 'Per piece',
+      quantityFulfil: (eq && eq.quantityFulfil) || '', moq: (eq && eq.moq) || '',
+      samplePrice: (eq && eq.samplePrice) || '', sampleLeadTime: (eq && eq.sampleLeadTime) || '',
+      bulkLeadTime: (eq && eq.bulkLeadTime) || '',
+      incoterm: (eq && eq.incoterm) || '', paymentTerms: (eq && eq.paymentTerms) || '',
+      quoteValidity: (eq && eq.quoteValidity) || '', notes: (eq && eq.notes) || '',
+      selectedCustomization: (eq && eq.customizationOffered) || (this.props.supplierCapabilities || []).filter(c => (r.customizationNeeds || []).includes(c)),
+      submitted: false
+    };
+  }
+
+  componentDidMount() { this.setState(this.initFromProps()); }
+
+  set = (field) => (e) => this.setState({ [field]: e.target.value });
+  toggleCustomization = (v) => this.setState(s => ({ selectedCustomization: s.selectedCustomization.includes(v) ? s.selectedCustomization.filter(x => x !== v) : [...s.selectedCustomization, v] }));
+
+  buildQuoteData() {
+    const s = this.state;
+    return { id: s.id, rfqId: s.rfqId, unitPrice: s.unitPrice, currency: s.currency, priceBasis: s.priceBasis, quantityFulfil: s.quantityFulfil, moq: s.moq, samplePrice: s.samplePrice, sampleLeadTime: s.sampleLeadTime, bulkLeadTime: s.bulkLeadTime, incoterm: s.incoterm, paymentTerms: s.paymentTerms, quoteValidity: s.quoteValidity, notes: s.notes, customizationOffered: s.selectedCustomization };
+  }
+  saveDraft = () => this.props.onSaveDraft(this.buildQuoteData());
+  submit = () => { this.setState({ submitted: true }); this.props.onSubmit(this.buildQuoteData()); };
+  discard = () => this.props.onDiscard(this.state.id);
+
+  renderVals() {
+    const s = this.state;
+    if (!s) return { isForm: false, isConfirmed: false };
+    const r = this.props.rfq || {};
+    const certMatches = (r.requiredCerts || []).map(c => {
+      const held = (this.props.supplierCertifications || []).some(sc => (sc.certName === c.name || sc.customName === c.name) && sc.category === c.category);
+      return { name: c.name, label: held ? 'You hold this' : 'Gap — you don’t hold this', bg: held ? '#EFF3EE' : '#F7ECE8', fg: held ? '#5B7A5B' : '#B5654A' };
+    });
+    const customizationChips = (r.customizationNeeds || []).map(v => { const active = s.selectedCustomization.includes(v); return { value: v, onClick: () => this.toggleCustomization(v), bg: active ? '#403A77' : '#fff', fg: active ? '#FAF8F4' : '#403A77', border: active ? '#403A77' : '#D6D4EC' }; });
+
+    return {
+      isForm: !s.submitted, isConfirmed: s.submitted,
+      rfqTitle: r.title,
+      unitPrice: s.unitPrice, onUnitPrice: this.set('unitPrice'),
+      currency: s.currency, onCurrency: this.set('currency'),
+      priceBasis: s.priceBasis, onPriceBasis: this.set('priceBasis'),
+      quantityFulfil: s.quantityFulfil, onQuantityFulfil: this.set('quantityFulfil'),
+      moq: s.moq, onMoq: this.set('moq'),
+      rfqWantsSample: !!r.sampleRequired,
+      samplePrice: s.samplePrice, onSamplePrice: this.set('samplePrice'),
+      sampleLeadTime: s.sampleLeadTime, onSampleLeadTime: this.set('sampleLeadTime'),
+      bulkLeadTime: s.bulkLeadTime, onBulkLeadTime: this.set('bulkLeadTime'),
+      certMatches, noCertsRequired: certMatches.length === 0,
+      hasCustomizationNeeds: (r.customizationNeeds || []).length > 0, customizationChips,
+      incoterm: s.incoterm, onIncoterm: this.set('incoterm'),
+      quoteValidity: s.quoteValidity, onQuoteValidity: this.set('quoteValidity'),
+      paymentTerms: s.paymentTerms, onPaymentTerms: this.set('paymentTerms'),
+      notes: s.notes, onNotes: this.set('notes'),
+      showDiscard: !!this.props.existingQuote,
+      onDiscardClick: this.discard,
+      onSaveDraftClick: this.saveDraft,
+      onSubmitClick: this.submit,
+      onBack: this.props.onBack
+    };
+  }
+}
+
+</script>
+</body>
+</html>

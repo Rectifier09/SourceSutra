@@ -25,7 +25,8 @@ the Claude Design MCP.
 9. [Shared data models](#9-shared-data-models)
 10. [Status vocabularies](#10-status-vocabularies)
 11. [Prototype scope & known gaps](#11-prototype-scope--known-gaps)
-12. [Appendix — screen / file map](#12-appendix--screen--file-map)
+12. [Working copy: local run, fixes & change log](#12-working-copy-local-run-fixes--change-log)
+13. [Appendix — screen / file map](#13-appendix--screen--file-map)
 
 ---
 
@@ -79,13 +80,14 @@ certification taxonomy, and the RFQ/quote schema.
   React runtime).
 - **Two orchestrators** route between imported child screens; child screens are presentational and
   receive props + callbacks.
-- **Persistence:** the *supplier* marketplace reads an **in‑memory** `RFQS_DATA` array; the
-  *customer* side reads/writes **`window.RFQStore`** (`localStorage`, keys `sourcesutra_rfqs_v3` /
-  `sourcesutra_quotes_v3`). This is what makes award/reject survive reloads.
+- **Persistence:** both apps read/write the same **`window.RFQStore`** (`localStorage`, keys
+  `sourcesutra_rfqs_v3` / `sourcesutra_quotes_v3`) — so RFQs, quotes, and award/reject survive
+  reloads and are shared across the two personas. `support.js` self‑loads React, ReactDOM, and Babel
+  from the unpkg CDN at runtime and boots on `DOMContentLoaded`.
 - **Everything asynchronous is faked** with `setTimeout` (uploads, OTP, verification all resolve on
   a ~700 ms–3.2 s timer). No backend, no real auth, synthetic PII.
-- **Prototype notes** are printed on‑screen (dashed boxes: *"user / JTBD / decision"*) — this is a
-  design artifact for review, not production chrome.
+- **Prototype notes (removed):** the design originally printed dashed *"user / JTBD / decision"*
+  boxes on each screen for review; these have since been **stripped from all pages** (see §12).
 
 ---
 
@@ -292,7 +294,7 @@ flowchart TD
 Persistent header: logo, tabs **Profile · Discover suppliers · My RFQs**, Customer/Supplier toggle,
 Log out, and a prominent **+ Create RFQ**. Creating an RFQ is modeled as a **takeover that disables
 the tabs** (you finish or cancel). Buyer identity is fixed to **Vardhman Textiles, Ludhiana**; the
-*Profile* tab is a stub ("arrives in a later phase").
+**Profile** tab is a full, editable buyer account page (see §7.6).
 
 ### 7.2 Discover suppliers (`CustomerDiscover.dc.html`)
 
@@ -368,6 +370,15 @@ flowchart TD
 - **Modals:** reject (optional reason → *Not selected*), **award** (single‑award only; closes the
   RFQ, marks all others *Not selected*, irreversible), foreclose, reopen.
 
+### 7.6 Buyer profile (`CustomerProfile.dc.html`)
+
+The **Profile** tab (previously a placeholder) is now a real, editable account page built from the
+register layout: an avatar + name/company header, a "Customer (Buyer)" chip, then **Account
+information** (country, read‑only account type, email, and a "Change password" affordance that points
+to the sign‑in reset flow rather than collecting a password) and **Business information** (name,
+company, city/region, "products you source" tags, phone). Pre‑filled with the buyer (Priya Menon ·
+Vardhman Textiles); **Save changes** / **Discard** with a saved‑state indicator. State is local only.
+
 ---
 
 ## 8. The RFQ ↔ Quote lifecycle (cross‑persona)
@@ -403,11 +414,11 @@ leaves the RFQ active; `forecloseRfq` / `reopenRfq` manage the bid window. Seede
 includes an awarded RFQ (`rfq8` → *Ludhiana Woolworks*) and a live one with four competing quotes
 (`rfq1`).
 
-> **Note — two RFQ data sources.** The *supplier* Discover‑RFQs tab reads an **in‑memory**
-> `RFQS_DATA` (6 records) defined in the supplier orchestrator, while the *customer* side reads the
-> **`localStorage` `RFQStore`** (8 RFQs + 6 quotes). They overlap by id (`rfq1`–`rfq6`) but differ in
-> details (buyer, dates, category). The award/reject loop is fully consistent **within** the customer
-> app; it is not wired back into the supplier's live view.
+> **Note — unified store.** Both apps read/write the same **`localStorage` `RFQStore`** (8 RFQs + 6
+> quotes). A supplier's Discover‑RFQs tab shows the store's `active` RFQs; submitting a quote calls
+> `RFQStore.upsertQuote`, so it surfaces as an application in the buyer's My RFQs, and an award flips
+> the RFQ + all sibling quotes for both personas. (An earlier revision kept a separate in‑memory
+> supplier list; that has since been consolidated onto `RFQStore`.)
 
 ---
 
@@ -455,11 +466,6 @@ limits and inconsistencies observed in the code:
 
 - **No backend / real auth / persistence** beyond `localStorage`. Uploads, OTP, and verification are
   timer‑simulated; supplier‑app state resets on logout.
-- **Two RFQ stores** (supplier in‑memory vs customer `localStorage`) that overlap but diverge — see
-  §8. The supplier's live Discover view doesn't reflect customer awards.
-- **Supplier "Create & submit quote"** is gated on `rfq.status === 'active'`, but the supplier's
-  in‑memory `RFQS_DATA` records don't carry a `status` field — so that button's gating never
-  evaluates true against that data source. (A latent inconsistency between the two RFQ schemas.)
 - **Business performance** metrics on the supplier profile are a permanent empty state in the
   prototype (`hasPerformanceData = false`).
 - **Post‑award tracking** (projects, payment milestones) is explicitly deferred ("not built yet").
@@ -468,29 +474,88 @@ limits and inconsistencies observed in the code:
 
 ---
 
-## 12. Appendix — screen / file map
+## 12. Working copy: local run, fixes & change log
+
+### Bugs found & fixed (applied locally **and pushed to the design project**)
+
+Re‑importing `SourceSutra.dc.html` showed the project had been rewritten since the first import —
+both apps now share `RFQStore` (see §8), which already resolved the earlier "supplier can't quote /
+two disconnected stores" problems. But the rewrite introduced two regressions, both fixed here and
+**pushed back upstream** (via DesignSync `write_files`) so the live prototype carries them too:
+
+1. **Duplicate `componentDidMount`** — the class declared it twice; the second (the `RFQStore`
+   loader) silently overrode the first (reduced‑motion detection), leaving `this._prm` unset. Merged
+   into one method that does both.
+2. **Signup never reached the dashboard** — `handleSignup` animated the intro but had no
+   auto‑advance, so users were stranded on *"Setting up your dashboard…"* until they clicked
+   **Enter** (and reduced‑motion users didn't skip either, because of bug 1). Restored the
+   `_timer4 → _goDashboard()` auto‑advance and added `_timer4` to the skip‑timer cleanup.
+
+Verified: exactly one `componentDidMount` remains, all script blocks parse, and the `RFQStore` award
+loop works end‑to‑end (supplier submit → buyer application → award flips the RFQ + sibling quotes).
+
+### Running it locally
+
+The whole project is vendored into this repo and runs in a normal browser:
+
+- **Serve over HTTP**, not `file://` — the runtime `fetch`es sibling `dc-import` screens, which
+  browsers block on `file://`. Any static server works (`npx serve`, `python -m http.server`, …).
+- Open **`SourceSutra.dc.html`** (supplier app) or **`SourceSutraCustomer.dc.html`** (buyer app).
+- **Internet is required at runtime** — `support.js` self‑loads React/ReactDOM/Babel from the unpkg
+  CDN; fonts load from Google Fonts.
+- **`uploads/` must be populated** for the visuals (page backgrounds, landing hero, intro GIF +
+  `.mp3`); they're referenced by relative `url('uploads/…')` paths. Two backgrounds use the design
+  platform's content‑hash filenames (`…-d4fa2418.png`, `…-08ba46f0.png`) — if you only have the
+  un‑suffixed originals, copy them to those names.
+
+### Change log (this session)
+
+1. Imported the customer app (`SourceSutraCustomer.dc.html`) + shared `support.js`.
+2. Wrote this `userjourney.md` after reading all 14 screens + `rfq-store.js`.
+3. Diagnosed broken flows on an older snapshot; on re‑import found them already fixed upstream, then
+   fixed the two new regressions above and **pushed `SourceSutra.dc.html` back to the design project**.
+4. Vendored the **complete project locally** — 14 `.dc.html`, `rfq-store.js`, `support.js` — and
+   validated every script block parses and every `dc-import` resolves.
+5. Populated `uploads/` and ran the app in the browser — landing background + hero, customer
+   backgrounds, and the store‑backed flows all confirmed rendering.
+6. **Removed all prototype‑note boxes** — 14 dashed "user / JTBD / decision" blocks across 8 pages.
+7. **Added the onboarding banner background** (`uploads/onboardingbanner.png`, full‑page cover) to
+   `ScreenDashboard` — behind the Overview + Identity + Financials + Portfolio onboarding screens.
+8. **Built the Buyer Profile page** (`CustomerProfile.dc.html`) from the register layout and wired it
+   into the customer **Profile** tab, replacing the old stub.
+9. **Made the Discover‑suppliers background full‑page** (`background-size` `contain` → `cover`).
+
+> Items 6–9 are applied **locally only** — not yet pushed to the design project.
+
+---
+
+## 13. Appendix — screen / file map
 
 | File | Persona | Role |
 |---|---|---|
-| `SourceSutra.dc.html` | Supplier | Orchestrator: routes landing/intro/dashboard + supplier marketplace; holds onboarding state, scenarios, `RFQS_DATA` |
+| `SourceSutra.dc.html` | Supplier | Orchestrator: routes landing/intro/dashboard + supplier marketplace; holds onboarding state + scenarios; reads/writes the shared `RFQStore` (fixed file — see §12) |
 | `ScreenLanding.dc.html` | Supplier | Marketing landing + Google sign‑up |
 | `ScreenIntro.dc.html` | Supplier | Post‑signup animated bridge |
-| `ScreenDashboard.dc.html` | Supplier | Onboarding home + Identity/Financials/Portfolio forms + verified profile |
+| `ScreenDashboard.dc.html` | Supplier | Onboarding home + Identity/Financials/Portfolio forms + verified profile; full‑page `onboardingbanner.png` background |
 | `SupplierDiscoverRFQs.dc.html` | Supplier | Browse/filter open RFQs |
 | `SupplierRFQDetail.dc.html` | Supplier | Full RFQ spec + compliance |
 | `SupplierCreateQuote.dc.html` | Supplier | Quote form with cert‑match |
 | `SupplierQuotations.dc.html` | Supplier | Quotes + invitations pipeline |
 | `SourceSutraCustomer.dc.html` | Customer | Orchestrator: shell/tabs + `SUPPLIERS` directory data |
 | `CustomerRegister.dc.html` | Customer | Buyer sign‑up |
-| `CustomerDiscover.dc.html` | Customer | Browse/filter suppliers |
+| `CustomerProfile.dc.html` | Customer | Editable buyer account page (Profile tab; built from the register layout) |
+| `CustomerDiscover.dc.html` | Customer | Browse/filter suppliers; full‑page cover background |
 | `CustomerSupplierProfile.dc.html` | Customer | Public supplier profile (no Identity/Financials) |
 | `CustomerCreateRFQ.dc.html` | Customer | 5‑step RFQ wizard → `RFQStore` |
 | `CustomerMyRFQs.dc.html` | Customer | RFQ list → applications → award/reject/close/reopen |
 | `rfq-store.js` | Shared | `localStorage` RFQ + Quote store; award/reject/foreclose/reopen |
 | `support.js` | Shared | Generated React runtime for the `.dc.html` format |
-| `uploads/…` | Shared | Hero images, intro GIF + audio |
+| `uploads/` | Shared | Page backgrounds, landing hero image, intro GIF + `.mp3` audio (relative‑path refs; must be present locally) |
 
 ---
 
 *Generated from the Claude Design project `b32cd8b6-9529-4809-8831-5cc086b151d3` ("Demo flows and
-design system"). All 13 screens + shared runtime and store were read to compile this map.*
+design system"). Now **15 screens** (added `CustomerProfile.dc.html`) + shared runtime, store, and
+`uploads/` assets. The `SourceSutra.dc.html` fix was pushed upstream; the later working‑copy changes
+(prototype‑note removal, onboarding banner, Buyer Profile page, Discover cover background) are local
+only. Last updated 2026‑08‑10.*

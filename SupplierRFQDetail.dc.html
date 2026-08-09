@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:820px; margin:0 auto; padding:0 24px 100px;">
+
+  <button onClick="{{ onBack }}" style="background:none; border:none; color:#403A77; font-size:14px; cursor:pointer; padding:20px 0; text-decoration:underline;">← Back to Discover RFQs</button>
+
+  <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 6px; color:#20202B;">{{ title }}</h1>
+  <p style="font-size:13.5px; color:#6C6AA0; margin:0 0 20px;">Posted by {{ buyer }} · {{ buyerLocation }}</p>
+
+  <sc-if value="{{ hasExistingQuote }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#EDECF6; border:1px solid #D6D4EC; border-radius:10px; padding:14px 16px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <span style="font-size:13.5px; color:#403A77;">You've already {{ existingQuoteVerb }} a quote for this RFQ — status: <strong>{{ existingQuoteStatusLabel }}</strong></span>
+      <button onClick="{{ onViewQuoteClick }}" style="background:#403A77; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap;">{{ existingQuoteAction }}</button>
+    </div>
+  </sc-if>
+
+  <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:20px;">
+    <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Product &amp; requirements</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Category</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ category }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Contract type</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ contractType }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Arrangement</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ arrangement }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Primary material</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ primaryMaterial }}</div></div>
+    </div>
+    <sc-if value="{{ hasCustomization }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:16px;">
+        <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:8px;">Customization needs</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <sc-for list="{{ customizationNeeds }}" as="c"><span style="background:#F2EEE6; border:1px solid #D6D4EC; color:#403A77; border-radius:99px; padding:5px 11px; font-size:12px;">{{ c }}</span></sc-for>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ hasSizes }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:16px; font-size:13px; color:#6B6A78;">Sizes: <strong style="color:#20202B;">{{ sizesLabel }}</strong></div>
+    </sc-if>
+    <div style="margin-top:8px; font-size:13px; color:#6B6A78;">Colours: <strong style="color:#20202B;">{{ coloursLabel }}</strong></div>
+  </div>
+
+  <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:20px;">
+    <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Quantity, pricing &amp; samples</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Quantity</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ quantityLabel }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Pricing approach</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ pricingApproach }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Bid window</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ bidWindowLabel }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Sample required</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ sampleLabel }}</div></div>
+    </div>
+  </div>
+
+  <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:20px;">
+    <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Compliance</h2>
+    <sc-if value="{{ hasCerts }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <sc-for list="{{ requiredCerts }}" as="c" hint-placeholder-count="0">
+          <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid #E4DFD5; border-radius:8px; padding:9px 12px;">
+            <span style="font-size:13px; color:#20202B;">{{ c.name }} <span style="color:#6C6AA0; font-size:11.5px;">· {{ c.category }}</span></span>
+            <span style="background:{{ c.bg }}; color:{{ c.fg }}; font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;">{{ c.priorityLabel }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ noCerts }}"><p style="font-size:13px; color:#6B6A78; margin:0;">No certifications required for this RFQ.</p></sc-if>
+  </div>
+
+  <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:24px;">
+    <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Logistics</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Required delivery date</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ deliveryDate }}</div></div>
+      <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Delivery location</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ deliveryLocation }}</div></div>
+    </div>
+  </div>
+
+  <div style="position:sticky; bottom:0; background:#FAF8F4; border-top:1px solid #E4DFD5; padding:14px 4px; display:flex; gap:10px; justify-content:flex-end;">
+    <button onClick="{{ onBack }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:11px 18px; border-radius:8px; font-size:14px; cursor:pointer;">Save RFQ</button>
+    <sc-if value="{{ showCreateQuoteButton }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ onCreateQuoteClick }}" style="background:#403A77; border:none; color:#FAF8F4; padding:11px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Create &amp; submit quote</button>
+    </sc-if>
+  </div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:820},&quot;rfq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;existingQuote&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object|null&quot;},&quot;onBack&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onCreateQuote&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onViewQuote&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+const PRIORITY_STYLE = { must: { label: 'Must-have', bg: '#F7ECE8', fg: '#B5654A' }, nice: { label: 'Nice-to-have', bg: '#EDECF6', fg: '#403A77' } };
+const QUOTE_STATUS_LABELS = { draft: 'Draft', submitted: 'Submitted', under_review: 'Under review', shortlisted: 'Shortlisted', awarded: 'Awarded', not_selected: 'Not selected', closed: 'Closed' };
+
+class Component extends DCLogic {
+  renderVals() {
+    const r = this.props.rfq || {};
+    const eq = this.props.existingQuote;
+    const requiredCerts = (r.requiredCerts || []).map(c => ({ ...c, priorityLabel: PRIORITY_STYLE[c.priority].label, bg: PRIORITY_STYLE[c.priority].bg, fg: PRIORITY_STYLE[c.priority].fg }));
+    return {
+      title: r.title, buyer: r.buyer, buyerLocation: r.buyerLocation,
+      category: r.category, contractType: r.contractType, arrangement: r.arrangement || 'Standard Product',
+      primaryMaterial: r.primaryMaterial || '—',
+      hasCustomization: (r.customizationNeeds || []).length > 0, customizationNeeds: r.customizationNeeds,
+      hasSizes: (r.sizeRange || []).length > 0, sizesLabel: (r.sizeRange || []).join(', '),
+      coloursLabel: (r.colours || []).join(', ') || '—',
+      quantityLabel: r.quantity ? (r.quantity.toLocaleString() + ' ' + r.unit) : '—',
+      pricingApproach: r.pricingApproach + (r.pricingApproach === 'I have a target price' ? (' (' + r.currency + ' ' + r.targetPrice + ')') : ''),
+      bidWindowLabel: r.bidStart + ' → ' + r.bidEnd,
+      sampleLabel: r.sampleRequired ? ('Yes' + (r.sampleType ? ' — ' + r.sampleType : '')) : 'No',
+      hasCerts: requiredCerts.length > 0, noCerts: requiredCerts.length === 0, requiredCerts,
+      deliveryDate: r.deliveryDate, deliveryLocation: r.deliveryLocation,
+      hasExistingQuote: !!eq,
+      existingQuoteVerb: eq && eq.status === 'draft' ? 'started drafting' : 'submitted',
+      existingQuoteStatusLabel: eq ? QUOTE_STATUS_LABELS[eq.status] : '',
+      existingQuoteAction: eq && eq.status === 'draft' ? 'Resume draft' : 'View your quote',
+      onViewQuoteClick: () => this.props.onViewQuote(eq ? eq.id : null),
+      showCreateQuoteButton: r.status === 'active' && (!eq || eq.status === 'draft'),
+      onCreateQuoteClick: () => this.props.onCreateQuote(r.id),
+      onBack: this.props.onBack
+    };
+  }
+}
+
+</script>
+</body>
+</html>

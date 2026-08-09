@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid #403A77; outline-offset: 2px; }
+  .cr-google:hover { background: #F2EEE6; }
+  .cr-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  @media (max-width: 639px) {
+    .form-grid-2 { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .form-card { padding: 20px 16px; }
+  }
+  @media (min-width: 640px) {
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-card { padding: 28px 32px; }
+  }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background-image:url('uploads/ChatGPT Image Aug 9, 2026, 09_18_58 PM-08ba46f0.png'); background-size:cover; background-position:center; background-attachment:fixed;">
+<div style="max-width:1080px; margin:0 auto; padding:16px 16px 60px; display:flex; flex-direction:column;">
+
+  <div style="font-family:'Fraunces',serif; font-weight:600; font-size:21px; color:#403A77; margin-bottom:20px;">SourceSutra</div>
+
+  <div style="display:flex; justify-content:center; align-items:flex-start;">
+
+    <div class="form-card" style="flex:0 1 100%; max-width:680px; background:rgba(250,248,244,0.94); border-radius:16px; margin-top:0; max-height:90vh; overflow-y:auto; width:100%;">
+      <h1 style="font-family:'Fraunces',serif; font-size:32px; font-weight:500; margin:0 0 8px; color:#20202B;">Create your account</h1>
+      <p style="font-size:12.5px; color:#6B6A78; margin:0 0 24px;">Fields marked with <span style="color:#B5654A;">*</span> are required.</p>
+
+      <button class="cr-google" onClick="{{ onGoogleClick }}" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:#fff; border:1px solid #E4DFD5; color:#20202B; padding:12px 16px; border-radius:8px; font-size:14.5px; font-weight:600; cursor:pointer; margin-bottom:18px;">
+        <span style="font-size:16px;">G</span> Continue with Google
+      </button>
+
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:22px;">
+        <div style="flex:1; height:1px; background:#E4DFD5;"></div>
+        <span style="font-size:12px; color:#6B6A78;">or</span>
+        <div style="flex:1; height:1px; background:#E4DFD5;"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+
+        <div style="font-size:11.5px; font-weight:600; color:#6C6AA0; text-transform:uppercase; letter-spacing:0.03em;">Account information</div>
+
+        <div class="form-grid-2">
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Country / region <span style="color:#B5654A;">*</span></span>
+            <select value="{{ country }}" onChange="{{ onCountry }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;">
+              <sc-for list="{{ countryOptions }}" as="opt"><option value="{{ opt }}">{{ opt }}</option></sc-for>
+            </select>
+          </label>
+          <div>
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Account type</span>
+            <div style="margin-top:6px; background:#F2EEE6; border:1px solid #E4DFD5; border-radius:8px; padding:11px 12px; font-size:14px; color:#20202B;">Customer (Buyer)</div>
+          </div>
+        </div>
+        <p style="font-size:11.5px; color:#6C6AA0; margin:0;">Already a supplier on SourceSutra? You can switch personas from your dashboard after signing in.</p>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Email address <span style="color:#B5654A;">*</span></span>
+          <input type="email" value="{{ email }}" onChange="{{ onEmail }}" disabled="{{ emailLocked }}" placeholder="you@company.com" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:{{ emailBg }};"/>
+        </label>
+
+        <sc-if value="{{ showPasswordFields }}" hint-placeholder-val="{{ true }}">
+          <div class="form-grid-2">
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:13px; color:#6B6A78; font-weight:600;">Create password <span style="color:#B5654A;">*</span></span>
+              <input type="password" value="{{ password }}" onChange="{{ onPassword }}" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+            </label>
+            <label style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:13px; color:#6B6A78; font-weight:600;">Confirm password <span style="color:#B5654A;">*</span></span>
+              <input type="password" value="{{ confirmPassword }}" onChange="{{ onConfirmPassword }}" style="padding:11px 12px; border:1px solid {{ confirmBorder }}; border-radius:8px; font-size:14.5px; background:#fff;"/>
+            </label>
+          </div>
+          <sc-if value="{{ passwordMismatch }}"><div style="font-size:12px; color:#B5654A; margin-top:-4px;">Passwords don't match.</div></sc-if>
+        </sc-if>
+
+        <div style="font-size:11.5px; font-weight:600; color:#6C6AA0; text-transform:uppercase; letter-spacing:0.03em; margin-top:2px;">Business information</div>
+
+        <div class="form-grid-2">
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">First name <span style="color:#B5654A;">*</span></span>
+            <input value="{{ firstName }}" onChange="{{ onFirstName }}" placeholder="First name" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Last name <span style="color:#B5654A;">*</span></span>
+            <input value="{{ lastName }}" onChange="{{ onLastName }}" placeholder="Last name" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px;"/>
+          </label>
+        </div>
+
+        <label style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Company name <span style="color:#B5654A;">*</span></span>
+          <input value="{{ companyName }}" onChange="{{ onCompanyName }}" placeholder="e.g. Vardhman Textiles" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px; background:#fff;"/>
+        </label>
+
+        <div>
+          <span style="font-size:13px; color:#6B6A78; font-weight:600;">Products you're looking to source <span style="color:#B5654A;">*</span></span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 0;">
+            <sc-for list="{{ sourcingTags }}" as="t" hint-placeholder-count="0">
+              <span style="display:flex; align-items:center; gap:6px; background:#EDECF6; color:#403A77; border-radius:99px; padding:5px 10px; font-size:12px;">{{ t.value }} <button onClick="{{ t.onRemove }}" style="background:none; border:none; color:#403A77; cursor:pointer;">×</button></span>
+            </sc-for>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input value="{{ sourcingDraft }}" onChange="{{ onSourcingDraft }}" onKeyDown="{{ onSourcingKeyDown }}" placeholder="e.g. knit t-shirts, denim, trims" style="flex:1; padding:9px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+            <button onClick="{{ onSourcingAdd }}" style="background:#403A77; color:#fff; border:none; padding:9px 14px; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap;">Add</button>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Area code <span style="color:#B5654A;">*</span></span>
+            <input value="{{ areaCode }}" onChange="{{ onAreaCode }}" placeholder="Area code" style="padding:11px 10px; border:1px solid #E4DFD5; border-radius:8px; font-size:14px;"/>
+          </label>
+          <label style="display:flex; flex-direction:column; gap:6px;">
+            <span style="font-size:13px; color:#6B6A78; font-weight:600;">Phone number <span style="color:#B5654A;">*</span></span>
+            <input value="{{ phoneNumber }}" onChange="{{ onPhoneNumber }}" placeholder="Phone number" style="padding:11px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:14.5px;"/>
+          </label>
+        </div>
+
+        <label style="display:flex; gap:8px; align-items:flex-start; font-size:12px; color:#6B6A78;">
+          <input type="checkbox" checked="{{ consent }}" onChange="{{ onConsent }}" style="margin-top:3px; cursor:pointer;"/>
+          <span>I agree to the <a href="#" onClick="{{ stopProp }}">Terms &amp; Conditions</a> and have read and understood the <a href="#" onClick="{{ stopProp }}">Privacy Policy</a>. <span style="color:#B5654A;">*</span></span>
+        </label>
+
+        <button class="cr-submit" onClick="{{ onSubmit }}" disabled="{{ submitDisabled }}" style="background:#403A77; color:#FAF8F4; border:none; padding:12px 20px; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; margin-top:4px;">Create my account</button>
+
+        <p style="font-size:12px; color:#6B6A78; text-align:center; margin:6px 0 0;">Already have an account? <a href="SourceSutraCustomer.dc.html">Sign in</a></p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    viaGoogle: false,
+    country: 'India', email: '', password: '', confirmPassword: '',
+    title: 'Mr', firstName: '', lastName: '', companyName: '',
+    sourcingTags: [], sourcingDraft: '',
+    countryCode: '+91', areaCode: '', phoneNumber: '',
+    consent: false
+  };
+
+  set = (field) => (e) => this.setState({ [field]: e.target.value });
+  toggleConsent = (e) => this.setState({ consent: e.target.checked });
+
+  clickGoogle = () => this.setState({ viaGoogle: true, email: 'priya.menon@vardhmantextiles.in', password: '', confirmPassword: '' });
+
+  addSourcingTag = () => { const v = this.state.sourcingDraft.trim(); if (!v) return; this.setState(s => ({ sourcingTags: [...s.sourcingTags, v], sourcingDraft: '' })); };
+  removeSourcingTag = (v) => this.setState(s => ({ sourcingTags: s.sourcingTags.filter(t => t !== v) }));
+
+  submit = () => { window.location.href = 'SourceSutraCustomer.dc.html'; };
+
+  renderVals() {
+    const s = this.state;
+    const passwordMismatch = !s.viaGoogle && s.password && s.confirmPassword && s.password !== s.confirmPassword;
+    const requiredFilled = !!(s.country && s.email && s.firstName && s.lastName && s.companyName && s.sourcingTags.length && s.areaCode && s.phoneNumber && s.consent && (s.viaGoogle || (s.password && s.confirmPassword && s.password === s.confirmPassword)));
+
+    const sourcingTags = s.sourcingTags.map(t => ({ value: t, onRemove: () => this.removeSourcingTag(t) }));
+
+    return {
+      countryOptions: ['India', 'United States', 'United Kingdom', 'United Arab Emirates', 'Bangladesh', 'Sri Lanka', 'Other'],
+      country: s.country, onCountry: this.set('country'),
+      onGoogleClick: this.clickGoogle,
+      email: s.email, onEmail: this.set('email'),
+      emailLocked: s.viaGoogle, emailBg: s.viaGoogle ? '#F2EEE6' : '#fff',
+      showPasswordFields: !s.viaGoogle,
+      password: s.password, onPassword: this.set('password'),
+      confirmPassword: s.confirmPassword, onConfirmPassword: this.set('confirmPassword'),
+      confirmBorder: passwordMismatch ? '#B5654A' : '#E4DFD5', passwordMismatch,
+      title: s.title, onTitle: this.set('title'),
+      firstName: s.firstName, onFirstName: this.set('firstName'),
+      lastName: s.lastName, onLastName: this.set('lastName'),
+      companyName: s.companyName, onCompanyName: this.set('companyName'),
+      sourcingTags, sourcingDraft: s.sourcingDraft, onSourcingDraft: this.set('sourcingDraft'),
+      onSourcingAdd: this.addSourcingTag,
+      onSourcingKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addSourcingTag(); } },
+      countryCode: s.countryCode, onCountryCode: this.set('countryCode'),
+      areaCode: s.areaCode, onAreaCode: this.set('areaCode'),
+      phoneNumber: s.phoneNumber, onPhoneNumber: this.set('phoneNumber'),
+      consent: s.consent, onConsent: this.toggleConsent,
+      stopProp: (e) => e.preventDefault(),
+      submitDisabled: !requiredFilled,
+      onSubmit: this.submit
+    };
+  }
+}
+</script>
+</body>
+</html>

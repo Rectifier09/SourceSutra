@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid #403A77; outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+  <div style="max-width:1180px; margin:0 auto; padding:40px 24px 80px;">
+
+    <button onClick="{{ onBack }}" style="background:none; border:none; color:#403A77; font-size:14px; cursor:pointer; padding:0 0 24px; text-decoration:underline;">← Back to discover suppliers</button>
+
+    <!-- HEADER -->
+    <div style="display:flex; gap:20px; align-items:flex-start; margin-bottom:40px; flex-wrap:wrap;">
+      <div style="width:80px; height:80px; border-radius:16px; background:{{ logoBg }}; color:{{ logoFg }}; font-family:'Fraunces',serif; font-weight:500; font-size:28px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ initials }}</div>
+      <div style="flex:1; min-width:280px;">
+        <h1 style="font-family:'Fraunces',serif; font-size:32px; font-weight:500; margin:0 0 6px; color:#20202B;">{{ name }}</h1>
+        <p style="font-size:15.5px; color:#6B6A78; margin:0 0 8px; line-height:1.5;">{{ mission }}</p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:13.5px; color:#6C6AA0; margin-bottom:12px;">
+          <span>{{ type }}</span>
+          <span>·</span>
+          <span>{{ location }}</span>
+        </div>
+      </div>
+      <button onClick="{{ onCreateRfqClick }}" style="background:#403A77; color:#FAF8F4; border:none; padding:12px 20px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer; white-space:nowrap; flex-shrink:0;">Create RFQ</button>
+    </div>
+
+    <!-- BUSINESS PERFORMANCE STRIP -->
+    <div style="background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:26px; margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Business performance</h2>
+      <sc-if value="{{ hasPerformanceData }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:18px;">
+          <sc-for list="{{ performanceStats }}" as="stat">
+            <div>
+              <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:6px;">{{ stat.label }}</div>
+              <div style="font-size:20px; font-weight:600; color:#403A77;">{{ stat.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noPerformanceData }}">
+        <div style="padding:20px; background:#F2EEE6; border-radius:10px; text-align:center;">
+          <p style="font-size:13.5px; color:#6B6A78; margin:0 0 8px;">Not enough activity yet</p>
+          <p style="font-size:12px; color:#6C6AA0; margin:0;">These metrics populate as the supplier completes projects on SourceSutra.</p>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- PRODUCTION SNAPSHOT -->
+    <div style="background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:26px; margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 4px; color:#20202B;">Production snapshot</h2>
+      <p style="font-size:12px; color:#6C6AA0; margin:0 0 16px;">As reported by supplier</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:18px;">
+        <div>
+          <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:6px;">Factory area</div>
+          <div style="font-size:16px; font-weight:600; color:#20202B;">{{ factoryArea }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:6px;">Employees</div>
+          <div style="font-size:16px; font-weight:600; color:#20202B;">{{ employees }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:6px;">Monthly capacity</div>
+          <div style="font-size:16px; font-weight:600; color:#20202B;">{{ monthlyCapacity }}</div>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:6px;">Production lines</div>
+          <div style="font-size:16px; font-weight:600; color:#20202B;">{{ productionLines }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRADE TERMS -->
+    <div style="background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:26px; margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Trade terms</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:20px;">
+        <div>
+          <div style="font-size:12px; color:#6B6A78; font-weight:500; margin-bottom:4px;">MOQ</div>
+          <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ moq }}</div>
+        </div>
+        <div>
+          <div style="font-size:12px; color:#6B6A78; font-weight:500; margin-bottom:4px;">Incoterms</div>
+          <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ incoterms }}</div>
+        </div>
+        <div>
+          <div style="font-size:12px; color:#6B6A78; font-weight:500; margin-bottom:4px;">Payment terms</div>
+          <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ paymentTerms }}</div>
+        </div>
+        <div>
+          <div style="font-size:12px; color:#6B6A78; font-weight:500; margin-bottom:4px;">Lead time</div>
+          <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ leadTime }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMIZATION CAPABILITIES -->
+    <div style="background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:26px; margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Customization capabilities</h2>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <sc-for list="{{ customizationCapabilities }}" as="cap" hint-placeholder-count="5">
+          <div style="background:#fff; border:1px solid #D6D4EC; border-radius:6px; padding:8px 12px; font-size:13px; color:#403A77;">{{ cap }}</div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- PRODUCTS GRID -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Products</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:18px;">
+        <sc-for list="{{ products }}" as="prod" hint-placeholder-count="4">
+          <button onClick="{{ prod.onClick }}" style="text-align:left; background:#fff; border:1px solid #E4DFD5; border-radius:12px; overflow:hidden; cursor:pointer; padding:0; transition:border-color 0.25s;">
+            <div style="height:160px; background:repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px);"></div>
+            <div style="padding:14px;">
+              <div style="font-size:14px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ prod.name }}</div>
+              <div style="font-size:12px; color:#6C6AA0; margin-bottom:8px;">{{ prod.category }}</div>
+              <div style="font-size:12px; color:#6B6A78;">{{ prod.material }}</div>
+              <div style="font-size:13px; font-weight:600; color:#403A77; margin-top:8px;">{{ prod.priceRange }}</div>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- CERTIFICATIONS -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 4px; color:#20202B;">Certifications &amp; licences</h2>
+      <p style="font-size:12px; color:#6C6AA0; margin:0 0 16px;">Expired records stay visible so you can see compliance history, not just current status.</p>
+
+      <sc-if value="{{ hasCertifications }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:8px; padding:8px 14px;"><span style="font-size:15px; font-weight:600; color:#20202B;">{{ certSummary.total }}</span> <span style="font-size:12px; color:#6B6A78;">total</span></div>
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:8px; padding:8px 14px;"><span style="font-size:15px; font-weight:600; color:#5B7A5B;">{{ certSummary.verified }}</span> <span style="font-size:12px; color:#6B6A78;">verified</span></div>
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:8px; padding:8px 14px;"><span style="font-size:15px; font-weight:600; color:#B07A17;">{{ certSummary.expiringSoon }}</span> <span style="font-size:12px; color:#6B6A78;">expiring soon</span></div>
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:8px; padding:8px 14px;"><span style="font-size:15px; font-weight:600; color:#B5654A;">{{ certSummary.expired }}</span> <span style="font-size:12px; color:#6B6A78;">expired</span></div>
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:8px; padding:8px 14px; font-size:12px; color:#6B6A78;">Covers {{ certSummary.categoriesCovered }} of {{ certSummary.categoriesTotal }} categories</div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:22px;">
+          <sc-for list="{{ certGroups }}" as="grp" hint-placeholder-count="1">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:#6C6AA0; text-transform:uppercase; letter-spacing:0.02em; margin-bottom:10px;">{{ grp.category }}</div>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <sc-for list="{{ grp.records }}" as="cert" hint-placeholder-count="1">
+
+                  <!-- Audit card -->
+                  <sc-if value="{{ cert.isAudit }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#F2EEE6; border:1px dashed #C9C4E8; border-radius:12px; padding:16px;">
+                      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px;">
+                        <div>
+                          <div style="font-size:11px; font-weight:600; color:#403A77; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:4px;">Audit</div>
+                          <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ cert.buyerName }}</div>
+                          <div style="font-size:12px; color:#6C6AA0;">{{ cert.auditType }}</div>
+                        </div>
+                        <div style="text-align:right;">
+                          <div style="background:{{ cert.badge.bg }}; color:{{ cert.badge.fg }}; font-size:11px; font-weight:600; padding:4px 9px; border-radius:99px; display:inline-block; margin-bottom:6px;">{{ cert.outcome }}</div>
+                          <div style="font-size:11.5px; color:#6B6A78;">{{ cert.auditDate }}</div>
+                        </div>
+                      </div>
+                      <button onClick="{{ cert.onView }}" style="background:none; border:none; color:#403A77; font-size:12px; cursor:pointer; text-decoration:underline;">View report</button>
+                    </div>
+                  </sc-if>
+
+                  <!-- Certification / licence card -->
+                  <sc-if value="{{ cert.isCert }}" hint-placeholder-val="{{ true }}">
+                    <div style="background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:16px; opacity:{{ cert.opacity }};">
+                      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px;">
+                        <div style="flex:1;">
+                          <div style="font-size:14.5px; font-weight:600; color:#20202B; margin-bottom:2px;">{{ cert.name }}</div>
+                          <div style="font-size:12px; color:#6C6AA0;">{{ cert.issuingBody }} · No. {{ cert.certNumber }}</div>
+                        </div>
+                        <div style="background:{{ cert.badge.bg }}; color:{{ cert.badge.fg }}; font-size:11px; font-weight:600; padding:4px 9px; border-radius:99px; white-space:nowrap;">{{ cert.badge.label }}</div>
+                      </div>
+                      <p style="font-size:13px; color:#20202B; line-height:1.5; margin:0 0 8px; background:#F2EEE6; padding:8px 10px; border-radius:6px;">{{ cert.scope }}</p>
+                      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="font-size:12px; color:#6B6A78;">{{ cert.validityLabel }}</div>
+                        <div style="display:flex; gap:14px; align-items:center;">
+                          <sc-if value="{{ cert.verificationUrl }}" hint-placeholder-val="{{ false }}">
+                            <a href="{{ cert.verificationUrl }}" target="_blank" style="font-size:12px; color:#403A77; text-decoration:none;">Verify independently →</a>
+                          </sc-if>
+                          <button onClick="{{ cert.onView }}" style="background:none; border:none; color:#403A77; font-size:12px; cursor:pointer; text-decoration:underline; white-space:nowrap;">View certificate</button>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noCertifications }}">
+        <div style="padding:20px; background:#F2EEE6; border-radius:10px; text-align:center;">
+          <p style="font-size:13.5px; color:#6B6A78; margin:0;">No certifications on file yet.</p>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- FACILITY GALLERY -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Facility gallery</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px;">
+        <sc-for list="{{ facilityPhotos }}" as="photo" hint-placeholder-count="6">
+          <button onClick="{{ photo.onClick }}" style="aspect-ratio:1; background:repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px); border:1px solid #E4DFD5; border-radius:10px; cursor:pointer;">
+            <span style="font-size:12px; color:#6C6AA0;">Photo</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- WORK HISTORY -->
+    <div style="margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 16px; color:#20202B;">Work history</h2>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <sc-for list="{{ workHistory }}" as="w" hint-placeholder-count="2">
+          <div style="background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+              <span style="font-size:14.5px; font-weight:600; color:#20202B;">{{ w.client }}</span>
+              <span style="font-size:12px; color:#6C6AA0;">{{ w.role }} · {{ w.frequency }}</span>
+            </div>
+            <div style="font-size:12px; color:#6B6A78; margin-bottom:8px;">{{ w.years }}</div>
+            <p style="font-size:13.5px; color:#20202B; line-height:1.5; margin:0;">{{ w.desc }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- CONTACT FOR BUYERS -->
+    <div style="background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:26px; margin-bottom:32px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 20px; color:#20202B;">Contact for buyers</h2>
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <div style="width:64px; height:64px; border-radius:12px; background:#EDECF6; color:#403A77; font-family:'Fraunces',serif; font-weight:600; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ contactInitials }}</div>
+        <div style="flex:1;">
+          <div style="font-size:14.5px; font-weight:600; color:#20202B; margin-bottom:2px;">{{ contactName }}</div>
+          <div style="font-size:12.5px; color:#6C6AA0; margin-bottom:12px;">{{ contactTitle }}</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div>
+              <a href="mailto:{{ contactEmail }}" style="font-size:13px; color:#403A77; text-decoration:none;">{{ contactEmail }}</a>
+            </div>
+            <div>
+              <a href="tel:{{ contactPhone }}" style="font-size:13px; color:#403A77; text-decoration:none;">{{ contactPhone }}</a>
+            </div>
+            <button onClick="{{ contactWhatsapp }}" style="align-self:flex-start; background:#5B7A5B; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-size:12.5px; cursor:pointer;">WhatsApp</button>
+          </div>
+          <div style="font-size:12px; color:#6B6A78; margin-top:12px;">Languages: {{ contactLanguages }}</div>
+          <div style="font-size:12px; color:#6B6A78;">Typical response: {{ contactResponseTime }}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<sc-if value="{{ modalOpen }}">
+  <div onClick="{{ closeModal }}" style="position:fixed; inset:0; background:rgba(32,32,43,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;">
+    <div onClick="{{ stopProp }}" style="background:#FAF8F4; border-radius:14px; max-width:620px; width:100%; max-height:80vh; overflow-y:auto; padding:26px; position:relative;">
+      <button onClick="{{ closeModal }}" style="position:absolute; top:14px; right:14px; background:none; border:none; font-size:24px; cursor:pointer; color:#6B6A78; width:32px; height:32px; display:flex; align-items:center; justify-content:center;">×</button>
+      <h3 style="font-family:'Fraunces',serif; font-size:18px; font-weight:500; margin:0 0 16px; color:#20202B; padding-right:40px;">{{ modalTitle }}</h3>
+      <div style="height:320px; border-radius:10px; background:repeating-linear-gradient(135deg,#EDECF6,#EDECF6 10px,#E4E2F0 10px,#E4E2F0 20px); display:flex; align-items:center; justify-content:center; font-family:monospace; font-size:12px; color:#6C6AA0; margin-bottom:16px;">preview</div>
+      <button onClick="{{ downloadModal }}" style="background:#403A77; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Download</button>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180},&quot;supplier&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;onBack&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onCreateRfq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+class Component extends DCLogic {
+  state = { modalOpen: false, modalTitle: '' };
+  openModal = (title) => this.setState({ modalOpen: true, modalTitle: title });
+  closeModal = () => this.setState({ modalOpen: false });
+
+  renderVals() {
+    const s = this.props.supplier || EXAMPLE_SUPPLIER;
+    const initials = (s.name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+    const logoBg = s.logoBg || '#EDECF6';
+    const logoFg = s.logoFg || '#403A77';
+    const contactInitials = (s.contact?.name || '').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+    const products = (s.products || []).map(p => ({ ...p, onClick: () => this.openModal(p.name) }));
+    const facilityPhotos = (s.facilityPhotos || []).map((_, i) => ({ onClick: () => this.openModal('Facility photo ' + (i+1)) }));
+    const workHistory = (s.workHistory || []).map(w => ({ ...w, years: w.start + '–' + w.end }));
+
+    const CERT_CATEGORIES_ORDER = ['Quality Management', 'Environmental Management', 'Health & Safety', 'Social Compliance', 'Sustainable & Organic Textiles', 'Recycled Materials', 'Chemical & Product Safety', 'Responsible Materials', 'Indian Regulatory & Legal Compliance', 'Buyer / Brand Audits', 'Other'];
+    const today = new Date();
+    const rawCerts = s.certifications || [];
+    const certsComputed = rawCerts.map(c => {
+      const isAudit = c.category === 'Buyer / Brand Audits';
+      if (isAudit) {
+        return { ...c, isAudit, isCert: false, badge: { label: c.outcome, bg: c.outcome === 'Passed' ? '#EFF3EE' : c.outcome === 'Failed' ? '#F7ECE8' : '#F2EEE6', fg: c.outcome === 'Passed' ? '#5B7A5B' : c.outcome === 'Failed' ? '#B5654A' : '#6B6A78' }, opacity: 1, onView: () => this.openModal(c.buyerName + ' — audit report') };
+      }
+      const expired = !c.doesNotExpire && c.expiryDate && new Date(c.expiryDate) < today;
+      const isRegulatory = c.category === 'Indian Regulatory & Legal Compliance';
+      let badge;
+      if (expired) badge = { label: 'Expired', bg: '#F7ECE8', fg: '#B5654A' };
+      else if (isRegulatory) badge = { label: c.fieldStatus === 'verified' ? 'Registered' : 'Claimed', bg: c.fieldStatus === 'verified' ? '#EFF3EE' : '#EDECF6', fg: c.fieldStatus === 'verified' ? '#5B7A5B' : '#403A77' };
+      else if (c.fieldStatus === 'verified') badge = { label: 'Certified', bg: '#EFF3EE', fg: '#5B7A5B' };
+      else badge = { label: 'Claimed', bg: '#EDECF6', fg: '#403A77' };
+      const validityLabel = c.doesNotExpire ? 'Does not expire' : (c.issueDate && c.expiryDate ? c.issueDate + ' – ' + c.expiryDate : '—');
+      return { ...c, isAudit: false, isCert: true, badge, expired, opacity: expired ? 0.65 : 1, validityLabel, onView: () => this.openModal(c.name) };
+    });
+
+    const certGroups = CERT_CATEGORIES_ORDER.map(cat => ({ category: cat, records: certsComputed.filter(c => c.category === cat) })).filter(g => g.records.length > 0);
+    const certVerifiedCount = certsComputed.filter(c => !c.isAudit && (c.badge.label === 'Certified' || c.badge.label === 'Registered')).length;
+    const certExpiringCount = certsComputed.filter(c => !c.isAudit && !c.expired && !c.doesNotExpire && c.expiryDate && (new Date(c.expiryDate) - today) / 86400000 <= 60 && (new Date(c.expiryDate) - today) / 86400000 >= 0).length;
+    const certExpiredCount = certsComputed.filter(c => c.expired).length;
+    const certCategoriesCovered = new Set(certsComputed.map(c => c.category)).size;
+    const certSummary = { total: certsComputed.length, verified: certVerifiedCount, expiringSoon: certExpiringCount, expired: certExpiredCount, categoriesCovered: certCategoriesCovered, categoriesTotal: CERT_CATEGORIES_ORDER.length };
+
+    const customizationCapabilities = s.customizationCapabilities || [];
+    const hasPerformanceData = false; // prototype: always show empty state
+    const noPerformanceData = !hasPerformanceData;
+    const hasCertifications = certsComputed.length > 0;
+    const noCertifications = !hasCertifications;
+
+    return {
+      onBack: this.props.onBack || (() => { window.location.href = 'SourceSutraCustomer.dc.html'; }),
+      onCreateRfqClick: () => this.props.onCreateRfq?.(s.name),
+      initials, name: s.name, mission: s.mission, type: s.type, location: s.location,
+      factoryArea: s.production?.factoryArea || '—',
+      employees: s.production?.employees || '—',
+      monthlyCapacity: s.production?.monthlyCapacity || '—',
+      productionLines: s.production?.productionLines || '—',
+      moq: s.tradeTerms?.moq || '—',
+      incoterms: s.tradeTerms?.incoterms || '—',
+      paymentTerms: s.tradeTerms?.paymentTerms || '—',
+      leadTime: s.tradeTerms?.leadTime || '—',
+      customizationCapabilities,
+      products,
+      facilityPhotos,
+      certGroups,
+      certSummary,
+      hasCertifications, noCertifications,
+      workHistory,
+      contactName: s.contact?.name || '—',
+      contactTitle: s.contact?.title || '—',
+      contactEmail: s.contact?.email || '—',
+      contactPhone: s.contact?.phone || '—',
+      contactLanguages: s.contact?.languages || '—',
+      contactResponseTime: s.contact?.responseTime || '—',
+      contactInitials,
+      logoBg, logoFg,
+      contactWhatsapp: () => window.open('https://wa.me/' + (s.contact?.phone || ''), '_blank'),
+      hasPerformanceData, noPerformanceData,
+      performanceStats: [],
+      modalOpen: this.state.modalOpen,
+      modalTitle: this.state.modalTitle,
+      closeModal: this.closeModal,
+      stopProp: (e) => e.stopPropagation(),
+      downloadModal: () => alert('Download: ' + this.state.modalTitle)
+    };
+  }
+}
+
+const EXAMPLE_SUPPLIER = {
+  name: 'Tiruppur Knits & CMT',
+  mission: 'Single-jersey and rib knits for apparel, responsive and reliable.',
+  type: 'Garment CMT',
+  location: 'Tiruppur, Tamil Nadu',
+  production: {
+    factoryArea: '12,500 m²',
+    employees: 180,
+    monthlyCapacity: '45,000 pieces',
+    productionLines: 14
+  },
+  tradeTerms: {
+    moq: '500 pieces',
+    incoterms: 'FOB Chennai',
+    paymentTerms: '30% advance, 70% on shipment',
+    leadTime: '20–25 days'
+  },
+  customizationCapabilities: ['Fabric', 'Colour', 'Fit', 'Labels', 'Hangtags', 'Embroidery'],
+  products: [
+    { name: 'Single-jersey T-shirt', category: 'Apparel', material: '100% cotton, 150 GSM', priceRange: '$2.40–$3.20/pc' },
+    { name: 'Rib-knit henley', category: 'Apparel', material: '100% cotton, 200 GSM', priceRange: '$3.60–$4.50/pc' },
+    { name: 'Raglan sleeve tee', category: 'Apparel', material: '100% cotton, 160 GSM', priceRange: '$2.80–$3.60/pc' },
+    { name: 'Organic cotton basics', category: 'Sustainable', material: 'Organic cotton, 170 GSM', priceRange: '$4.20–$5.40/pc' }
+  ],
+  facilityPhotos: [{}, {}, {}, {}, {}, {}],
+  certifications: [
+    { category: 'Quality Management', name: 'ISO 9001', issuingBody: 'Bureau Veritas', certNumber: 'BV-QMS-2024-1187', scope: 'Quality management system covering knitting, dyeing, cutting, and sewing of knit apparel.', issueDate: '2024-02-01', expiryDate: '2027-01-31', fieldStatus: 'verified', verificationUrl: 'https://www.bureauveritas.com/certificate-lookup' },
+    { category: 'Sustainable & Organic Textiles', name: 'GOTS', issuingBody: 'Control Union', certNumber: 'GOTS-CU-2024-00847', scope: 'Knitted cotton fabric processing, Unit 2 — from greige knitting through dyeing and finishing.', issueDate: '2024-01-15', expiryDate: '2026-09-25', fieldStatus: 'verified', verificationUrl: 'https://www.global-standard.org/find-suppliers' },
+    { category: 'Indian Regulatory & Legal Compliance', name: 'Factory Licence', issuingBody: 'Tamil Nadu Directorate of Industrial Safety & Health', certNumber: 'TN-FL-2015-04421', scope: 'Statutory factory operating licence for the Tiruppur manufacturing unit.', issueDate: '2015-03-01', doesNotExpire: true, fieldStatus: 'verified' },
+    { category: 'Buyer / Brand Audits', buyerName: 'H&M Sourcing (India)', auditType: 'Social compliance audit', auditDate: '2025-10-02', outcome: 'Passed with corrective actions' },
+    { category: 'Social Compliance', name: 'SA8000', issuingBody: 'SGS', certNumber: 'SA8K-2023-0451', scope: 'Social accountability management system, main production unit, Tiruppur.', issueDate: '2023-06-01', expiryDate: '2024-05-31', fieldStatus: 'verified' }
+  ],
+  workHistory: [
+    { client: 'H&M Sourcing (India)', role: 'Sub-Contractor', frequency: 'Recurring', start: 2018, end: 'present', desc: 'Single-jersey T-shirt production for H&M basics lines; 8,000–12,000 pcs/month; full-service: knitting, dyeing, cutting, sewing, finishing.' },
+    { client: 'Uniqlo India', role: 'Sub-Contractor', frequency: 'Annual Maintenance Contract', start: 2021, end: 'present', desc: 'Rib-knit henley and thermal production; 5,000–7,000 pcs/month; 48-hour QC turnaround.' },
+    { client: 'Organic Brands Collective (Startup)', role: 'Primary Contractor', frequency: 'One-time', start: 2023, end: 2023, desc: 'Organic cotton basics capsule; 2,000 pcs total; 100% GOTS-certified materials; 15-day delivery.' }
+  ],
+  contact: {
+    name: 'Rajesh Kumar',
+    title: 'Production Manager',
+    email: 'rajesh@tiruppur-knits.in',
+    phone: '+91 98765 43210',
+    languages: 'English, Tamil, Hindi',
+    responseTime: '2–4 hours'
+  }
+};
+
+</script>
+</body>
+</html>

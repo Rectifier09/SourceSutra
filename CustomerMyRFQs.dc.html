@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="./rfq-store.js"></script>
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  .mr-card:hover { border-color: #C9C4E8; }
+  .mr-filter:hover { background: #EDECF6; }
+  .mr-app:hover { border-color: #C9C4E8; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:1080px; margin:0 auto; padding:0 24px 100px;">
+
+  <!-- ===================== LIST VIEW ===================== -->
+  <sc-if value="{{ isListView }}" hint-placeholder-val="{{ true }}">
+
+    <div style="border-radius:16px; padding:32px 28px 28px; background-image:url('uploads/ChatGPT Image Aug 9, 2026, 09_13_32 PM.png'); background-size:cover; background-position:center;">
+      <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 22px; color:#20202B;">My RFQs</h1>
+
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:22px;">
+        <sc-for list="{{ filterChips }}" as="f" hint-placeholder-count="6">
+          <button class="mr-filter" onClick="{{ f.onClick }}" style="background:{{ f.bg }}; color:{{ f.fg }}; border:1px solid {{ f.border }}; border-radius:99px; padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer;">{{ f.label }} ({{ f.count }})</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasCards }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ cards }}" as="r" hint-placeholder-count="4">
+            <button class="mr-card" onClick="{{ r.onClick }}" style="text-align:left; background:rgba(255,255,255,0.9); border:1px solid #E4DFD5; border-radius:12px; padding:18px 20px; cursor:pointer; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:220px;">
+                <div style="font-size:15px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ r.title }}</div>
+                <div style="font-size:12.5px; color:#6C6AA0; margin-bottom:8px;">{{ r.contractType }}</div>
+                <div style="font-size:12px; color:#6B6A78;">{{ r.dateLabel }} · {{ r.applicationsLabel }}</div>
+              </div>
+              <span style="background:{{ r.bg }}; color:{{ r.fg }}; font-size:11.5px; font-weight:600; padding:5px 12px; border-radius:99px; white-space:nowrap;">{{ r.statusLabel }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noCards }}">
+        <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+          <p style="font-size:14.5px; margin:0;">No RFQs in this state.</p>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ===================== RFQ DETAIL VIEW ===================== -->
+  <sc-if value="{{ isDetailView }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ onBackToList }}" style="background:none; border:none; color:#403A77; font-size:14px; cursor:pointer; padding:20px 0; text-decoration:underline;">← Back to My RFQs</button>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:6px;">
+      <div>
+        <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 6px; color:#20202B;">{{ detailTitle }}</h1>
+        <p style="font-size:12.5px; color:#6C6AA0; margin:0;">{{ detailContractType }} · {{ detailDateLabel }}</p>
+      </div>
+      <span style="background:{{ detailBg }}; color:{{ detailFg }}; font-size:12px; font-weight:600; padding:6px 14px; border-radius:99px; white-space:nowrap;">{{ detailStatusLabel }}</span>
+    </div>
+
+    <div style="display:flex; gap:10px; margin:16px 0 22px; flex-wrap:wrap;">
+      <sc-if value="{{ showCloseAction }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onOpenForecloseModal }}" style="background:none; border:1px solid #E4DFD5; color:#B5654A; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer;">Close this RFQ</button>
+      </sc-if>
+      <sc-if value="{{ showReopenAction }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onOpenReopenModal }}" style="background:none; border:1px solid #403A77; color:#403A77; padding:9px 16px; border-radius:8px; font-size:13px; cursor:pointer;">Re-open / extend bid window</button>
+      </sc-if>
+    </div>
+
+    <div style="display:flex; gap:4px; border-bottom:1px solid #E4DFD5; margin-bottom:20px;">
+      <button onClick="{{ onApplicationsTab }}" style="background:none; border:none; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; color:{{ applicationsTabColor }}; border-bottom:2px solid {{ applicationsTabBorder }};">Applications received ({{ applicationsCount }})</button>
+      <button onClick="{{ onSpecTab }}" style="background:none; border:none; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; color:{{ specTabColor }}; border-bottom:2px solid {{ specTabBorder }};">RFQ spec</button>
+    </div>
+
+    <sc-if value="{{ showApplicationsTab }}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{ hasApplications }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ applicationRows }}" as="a" hint-placeholder-count="3">
+            <button class="mr-app" onClick="{{ a.onClick }}" style="text-align:left; background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:18px 20px; cursor:pointer;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="width:40px; height:40px; border-radius:10px; background:#EDECF6; color:#403A77; font-family:'Fraunces',serif; font-weight:600; font-size:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ a.initials }}</div>
+                  <div style="font-size:14.5px; font-weight:600; color:#20202B;">{{ a.supplierName }}</div>
+                </div>
+                <span style="background:{{ a.bg }}; color:{{ a.fg }}; font-size:11px; font-weight:600; padding:4px 10px; border-radius:99px; white-space:nowrap;">{{ a.statusLabel }}</span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin-bottom:10px;">
+                <div><div style="font-size:10.5px; color:#6B6A78; text-transform:uppercase; font-weight:600;">Unit price</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ a.priceLabel }}</div></div>
+                <div><div style="font-size:10.5px; color:#6B6A78; text-transform:uppercase; font-weight:600;">MOQ</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ a.moq }}</div></div>
+                <div><div style="font-size:10.5px; color:#6B6A78; text-transform:uppercase; font-weight:600;">Lead time</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ a.leadTimeLabel }}</div></div>
+                <div><div style="font-size:10.5px; color:#6B6A78; text-transform:uppercase; font-weight:600;">Valid until</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ a.quoteValidity }}</div></div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <span style="background:{{ a.certMatchBg }}; color:{{ a.certMatchFg }}; font-size:11.5px; padding:5px 10px; border-radius:6px;">{{ a.certMatchLabel }}</span>
+                <span style="background:{{ a.custMatchBg }}; color:{{ a.custMatchFg }}; font-size:11.5px; padding:5px 10px; border-radius:6px;">{{ a.custMatchLabel }}</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noApplications }}">
+        <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+          <p style="font-size:14.5px; margin:0;">No applications received yet.</p>
+        </div>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{ showSpecTab }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px;">
+          <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Product &amp; requirements</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Category</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specCategory }}</div></div>
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Arrangement</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specArrangement }}</div></div>
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Primary material</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specMaterial }}</div></div>
+          </div>
+          <div style="margin-top:12px; font-size:13px; color:#6B6A78;">Sizes: <strong style="color:#20202B;">{{ specSizes }}</strong> · Colours: <strong style="color:#20202B;">{{ specColours }}</strong></div>
+        </div>
+        <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px;">
+          <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Quantity, pricing &amp; samples</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Quantity</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specQuantity }}</div></div>
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Pricing approach</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specPricing }}</div></div>
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Bid window</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specBidWindow }}</div></div>
+          </div>
+        </div>
+        <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px;">
+          <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Compliance</h2>
+          <sc-if value="{{ hasSpecCerts }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <sc-for list="{{ specCerts }}" as="c" hint-placeholder-count="0">
+                <div style="display:flex; justify-content:space-between; border:1px solid #E4DFD5; border-radius:8px; padding:9px 12px;">
+                  <span style="font-size:13px; color:#20202B;">{{ c.name }}</span>
+                  <span style="font-size:11px; color:#6C6AA0;">{{ c.priorityLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noSpecCerts }}"><p style="font-size:13px; color:#6B6A78; margin:0;">No certifications required.</p></sc-if>
+        </div>
+        <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px;">
+          <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Logistics</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Required delivery date</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specDeliveryDate }}</div></div>
+            <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Delivery location</div><div style="font-size:13.5px; color:#20202B; font-weight:600;">{{ specDeliveryLocation }}</div></div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- ===================== APPLICATION DETAIL VIEW ===================== -->
+  <sc-if value="{{ isApplicationView }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ onBackToDetail }}" style="background:none; border:none; color:#403A77; font-size:14px; cursor:pointer; padding:20px 0; text-decoration:underline;">← Back to applications</button>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+      <div>
+        <h1 style="font-family:'Fraunces',serif; font-size:24px; font-weight:500; margin:0 0 6px; color:#20202B;">{{ appSupplierName }}</h1>
+        <a href="#" onClick="{{ onViewProfileClick }}" style="font-size:13px; text-decoration:underline;">View Vendor Profile →</a>
+      </div>
+      <span style="background:{{ appBg }}; color:{{ appFg }}; font-size:12px; font-weight:600; padding:6px 14px; border-radius:99px; white-space:nowrap;">{{ appStatusLabel }}</span>
+    </div>
+
+    <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:16px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Quote</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:16px;">
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Unit price</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appPriceLabel }}</div></div>
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Quantity offered</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appQuantity }}</div></div>
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">MOQ</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appMoq }}</div></div>
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Bulk lead time</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appBulkLeadTime }}</div></div>
+        <sc-if value="{{ appHasSample }}" hint-placeholder-val="{{ false }}">
+          <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Sample price</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appSamplePrice }}</div></div>
+          <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Sample lead time</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appSampleLeadTime }}</div></div>
+        </sc-if>
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Incoterm</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appIncoterm }}</div></div>
+        <div><div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Quote valid until</div><div style="font-size:14.5px; color:#20202B; font-weight:600;">{{ appQuoteValidity }}</div></div>
+      </div>
+      <div style="margin-top:14px; font-size:13px; color:#6B6A78;">Payment terms: <strong style="color:#20202B;">{{ appPaymentTerms }}</strong></div>
+      <sc-if value="{{ appHasNotes }}" hint-placeholder-val="{{ false }}">
+        <p style="font-size:13.5px; color:#20202B; line-height:1.5; margin:14px 0 0; background:#F2EEE6; padding:10px 12px; border-radius:8px;">{{ appNotes }}</p>
+      </sc-if>
+    </div>
+
+    <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:16px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Certifications</h2>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <sc-for list="{{ appCertRows }}" as="c" hint-placeholder-count="0">
+          <div style="display:flex; justify-content:space-between; align-items:center; border:1px solid #E4DFD5; border-radius:8px; padding:9px 12px;">
+            <span style="font-size:13px; color:#20202B;">{{ c.name }} <span style="color:#6C6AA0; font-size:11.5px;">· {{ c.priorityLabel }}</span></span>
+            <span style="background:{{ c.bg }}; color:{{ c.fg }}; font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;">{{ c.label }}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ appNoCertsRequired }}"><p style="font-size:13px; color:#6B6A78; margin:0;">No certifications were required for this RFQ.</p></sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ appHasCustomization }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff; border:1px solid #E4DFD5; border-radius:14px; padding:22px; margin-bottom:16px;">
+        <h2 style="font-family:'Fraunces',serif; font-size:16px; font-weight:500; margin:0 0 14px; color:#20202B;">Customization coverage</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <sc-for list="{{ appCustomizationChips }}" as="c" hint-placeholder-count="0">
+            <span style="background:{{ c.bg }}; color:{{ c.fg }}; border-radius:99px; padding:6px 12px; font-size:12.5px;">{{ c.value }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ appShowActions }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button onClick="{{ onRejectClick }}" style="background:none; border:1px solid #E4DFD5; color:#B5654A; padding:11px 20px; border-radius:8px; font-size:14px; cursor:pointer;">Reject quote</button>
+        <button onClick="{{ onAcceptClick }}" style="background:#403A77; border:none; color:#FAF8F4; padding:11px 22px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">Accept quote (award)</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ appAwarded }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#EFF3EE; border:1px solid #D6E3D6; border-radius:10px; padding:16px 18px; margin-top:16px;">
+        <p style="font-size:13.5px; color:#20202B; margin:0 0 6px; font-weight:600;">This RFQ has been awarded to {{ appSupplierName }}.</p>
+        <p style="font-size:12.5px; color:#6B6A78; margin:0;">Project &amp; payment milestones tracking starts here in a future phase — not built yet.</p>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <!-- REJECT PROMPT -->
+  <sc-if value="{{ showRejectModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModals }}" style="position:fixed; inset:0; background:rgba(32,32,43,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;">
+      <div onClick="{{ stopProp }}" style="background:#FAF8F4; border-radius:14px; max-width:420px; width:100%; padding:24px;">
+        <h3 style="font-family:'Fraunces',serif; font-size:17px; font-weight:500; margin:0 0 10px; color:#20202B;">Reject this quote?</h3>
+        <p style="font-size:13px; color:#6B6A78; margin:0 0 14px;">This supplier's application will show as Not selected. The RFQ stays active for others.</p>
+        <textarea value="{{ rejectReason }}" onChange="{{ onRejectReason }}" rows="3" placeholder="Reason (optional)" style="width:100%; padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; font-family:inherit; resize:vertical; margin-bottom:14px;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ closeModals }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:9px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Cancel</button>
+          <button onClick="{{ onConfirmReject }}" style="background:#B5654A; border:none; color:#fff; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Reject quote</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- AWARD CONFIRM -->
+  <sc-if value="{{ showAwardModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModals }}" style="position:fixed; inset:0; background:rgba(32,32,43,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;">
+      <div onClick="{{ stopProp }}" style="background:#FAF8F4; border-radius:14px; max-width:440px; width:100%; padding:24px;">
+        <h3 style="font-family:'Fraunces',serif; font-size:17px; font-weight:500; margin:0 0 10px; color:#20202B;">Award this RFQ to {{ appSupplierName }}?</h3>
+        <p style="font-size:13px; color:#6B6A78; margin:0 0 14px;">This closes the RFQ and marks every other application as Not selected. This can't be undone. Single-award only for now — split awards across suppliers aren't supported.</p>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ closeModals }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:9px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Cancel</button>
+          <button onClick="{{ onConfirmAward }}" style="background:#403A77; border:none; color:#fff; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Award quote</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- FORECLOSE MODAL -->
+  <sc-if value="{{ showForecloseModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModals }}" style="position:fixed; inset:0; background:rgba(32,32,43,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;">
+      <div onClick="{{ stopProp }}" style="background:#FAF8F4; border-radius:14px; max-width:420px; width:100%; padding:24px;">
+        <h3 style="font-family:'Fraunces',serif; font-size:17px; font-weight:500; margin:0 0 10px; color:#20202B;">Close this RFQ early?</h3>
+        <p style="font-size:13px; color:#6B6A78; margin:0 0 14px;">Its bid window hasn't ended. Closing now stops new applications and marks it Foreclosed.</p>
+        <textarea value="{{ closeReason }}" onChange="{{ onCloseReason }}" rows="3" placeholder="Reason (optional, e.g. requirement cancelled)" style="width:100%; padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; font-family:inherit; resize:vertical; margin-bottom:14px;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ closeModals }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:9px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Cancel</button>
+          <button onClick="{{ onConfirmForeclose }}" style="background:#B5654A; border:none; color:#fff; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Close RFQ</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- REOPEN MODAL -->
+  <sc-if value="{{ showReopenModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModals }}" style="position:fixed; inset:0; background:rgba(32,32,43,0.6); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;">
+      <div onClick="{{ stopProp }}" style="background:#FAF8F4; border-radius:14px; max-width:420px; width:100%; padding:24px;">
+        <h3 style="font-family:'Fraunces',serif; font-size:17px; font-weight:500; margin:0 0 10px; color:#20202B;">Re-open this RFQ</h3>
+        <p style="font-size:13px; color:#6B6A78; margin:0 0 14px;">Extend the bid window so suppliers can apply again.</p>
+        <label style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;">
+          <span style="font-size:12.5px; color:#6B6A78; font-weight:600;">New bid window end</span>
+          <input type="date" value="{{ reopenDate }}" onChange="{{ onReopenDate }}" style="padding:9px 11px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px;"/>
+        </label>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button onClick="{{ closeModals }}" style="background:none; border:1px solid #E4DFD5; color:#6B6A78; padding:9px 16px; border-radius:8px; font-size:13.5px; cursor:pointer;">Cancel</button>
+          <button onClick="{{ onConfirmReopen }}" style="background:#403A77; border:none; color:#fff; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600; cursor:pointer;">Re-open RFQ</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080},&quot;onResumeDraft&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onViewSupplierProfile&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+const BUYER_NAME = 'Vardhman Textiles';
+const RFQ_STATUS_STYLE = {
+  draft: { label: 'Draft', bg: '#F2EEE6', fg: '#6B6A78' },
+  active: { label: 'Active', bg: '#EDECF6', fg: '#403A77' },
+  awarded: { label: 'Awarded', bg: '#5B7A5B', fg: '#fff' },
+  lapsed: { label: 'Lapsed', bg: '#FBF1DE', fg: '#B07A17' },
+  foreclosed: { label: 'Foreclosed', bg: '#F7ECE8', fg: '#B5654A' }
+};
+const QUOTE_STATUS_STYLE = {
+  draft: { label: 'Draft', bg: '#F2EEE6', fg: '#6B6A78' },
+  submitted: { label: 'Submitted', bg: '#EDECF6', fg: '#403A77' },
+  under_review: { label: 'Under review', bg: '#FBF1DE', fg: '#B07A17' },
+  shortlisted: { label: 'Shortlisted', bg: '#EFF3EE', fg: '#5B7A5B' },
+  awarded: { label: 'Awarded', bg: '#5B7A5B', fg: '#fff' },
+  not_selected: { label: 'Not selected', bg: '#F7ECE8', fg: '#B5654A' },
+  closed: { label: 'Closed', bg: '#F2EEE6', fg: '#6B6A78' }
+};
+
+function initials(name) { return (name || '').split(' ').filter(w => w.length > 1).slice(0, 2).map(w => w[0]).join('').toUpperCase() || (name || '').slice(0, 2).toUpperCase(); }
+
+class Component extends DCLogic {
+  state = {
+    view: 'list', filterStatus: 'all',
+    selectedRfqId: null, selectedQuoteId: null, detailTab: 'applications',
+    showRejectModal: false, rejectReason: '',
+    showAwardModal: false,
+    showForecloseModal: false, closeReason: '',
+    showReopenModal: false, reopenDate: '',
+    refreshTick: 0
+  };
+
+  componentDidMount() {
+    const tryLoad = () => { if (window.RFQStore) this.refresh(); else setTimeout(tryLoad, 50); };
+    tryLoad();
+  }
+  refresh = () => this.setState(s => ({ refreshTick: s.refreshTick + 1 }));
+  setFilter = (f) => this.setState({ filterStatus: f });
+  openRfq = (rfq) => { if (rfq.status === 'draft') { this.props.onResumeDraft(rfq); return; } this.setState({ view: 'detail', selectedRfqId: rfq.id, detailTab: 'applications' }); };
+  backToList = () => this.setState({ view: 'list', selectedRfqId: null });
+  openApplication = (quoteId) => this.setState({ view: 'application', selectedQuoteId: quoteId });
+  backToDetail = () => this.setState({ view: 'detail', selectedQuoteId: null });
+  setDetailTab = (t) => this.setState({ detailTab: t });
+
+  openReject = () => this.setState({ showRejectModal: true, rejectReason: '' });
+  openAward = () => this.setState({ showAwardModal: true });
+  openForeclose = () => this.setState({ showForecloseModal: true, closeReason: '' });
+  openReopen = () => { const rfq = window.RFQStore.getRfqs().find(r => r.id === this.state.selectedRfqId); this.setState({ showReopenModal: true, reopenDate: rfq ? rfq.bidEnd : '' }); };
+  closeModals = () => this.setState({ showRejectModal: false, showAwardModal: false, showForecloseModal: false, showReopenModal: false });
+
+  confirmReject = () => { window.RFQStore.rejectQuote(this.state.selectedQuoteId, this.state.rejectReason); this.setState({ showRejectModal: false }); this.refresh(); };
+  confirmAward = () => { window.RFQStore.awardQuote(this.state.selectedQuoteId); this.setState({ showAwardModal: false }); this.refresh(); };
+  confirmForeclose = () => { window.RFQStore.forecloseRfq(this.state.selectedRfqId, this.state.closeReason); this.setState({ showForecloseModal: false, view: 'list', selectedRfqId: null }); this.refresh(); };
+  confirmReopen = () => { window.RFQStore.reopenRfq(this.state.selectedRfqId, this.state.reopenDate); this.setState({ showReopenModal: false }); this.refresh(); };
+
+  renderVals() {
+    const s = this.state;
+    if (!window.RFQStore) return { isListView: true, isDetailView: false, isApplicationView: false, filterChips: [], cards: [], hasCards: false, noCards: true, showRejectModal: false, showAwardModal: false, showForecloseModal: false, showReopenModal: false };
+    const allRfqs = window.RFQStore.getRfqs().filter(r => r.buyer === BUYER_NAME);
+    const allQuotes = window.RFQStore.getQuotes();
+
+    const countFor = (status) => status === 'all' ? allRfqs.length : allRfqs.filter(r => r.status === status).length;
+    const filterDefs = [
+      { id: 'all', label: 'All' }, { id: 'draft', label: 'Draft' }, { id: 'active', label: 'Active' },
+      { id: 'awarded', label: 'Awarded' }, { id: 'lapsed', label: 'Lapsed' }, { id: 'foreclosed', label: 'Foreclosed' }
+    ];
+    const filterChips = filterDefs.map(f => ({ ...f, count: countFor(f.id), onClick: () => this.setFilter(f.id), bg: s.filterStatus === f.id ? '#403A77' : '#fff', fg: s.filterStatus === f.id ? '#FAF8F4' : '#403A77', border: s.filterStatus === f.id ? '#403A77' : '#D6D4EC' }));
+
+    const visibleRfqs = s.filterStatus === 'all' ? allRfqs : allRfqs.filter(r => r.status === s.filterStatus);
+    const cards = visibleRfqs.map(r => {
+      const st = RFQ_STATUS_STYLE[r.status] || RFQ_STATUS_STYLE.draft;
+      const appCount = allQuotes.filter(q => q.rfqId === r.id && q.status !== 'draft').length;
+      const dateLabel = r.status === 'draft' ? 'Not yet published' : ('Bids ' + (r.bidStart || '—') + ' → ' + (r.bidEnd || '—'));
+      return { ...r, statusLabel: st.label, bg: st.bg, fg: st.fg, dateLabel, applicationsLabel: appCount + (appCount === 1 ? ' application' : ' applications'), onClick: () => this.openRfq(r) };
+    });
+
+    const selectedRfq = allRfqs.find(r => r.id === s.selectedRfqId) || null;
+    const rfqApplications = selectedRfq ? allQuotes.filter(q => q.rfqId === selectedRfq.id && q.status !== 'draft') : [];
+    const mustHaves = selectedRfq ? (selectedRfq.requiredCerts || []).filter(c => c.priority === 'must') : [];
+
+    const applicationRows = rfqApplications.map(q => {
+      const st = QUOTE_STATUS_STYLE[q.status] || QUOTE_STATUS_STYLE.submitted;
+      const heldSet = new Set(q.certsHeld || []);
+      const mustMet = mustHaves.filter(c => heldSet.has(c.category + '::' + c.name)).length;
+      const custNeeds = (selectedRfq && selectedRfq.customizationNeeds) || [];
+      const custOffered = new Set(q.customizationOffered || []);
+      const custMet = custNeeds.filter(c => custOffered.has(c)).length;
+      return {
+        id: q.id, supplierName: q.supplierName, initials: initials(q.supplierName),
+        statusLabel: st.label, bg: st.bg, fg: st.fg,
+        priceLabel: (q.currency || 'INR') + ' ' + (q.unitPrice || '—') + ' ' + (q.priceBasis || ''),
+        moq: q.moq || '—', leadTimeLabel: (q.bulkLeadTime || '—') + ' days', quoteValidity: q.quoteValidity || '—',
+        certMatchLabel: mustHaves.length ? ('Meets ' + mustMet + ' of ' + mustHaves.length + ' must-have certifications') : 'No certifications required',
+        certMatchBg: mustHaves.length && mustMet < mustHaves.length ? '#F7ECE8' : '#EFF3EE', certMatchFg: mustHaves.length && mustMet < mustHaves.length ? '#B5654A' : '#5B7A5B',
+        custMatchLabel: custNeeds.length ? ('Covers ' + custMet + ' of ' + custNeeds.length + ' customization needs') : 'No customization needs specified',
+        custMatchBg: custNeeds.length && custMet < custNeeds.length ? '#FBF1DE' : '#EFF3EE', custMatchFg: custNeeds.length && custMet < custNeeds.length ? '#B07A17' : '#5B7A5B',
+        onClick: () => this.openApplication(q.id)
+      };
+    });
+
+    const detailSt = selectedRfq ? (RFQ_STATUS_STYLE[selectedRfq.status] || RFQ_STATUS_STYLE.draft) : RFQ_STATUS_STYLE.draft;
+
+    const selectedQuote = allQuotes.find(q => q.id === s.selectedQuoteId) || null;
+    const appRfq = selectedQuote ? allRfqs.find(r => r.id === selectedQuote.rfqId) : null;
+    const appSt = selectedQuote ? (QUOTE_STATUS_STYLE[selectedQuote.status] || QUOTE_STATUS_STYLE.submitted) : QUOTE_STATUS_STYLE.submitted;
+    const appMustHaves = appRfq ? (appRfq.requiredCerts || []) : [];
+    const appHeldSet = new Set(selectedQuote ? (selectedQuote.certsHeld || []) : []);
+    const appCertRows = appMustHaves.map(c => {
+      const held = appHeldSet.has(c.category + '::' + c.name);
+      return { name: c.name, priorityLabel: c.priority === 'must' ? 'Must-have' : 'Nice-to-have', label: held ? 'Held' : 'Gap', bg: held ? '#EFF3EE' : '#F7ECE8', fg: held ? '#5B7A5B' : '#B5654A' };
+    });
+    const custNeedsForApp = appRfq ? (appRfq.customizationNeeds || []) : [];
+    const custOfferedForApp = new Set(selectedQuote ? (selectedQuote.customizationOffered || []) : []);
+    const appCustomizationChips = custNeedsForApp.map(c => { const covered = custOfferedForApp.has(c); return { value: c + (covered ? ' ✓' : ' — not offered'), bg: covered ? '#EFF3EE' : '#F2EEE6', fg: covered ? '#5B7A5B' : '#6B6A78' }; });
+
+    return {
+      isListView: s.view === 'list', isDetailView: s.view === 'detail', isApplicationView: s.view === 'application',
+      filterChips, cards, hasCards: cards.length > 0, noCards: cards.length === 0,
+
+      detailTitle: selectedRfq ? selectedRfq.title : '', detailContractType: selectedRfq ? selectedRfq.contractType : '',
+      detailDateLabel: selectedRfq ? ('Bids ' + (selectedRfq.bidStart || '—') + ' → ' + (selectedRfq.bidEnd || '—')) : '',
+      detailStatusLabel: detailSt.label, detailBg: detailSt.bg, detailFg: detailSt.fg,
+      showCloseAction: !!selectedRfq && selectedRfq.status === 'active',
+      showReopenAction: !!selectedRfq && selectedRfq.status === 'lapsed' && rfqApplications.length > 0,
+      onOpenForecloseModal: this.openForeclose, onOpenReopenModal: this.openReopen,
+      onApplicationsTab: () => this.setDetailTab('applications'), onSpecTab: () => this.setDetailTab('spec'),
+      applicationsTabColor: s.detailTab === 'applications' ? '#403A77' : '#6B6A78', applicationsTabBorder: s.detailTab === 'applications' ? '#403A77' : 'transparent',
+      specTabColor: s.detailTab === 'spec' ? '#403A77' : '#6B6A78', specTabBorder: s.detailTab === 'spec' ? '#403A77' : 'transparent',
+      applicationsCount: rfqApplications.length,
+      showApplicationsTab: s.detailTab === 'applications', showSpecTab: s.detailTab === 'spec',
+      hasApplications: applicationRows.length > 0, noApplications: applicationRows.length === 0, applicationRows,
+
+      specCategory: selectedRfq ? selectedRfq.category : '', specArrangement: selectedRfq ? selectedRfq.arrangement : '',
+      specMaterial: selectedRfq ? (selectedRfq.primaryMaterial || '—') : '',
+      specSizes: selectedRfq ? ((selectedRfq.sizeRange || []).join(', ') || '—') : '',
+      specColours: selectedRfq ? ((selectedRfq.colours || []).join(', ') || '—') : '',
+      specQuantity: selectedRfq ? (selectedRfq.quantity.toLocaleString() + ' ' + selectedRfq.unit) : '',
+      specPricing: selectedRfq ? selectedRfq.pricingApproach : '',
+      specBidWindow: selectedRfq ? ((selectedRfq.bidStart || '—') + ' → ' + (selectedRfq.bidEnd || '—')) : '',
+      hasSpecCerts: selectedRfq && (selectedRfq.requiredCerts || []).length > 0,
+      noSpecCerts: !selectedRfq || (selectedRfq.requiredCerts || []).length === 0,
+      specCerts: selectedRfq ? (selectedRfq.requiredCerts || []).map(c => ({ name: c.name, priorityLabel: c.priority === 'must' ? 'Must-have' : 'Nice-to-have' })) : [],
+      specDeliveryDate: selectedRfq ? selectedRfq.deliveryDate : '', specDeliveryLocation: selectedRfq ? selectedRfq.deliveryLocation : '',
+
+      onBackToList: this.backToList, onBackToDetail: this.backToDetail,
+
+      appSupplierName: selectedQuote ? selectedQuote.supplierName : '',
+      onViewProfileClick: (e) => { e.preventDefault(); this.props.onViewSupplierProfile(selectedQuote ? selectedQuote.supplierName : ''); },
+      appStatusLabel: appSt.label, appBg: appSt.bg, appFg: appSt.fg,
+      appPriceLabel: selectedQuote ? ((selectedQuote.currency || 'INR') + ' ' + (selectedQuote.unitPrice || '—') + ' ' + (selectedQuote.priceBasis || '')) : '',
+      appQuantity: selectedQuote ? (selectedQuote.quantityFulfil || '—') : '',
+      appMoq: selectedQuote ? (selectedQuote.moq || '—') : '',
+      appBulkLeadTime: selectedQuote ? ((selectedQuote.bulkLeadTime || '—') + ' days') : '',
+      appHasSample: !!(selectedQuote && selectedQuote.samplePrice),
+      appSamplePrice: selectedQuote ? ((selectedQuote.currency || 'INR') + ' ' + (selectedQuote.samplePrice || '—')) : '',
+      appSampleLeadTime: selectedQuote ? ((selectedQuote.sampleLeadTime || '—') + ' days') : '',
+      appIncoterm: selectedQuote ? (selectedQuote.incoterm || '—') : '',
+      appQuoteValidity: selectedQuote ? (selectedQuote.quoteValidity || '—') : '',
+      appPaymentTerms: selectedQuote ? (selectedQuote.paymentTerms || '—') : '',
+      appHasNotes: !!(selectedQuote && selectedQuote.notes), appNotes: selectedQuote ? selectedQuote.notes : '',
+      appCertRows, appNoCertsRequired: appCertRows.length === 0,
+      appHasCustomization: custNeedsForApp.length > 0, appCustomizationChips,
+      appShowActions: !!selectedQuote && !!appRfq && appRfq.status === 'active' && ['submitted', 'under_review', 'shortlisted'].includes(selectedQuote.status),
+      appAwarded: !!selectedQuote && selectedQuote.status === 'awarded',
+      onRejectClick: this.openReject, onAcceptClick: this.openAward,
+
+      showRejectModal: s.showRejectModal, rejectReason: s.rejectReason, onRejectReason: (e) => this.setState({ rejectReason: e.target.value }), onConfirmReject: this.confirmReject,
+      showAwardModal: s.showAwardModal, onConfirmAward: this.confirmAward,
+      showForecloseModal: s.showForecloseModal, closeReason: s.closeReason, onCloseReason: (e) => this.setState({ closeReason: e.target.value }), onConfirmForeclose: this.confirmForeclose,
+      showReopenModal: s.showReopenModal, reopenDate: s.reopenDate, onReopenDate: (e) => this.setState({ reopenDate: e.target.value }), onConfirmReopen: this.confirmReopen,
+      closeModals: this.closeModals, stopProp: (e) => e.stopPropagation()
+    };
+  }
+}
+
+</script>
+</body>
+</html>

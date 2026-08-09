@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  .ss-btn:hover { opacity: 0.92; }
+  .ss-selvedge { height: 7px; background: repeating-linear-gradient(90deg, #403A77 0 3px, transparent 3px 6px, #E2792A 6px 9px, transparent 9px 12px); opacity: 0.55; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background-image:url('uploads/ChatGPT Image Aug 9, 2026, 09_45_20 PM-d4fa2418.png'); background-size:cover; background-position:center; background-attachment:fixed;"><div style="max-width:1180px; margin:0 auto; padding:0 24px 96px;">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:28px 0; flex-wrap:wrap;">
+    <div style="font-family:'Fraunces',serif; font-weight:600; font-size:23px; color:#403A77; letter-spacing:0.01em;">SourceSutra</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="CustomerRegister.dc.html" style="background:none; border:1px solid #6C6AA0; color:#6C6AA0; padding:10px 18px; border-radius:8px; font-size:14px; text-decoration:none;">Customer login</a>
+      <button onClick="{{ onLogin }}" style="background:none; border:1px solid #E4DFD5; color:#20202B; padding:10px 18px; border-radius:8px; font-size:14px; cursor:pointer;">Log in</button>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:48px; align-items:center; flex-wrap:wrap; padding:16px 0 56px;">
+    <div style="flex:1 1 420px; min-width:300px;">
+      <div style="font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:#6C6AA0; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:14px;">Trusted by manufacturers across India</div>
+      <h1 style="font-family:'Fraunces',serif; font-weight:500; font-size:clamp(32px,4.5vw,54px); line-height:1.12; color:#20202B; margin:0 0 20px;">A trusted network of verified suppliers, for every need.</h1>
+      <p style="font-size:17px; line-height:1.6; color:#6B6A78; max-width:520px; margin:0 0 28px;">SourceSutra brings together fabric mills, garment CMT units, and trims and accessory suppliers — each verified once, thoroughly, so manufacturers can source with confidence. Whatever you need — knits, wovens, dyeing, or a complete white-label article — find it here, already vetted.</p>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <button class="ss-btn" onClick="{{ onSignup }}" style="display:flex; align-items:center; gap:10px; background:#403A77; color:#FAF8F4; border:none; padding:14px 22px; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer;">
+          <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.92C16.7 14.2 17.64 11.9 17.64 9.2z"></path><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.85.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.94v2.33A9 9 0 009 18z"></path><path fill="#fff" d="M3.97 10.72A5.4 5.4 0 013.68 9c0-.6.1-1.18.29-1.72V4.95H.94A9 9 0 000 9c0 1.45.35 2.83.94 4.05l3.03-2.33z"></path><path fill="#fff" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 00.94 4.95l3.03 2.33C4.68 5.16 6.66 3.58 9 3.58z"></path></svg>
+          Sign up as a supplier with Google
+        </button>
+        <span style="font-size:13px; color:#6B6A78;">Already onboarded? The same button logs you in.</span>
+      </div>
+    </div>
+    <div style="flex:1 1 560px; min-width:320px; align-self:stretch; border-radius:16px; border:1px solid #D6D4EC; overflow:hidden; min-height:460px;">
+      <img src="uploads/ChatGPT Image Aug 9, 2026, 10_33_52 AM.png" alt="Sourcing the best of India — handlooms, handicrafts, and modern apparel manufacturing" style="width:100%; height:100%; object-fit:cover; display:block;">
+    </div>
+  </div>
+
+  <div class="ss-selvedge"></div>
+
+  <div style="padding:48px 0;">
+    <h2 style="font-family:'Fraunces',serif; font-weight:500; font-size:30px; color:#20202B; margin:0 0 8px;">How onboarding works</h2>
+    <p style="font-size:15px; color:#6B6A78; margin:0 0 32px; max-width:640px;">Identity and Financials build on each other, in order. Portfolio can be filled in alongside either one, at your own pace — but it's the last piece needed to finish.</p>
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <div style="flex:1 1 280px; min-width:240px; background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:24px;">
+        <div style="font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:#403A77; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Step 1</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:20px; font-weight:500; margin:0 0 8px; color:#20202B;">Identity</h3>
+        <p style="font-size:14px; color:#6B6A78; line-height:1.55; margin:0;">Company details, contact verification, GST/PAN/MSME/CIN. Submitted first — Financials unlocks once this is in review.</p>
+      </div>
+      <div style="flex:1 1 280px; min-width:240px; background:#FAF8F4; border:1px solid #E4DFD5; border-radius:14px; padding:24px;">
+        <div style="font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:#403A77; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Step 2</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:20px; font-weight:500; margin:0 0 8px; color:#20202B;">Financials</h3>
+        <p style="font-size:14px; color:#6B6A78; line-height:1.55; margin:0;">Bank details, addresses, and company filings. Locked until Identity is submitted for verification.</p>
+      </div>
+      <div style="flex:1 1 280px; min-width:240px; background:#EDECF6; border:1px solid #D6D4EC; border-radius:14px; padding:24px;">
+        <div style="font-family:'Fraunces',serif; font-size:13px; font-weight:500; color:#6C6AA0; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:10px;">Alongside, then last</div>
+        <h3 style="font-family:'Fraunces',serif; font-size:20px; font-weight:500; margin:0 0 8px; color:#20202B;">Portfolio</h3>
+        <p style="font-size:14px; color:#6B6A78; line-height:1.55; margin:0;">Work history, catalogue, and tags. Build it any time from day one — it's the final gate before onboarding is complete.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ss-selvedge"></div>
+
+  <div style="padding:48px 0; display:flex; gap:32px; flex-wrap:wrap;">
+    <sc-for list="{{ stats }}" as="stat" hint-placeholder-count="3">
+      <div style="flex:1 1 220px; min-width:200px;">
+        <div style="font-family:'Fraunces',serif; font-size:36px; font-weight:500; color:#D9700F;">{{ stat.value }}</div>
+        <div style="font-size:14px; color:#6B6A78; margin-top:6px;">{{ stat.label }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="ss-selvedge"></div>
+
+  <div style="padding:48px 0;">
+    <h2 style="font-family:'Fraunces',serif; font-weight:500; font-size:28px; color:#20202B; margin:0 0 28px;">From sub-contractors on the network</h2>
+    <div style="display:flex; gap:24px; flex-wrap:wrap;">
+      <sc-for list="{{ testimonials }}" as="t" hint-placeholder-count="2">
+        <div style="flex:1 1 380px; min-width:280px; background:#F2EEE6; border:1px solid #E4DFD5; border-left:4px solid #E2792A; border-radius:14px; padding:26px;">
+          <p style="font-family:'Fraunces',serif; font-size:18px; font-weight:400; line-height:1.5; color:#20202B; margin:0 0 18px;">"{{ t.quote }}"</p>
+          <div style="font-size:14px; color:#403A77; font-weight:600;">{{ t.name }}</div>
+          <div style="font-size:13px; color:#6B6A78;">{{ t.role }} · {{ t.place }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background:#403A77; border-radius:18px; padding:44px 36px; margin-top:24px; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+    <div>
+      <h2 style="font-family:'Fraunces',serif; font-weight:500; font-size:26px; color:#FAF8F4; margin:0 0 8px;">Ready to be found, not chased?</h2>
+      <p style="font-size:14px; color:#D6D4EC; margin:0;">One verification. Discoverable to every manufacturer on the network after.</p>
+    </div>
+    <button class="ss-btn" onClick="{{ onSignup }}" style="background:#FAF8F4; color:#403A77; border:none; padding:14px 24px; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer; white-space:nowrap;">Sign up as a supplier</button>
+  </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  signup = () => { if (this.props.onSignup) this.props.onSignup(); else window.location.href = 'SourceSutra.dc.html'; };
+  login = () => { if (this.props.onSignup) this.props.onSignup(); else window.location.href = 'SourceSutra.dc.html'; };
+
+  renderVals() {
+    return {
+      onSignup: this.signup,
+      onLogin: this.login,
+      stats: [
+        { value: '500+', label: 'Verified suppliers across India' },
+        { value: '1000+', label: 'Sourcing requests monthly' },
+        { value: '25+', label: 'States covered' }
+      ],
+      testimonials: [
+        { quote: 'SourceSutra made it so easy to find new buyers. The verification was thorough and fair.', name: 'Arjun Sharma', role: 'Owner', place: 'Tiruppur Knits' },
+        { quote: 'One platform, one verification, and suddenly we\'re discoverable to everyone. Game-changing for a 30-person unit.', name: 'Priya Menon', role: 'Operations Head', place: 'Vardhman Textiles' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

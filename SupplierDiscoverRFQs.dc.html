@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF8F4; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #403A77; } a:hover { color: #6C6AA0; }
+  input, select, textarea, button { font-family: 'Inter', sans-serif; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid #403A77; outline-offset: 2px; }
+  .rfq-card:hover { border-color: #C9C4E8; }
+</style>
+</helmet>
+
+<div style="min-height:100vh; background:#FAF8F4;">
+<div style="max-width:1080px; margin:0 auto; padding:0 24px 80px;">
+
+  <h1 style="font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin:0 0 18px; color:#20202B;">Discover RFQs</h1>
+
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:8px;">
+    <select value="{{ activeType }}" onChange="{{ onTypeChange }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; background:#fff; color:#20202B;">
+      <option value="">All contract types</option>
+      <sc-for list="{{ contractTypes }}" as="t"><option value="{{ t }}">{{ t }}</option></sc-for>
+    </select>
+    <select value="{{ activeLocation }}" onChange="{{ onLocationChange }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; background:#fff; color:#20202B;">
+      <option value="">All locations</option>
+      <sc-for list="{{ locations }}" as="l"><option value="{{ l }}">{{ l }}</option></sc-for>
+    </select>
+    <input value="{{ searchQuery }}" onChange="{{ onSearchChange }}" placeholder="Search RFQs…" style="flex:1 1 200px; padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px;"/>
+  </div>
+
+  <sc-if value="{{ hasActiveFilters }}">
+    <div style="margin-bottom:14px;"><button onClick="{{ onClearFilters }}" style="background:none; border:none; color:#403A77; font-size:12.5px; cursor:pointer; text-decoration:underline;">Clear filters</button></div>
+  </sc-if>
+
+  <div style="font-size:13px; color:#6B6A78; margin-bottom:16px;">{{ resultLabel }}</div>
+
+  <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <sc-for list="{{ cards }}" as="r" hint-placeholder-count="6">
+        <button class="rfq-card" onClick="{{ r.onClick }}" style="text-align:left; background:#fff; border:1px solid #E4DFD5; border-radius:12px; padding:18px 20px; cursor:pointer; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:220px;">
+            <div style="font-size:15px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ r.title }}</div>
+            <div style="font-size:12.5px; color:#6C6AA0; margin-bottom:8px;">{{ r.contractType }} · {{ r.buyer }}</div>
+            <div style="font-size:12px; color:#6B6A78;">{{ r.quantityLabel }} · {{ r.deliveryLocation }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; color:#6B6A78; text-transform:uppercase; font-weight:600; margin-bottom:4px;">Bids close</div>
+            <div style="font-size:13.5px; font-weight:600; color:#B07A17;">{{ r.bidEnd }}</div>
+          </div>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ noResults }}">
+    <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+      <p style="font-size:14.5px; margin:0 0 12px;">No RFQs match these filters — clear a filter to see more.</p>
+      <button onClick="{{ onClearFilters }}" style="background:#403A77; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:13.5px; cursor:pointer;">Clear filters</button>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080},&quot;rfqs&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;array&quot;},&quot;total&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;contractTypes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;locations&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;activeType&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;activeLocation&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;searchQuery&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onType&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onLocation&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSearchChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onClearFilters&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onOpenRfq&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const rfqs = p.rfqs || [];
+    const cards = rfqs.map(r => ({ ...r, quantityLabel: r.quantity.toLocaleString() + ' ' + r.unit, onClick: () => p.onOpenRfq(r.id) }));
+    const hasActiveFilters = !!(p.activeType || p.activeLocation || p.searchQuery);
+    return {
+      activeType: p.activeType, activeLocation: p.activeLocation,
+      contractTypes: p.contractTypes, locations: p.locations,
+      onTypeChange: (e) => p.onType(e.target.value),
+      onLocationChange: (e) => p.onLocation(e.target.value),
+      searchQuery: p.searchQuery, onSearchChange: (e) => p.onSearchChange(e.target.value),
+      hasActiveFilters, onClearFilters: p.onClearFilters,
+      resultLabel: rfqs.length + ' of ' + p.total + ' open RFQs',
+      hasResults: rfqs.length > 0, noResults: rfqs.length === 0,
+      cards
+    };
+  }
+}
+
+</script>
+</body>
+</html>

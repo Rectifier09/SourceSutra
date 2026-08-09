@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  .cd-card:hover { border-color:#C9C4E8; }
+  .cd-chip:hover { background:#EDECF6; }
+  .cd-search-btn:hover { background:#EDECF6; }
+</style>
+</helmet>
+
+<div style="max-width:1180px; margin:0 auto; padding:0 24px 80px;">
+
+  <div style="border-radius:0; border:none; padding:120px 24px 24px; background-image:url('uploads/ChatGPT Image Aug 9, 2026, 04_07_47 PM.png'); background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed; min-height:100vh;">
+
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:34px;">
+    <select value="{{ activeType }}" onChange="{{ onTypeChange }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; background:#fff; color:#20202B;">
+      <option value="">All company types</option>
+      <sc-for list="{{ companyTypes }}" as="t"><option value="{{ t }}">{{ t }}</option></sc-for>
+    </select>
+    <select value="{{ activeLocation }}" onChange="{{ onLocationChange }}" style="padding:10px 12px; border:1px solid #E4DFD5; border-radius:8px; font-size:13.5px; background:#fff; color:#20202B;">
+      <option value="">All locations</option>
+      <sc-for list="{{ locations }}" as="l"><option value="{{ l }}">{{ l }}</option></sc-for>
+    </select>
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <sc-for list="{{ tagChips }}" as="tag" hint-placeholder-count="6">
+        <button class="cd-chip" onClick="{{ tag.onClick }}" style="background:{{ tag.bg }}; color:{{ tag.fg }}; border:1px solid {{ tag.border }}; border-radius:99px; padding:7px 13px; font-size:12.5px; cursor:pointer;">{{ tag.value }}</button>
+      </sc-for>
+    </div>
+
+    <div style="margin-left:auto; display:flex; align-items:center;">
+      <sc-if value="{{ searchOpen }}" hint-placeholder-val="{{ false }}">
+        <input autoFocus="{{ true }}" value="{{ searchQuery }}" onChange="{{ onSearchChange }}" onBlur="{{ onSearchClose }}" placeholder="Search suppliers…"
+          style="width:220px; opacity:1; transition:width 0.25s ease, opacity 0.25s ease; padding:9px 12px; border:1px solid #403A77; border-radius:8px; font-size:13.5px;"/>
+      </sc-if>
+      <sc-if value="{{ searchClosed }}">
+        <button class="cd-search-btn" onClick="{{ onSearchOpen }}" aria-label="Search suppliers" style="width:38px; height:38px; border-radius:8px; border:1px solid #E4DFD5; background:#fff; cursor:pointer; font-size:15px;">🔍</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasActiveFilters }}">
+    <div style="margin-bottom:18px;">
+      <button onClick="{{ onClearFilters }}" style="background:none; border:none; color:#403A77; font-size:12.5px; cursor:pointer; text-decoration:underline;">Clear filters</button>
+    </div>
+  </sc-if>
+
+  <div style="font-size:13px; color:#6B6A78; margin-bottom:16px;">{{ resultLabel }}</div>
+
+  <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:28px;">
+      <sc-for list="{{ cards }}" as="s" hint-placeholder-count="9">
+        <button class="cd-card" onClick="{{ s.onClick }}" style="text-align:left; background:rgba(250,248,244,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.5); box-shadow:0 8px 24px rgba(32,32,43,0.08); border-radius:14px; padding:20px; cursor:pointer; display:flex; flex-direction:column; gap:12px;">
+          <div style="width:52px; height:52px; border-radius:12px; background:{{ s.logoBgAlpha }}; color:{{ s.logoFg }}; font-family:'Fraunces',serif; font-weight:500; font-size:16px; display:flex; align-items:center; justify-content:center;">{{ s.initials }}</div>
+          <div>
+            <div style="font-size:15.5px; font-weight:600; color:#20202B; margin-bottom:4px;">{{ s.name }}</div>
+            <div style="font-size:13px; color:#6B6A78; line-height:1.45;">{{ s.mission }}</div>
+          </div>
+          <div style="font-size:11.5px; color:#6C6AA0; margin-top:auto;">{{ s.location }} · {{ s.type }}</div>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ noResults }}">
+    <div style="text-align:center; padding:60px 20px; color:#6B6A78;">
+      <p style="font-size:14.5px; margin:0 0 12px;">No suppliers match these filters — clear a filter to see more.</p>
+      <button onClick="{{ onClearFilters }}" style="background:#403A77; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:13.5px; cursor:pointer;">Clear filters</button>
+    </div>
+  </sc-if>
+
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180},&quot;suppliers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;array&quot;},&quot;total&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;companyTypes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;locations&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;allTags&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;activeType&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;activeLocation&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;activeTags&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;searchOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;searchQuery&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onType&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onLocation&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onToggleTag&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSearchOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSearchClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onSearchChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onClearFilters&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onOpenSupplier&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const suppliers = p.suppliers || [];
+    const activeTags = p.activeTags || [];
+    const initials = (name) => name.split(' ').filter(w => w.length > 2 || /[A-Z]/.test(w[0])).slice(0, 2).map(w => w[0]).join('').toUpperCase().slice(0, 2) || name.slice(0, 2).toUpperCase();
+
+    const cards = suppliers.map(s => ({ ...s, initials: initials(s.name), logoFg: s.logoFg || '#403A77', logoBgAlpha: s.logoBg || '#EDECF6', onClick: () => p.onOpenSupplier(s.id) }));
+    const tagChips = (p.allTags || []).map(t => {
+      const active = activeTags.includes(t);
+      return { value: t, active, onClick: () => p.onToggleTag(t), bg: active ? '#403A77' : '#fff', fg: active ? '#FAF8F4' : '#403A77', border: active ? '#403A77' : '#D6D4EC' };
+    });
+
+    const hasActiveFilters = !!(p.activeType || p.activeLocation || activeTags.length || p.searchQuery);
+
+    return {
+      activeType: p.activeType, activeLocation: p.activeLocation,
+      companyTypes: p.companyTypes, locations: p.locations,
+      onTypeChange: (e) => p.onType(e.target.value),
+      onLocationChange: (e) => p.onLocation(e.target.value),
+      tagChips,
+      searchOpen: p.searchOpen,
+      searchClosed: !p.searchOpen,
+      searchQuery: p.searchQuery,
+      onSearchOpen: p.onSearchOpen,
+      onSearchClose: p.onSearchClose,
+      onSearchChange: p.onSearchChange,
+      hasActiveFilters,
+      onClearFilters: p.onClearFilters,
+      resultLabel: suppliers.length + ' of ' + p.total + ' suppliers',
+      hasResults: suppliers.length > 0,
+      noResults: suppliers.length === 0,
+      cards
+    };
+  }
+}
+
+</script>
+</body>
+</html>
