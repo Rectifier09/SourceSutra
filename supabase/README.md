@@ -42,6 +42,18 @@ the award transaction is atomic/idempotent/one-shot, signup provisions a full ac
 and RLS + the onboarding guard are enforced by the database (no self-verify, Financials
 locked until Identity).
 
+## 2b. Verifying without Docker (Supabase SQL Editor)
+
+If you're using a cloud project instead of the local stack: apply the two migrations in the
+SQL Editor (`0001_core.sql` then `0002_auth.sql` — DDL, so they say *"Success. No rows returned"*,
+which is correct), then paste and run **`tests/verify_in_editor.sql`**.
+
+> ⚠️ Don't run the `tests/0001_*` / `tests/0002_*` pgTAP files in the SQL Editor — those emit their
+> results as many intermediate result sets, and the editor only shows the **last** statement
+> (`rollback;`), so they misleadingly read *"Success. No rows returned"* whether they pass or fail.
+> `verify_in_editor.sql` is built for the editor: its last statement **is** a PASS/FAIL grid, so you
+> can actually read the outcome. Use `supabase test db` (local) for the full pgTAP run.
+
 ## Signup metadata contract (Phase 0)
 
 The frontend/mobile passes these fields in the Supabase Auth signup `data` (they land in

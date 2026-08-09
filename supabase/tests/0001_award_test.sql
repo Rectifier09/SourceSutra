@@ -28,7 +28,27 @@ begin
 end;
 $$;
 
+-- The two membership users must exist in auth.users (FK added in 0002). This
+-- fires the provisioning trigger too — harmless here (it just creates default
+-- buyer orgs we ignore; our fixtures below use fixed ids).
+create function pg_temp.mkuser(uid uuid) returns void language plpgsql as $$
+begin
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new, recovery_token
+  ) values (
+    '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated',
+    uid::text || '@test.in', '$2a$10$abcdefghijklmnopqrstuvwxyz012345678901234567890123456',
+    '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', ''
+  );
+end;
+$$;
+
 -- ---------------------------------------------------------------- fixtures --
+select pg_temp.mkuser('aaaa0000-0000-0000-0000-0000000000a1'); -- buyer owner
+select pg_temp.mkuser('bbbb0000-0000-0000-0000-0000000000a2'); -- Supplier Two user
+
 insert into orgs (id, kind, name) values
   ('aaaa0000-0000-0000-0000-000000000001', 'buyer',    'Test Buyer'),
   ('bbbb0000-0000-0000-0000-000000000001', 'supplier', 'Supplier One'),

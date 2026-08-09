@@ -36,6 +36,7 @@ needs a product call before build. They're collected in [§C.6](#c6-open-decisio
 
 **Part B — Backend design**
 - [B.0 Chosen architecture — Vercel + Supabase](#b0-chosen-architecture--vercel--supabase)
+- [B.0.1 Decision log — how we chose Vercel + Supabase](#b01-decision-log--how-we-chose-vercel--supabase)
 - [B.1 Architecture & bounded contexts](#b1-architecture--bounded-contexts)
 - [B.2 Data model](#b2-data-model)
 - [B.3 API surface](#b3-api-surface)
@@ -487,6 +488,64 @@ Most reads/writes are the **auto PostgREST/GraphQL** API guarded by RLS. Only th
 `award`, `publish_rfq`, `submit_quote` (upsert + guards), `foreclose`/`reopen`, `submit_section`,
 `verify_otp`, and the verification‑pipeline webhooks. The `match-count` and all badges/scores are
 **views**, read directly.
+
+## B.0.1 Decision log — how we chose Vercel + Supabase
+
+*Captured 2026‑08‑10 so the reasoning survives the conversation it came from. The driving constraint
+was explicit: **build with the least (build‑time) tokens without sacrificing usability, functionality,
+or extensibility**, with an **API‑first backend a mobile app can consume later**, for **India‑based**
+suppliers and buyers.*
+
+### D1 — API style: REST + OpenAPI (not GraphQL, not tRPC)
+- **Chosen:** a versioned REST API that auto‑publishes an **OpenAPI** spec; every client (web now,
+  mobile later) codegens a typed SDK from it.
+- **Why:** language‑agnostic — a future Swift/Kotlin/Flutter app generates a client for near‑zero extra
+  work. **tRPC** was rejected because its typed‑client magic is TypeScript‑only (only pays off if mobile
+  is React Native). **GraphQL** was rejected as more schema/resolver code — more tokens — than this
+  domain needs. With Supabase this REST surface is *generated* by PostgREST (see D2).
+
+### D2 — Where the backend runs: the token ↔ control spectrum
+Three archetypes weighed against "fewest tokens, but keep functionality + extensibility":
+
+| Archetype | Example | Build tokens | Domain logic (award txn, state machines) | Admin / verification queue | Verdict |
+|---|---|---|---|---|---|
+| **BaaS** | **Supabase** | lowest | awkward — lives in SQL/Edge Functions | limited (Studio) | **chosen** |
+| Batteries framework | Django + Ninja | low | native service layer | **free (Django admin)** | strong runner‑up |
+| Assemble‑your‑own | FastAPI / NestJS | high | native | build it yourself | rejected (most tokens) |
+
+- **Chosen: Supabase** — leanest token count (REST/GraphQL API, auth, storage, realtime are generated
+  from the schema; the backend is mostly migrations + a few functions).
+- **Accepted trade‑off:** complex logic (the award cascade, verification workflow) lives in
+  Postgres/Edge Functions rather than one app service layer — mitigated by the §B.0 logic‑placement
+  split (RLS for authz, Postgres functions for transactions, Edge Functions for external I/O) and the
+  §B.0 escape hatch.
+- **Why Django was the close runner‑up (and stays the fallback):** its free admin is a near‑perfect fit
+  for the ops/verification review queue, and domain logic stays clean Python. If logic‑in‑DB ever bites,
+  Django‑on‑a‑container is the pre‑vetted plan B.
+
+### D3 — Deployment: why not "just deploy to Vercel," and the two bundles
+- **Deploy does not separate FastAPI from Django** — both are Python apps in a container behind an ASGI
+  server, needing the *same* five processes: web API, Postgres, object storage, a **background
+  worker + queue**, and a **scheduler** (bid‑window lapse, cert expiry). Framework choice is a
+  *build‑effort* decision, not a deploy one.
+- **Vercel is a poor host for *this* backend on its own.** It's serverless: no long‑running worker (async
+  verification/notifications would need Upstash QStash / Inngest), Postgres connection exhaustion without
+  a pooler, and Python cold starts. Bolting those on means *more* vendors — the opposite of the token
+  goal. Vercel *is* the right home for the **web frontend**.
+- **India latency** matters for the app and future mobile client, so a **Mumbai region** was a
+  requirement — favouring Fly.io (bom) or Cloud Run (asia‑south1) for any container backend.
+- **The two coherent bundles considered:**
+  - **Bundle A (chosen):** Vercel (Next.js web) + **Supabase** (DB/auth/storage/Edge Functions). Leanest
+    tokens; logic‑in‑DB.
+  - **Bundle B (fallback):** Vercel (web) + **Django/FastAPI on Fly.io/Cloud Run** + managed Postgres +
+    object storage. More tokens, full control, free admin (Django).
+
+  Bundle A won on the stated priority (fewest tokens); Bundle B is the documented escape hatch.
+
+### D4 — Ambition: MVP‑first, phased
+Sequenced Phase 0→4 (Part C) rather than designed all at once, so a launchable core ships before
+deferred features (post‑award ops, split awards, notifications). Undecided items are tracked as ⚑
+decisions in §C.6.
 
 ## B.1 Architecture & bounded contexts
 
