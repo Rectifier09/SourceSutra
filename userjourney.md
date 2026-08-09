@@ -525,7 +525,8 @@ The whole project is vendored into this repo and runs in a normal browser:
    into the customer **Profile** tab, replacing the old stub.
 9. **Made the Discover‑suppliers background full‑page** (`background-size` `contain` → `cover`).
 
-> Items 6–9 are applied **locally only** — not yet pushed to the design project.
+> Items 6–9 have since been **pushed to the design project** too — 11 HTML files + the new
+> `uploads/onboardingbanner.png` — so the live prototype matches this working copy.
 
 ---
 
@@ -556,6 +557,7 @@ The whole project is vendored into this repo and runs in a normal browser:
 
 *Generated from the Claude Design project `b32cd8b6-9529-4809-8831-5cc086b151d3` ("Demo flows and
 design system"). Now **15 screens** (added `CustomerProfile.dc.html`) + shared runtime, store, and
-`uploads/` assets. The `SourceSutra.dc.html` fix was pushed upstream; the later working‑copy changes
-(prototype‑note removal, onboarding banner, Buyer Profile page, Discover cover background) are local
-only. Last updated 2026‑08‑10.*
+`uploads/` assets. All changes — the `SourceSutra.dc.html` fix and the later working‑copy changes
+(prototype‑note removal, onboarding banner, Buyer Profile page, Discover cover background, plus the
+new `CustomerProfile.dc.html` and `onboardingbanner.png`) — have been pushed to the design project.
+Last updated 2026‑08‑10.*
