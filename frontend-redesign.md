@@ -73,3 +73,52 @@ onboarding banner; the intro `gif`/`mp4`/`mp3` → landing/intro animation. Rena
 ## Preserve (do NOT change behavior)
 Every `"use server"` action + RLS read + RPC call + route contract is live-verified — reskin the JSX only.
 Backend `0001`–`0007` + the live deploy (https://source-sutra-prod.vercel.app) stay; `0008` extends, never rewrites.
+
+---
+
+## Progress log & resume point (2026-08-10)
+
+### Done — R0 + homepage, LIVE
+- **R0 · Design system** (`web/app/layout.tsx`, `web/app/globals.css`):
+  - Fonts: `Fraunces` (`--font-display`) + `Inter` (`--font-sans`) via `next/font/google`.
+  - Palette + motifs as Tailwind v4 theme tokens in `globals.css` (`@theme inline`): use as
+    `text-primary`, `bg-cream`, `border-line`, `text-terra`, `bg-lav1`, `font-display`, etc.
+    Token names: cream/panel/panel2/ink/ink2/muted/primary/primary2/lav1-3/terra/terra2/amber/sage/sagebg/line/line2.
+  - `.selvedge` divider class (indigo/orange repeating-gradient).
+- **Homepage** (`web/app/page.tsx`) = pixel-faithful port of `ScreenLanding`, now the **default screen at `/`**
+  (no more role-redirect; logged-in users get a "Go to dashboard" button). Assets: `web/public/img/hero-bg.png`
+  + `hero-panel.png` (copied from `uploads/`).
+- **Committed `cdec337`, pushed, and DEPLOYED** — the live site now opens on the real brand. Inner pages
+  (dashboards/discover/etc.) still carry the OLD skin — that's the next rollout.
+
+### Gotchas learned (don't rediscover)
+- **Tailwind v4 cascade layers:** unlayered base rules (e.g. `a { color: ... }`) BEAT utility classes
+  (utilities live in a layer; unlayered CSS wins). Put base element styles in `@layer base { }` so
+  `text-*`/`bg-*` can override — otherwise link text renders in the `a` color (was indigo-on-indigo = invisible).
+- **CSS comment trap:** a `*/` sequence inside comment text (e.g. writing `text-*/bg-*`) closes the comment
+  early → Lightning CSS parse error + blank page. Avoid `*/` inside comment prose.
+- **Rendering the prototypes for reference:** they need `support.js`, so serve the repo root over HTTP and
+  open the `.dc.html` (e.g. `npx http-server . -p 8145` → `http://localhost:8145/SourceSutraCustomer.dc.html`).
+  A static server may squat a port — see the buildplan port-3000 gotcha.
+
+### NEXT (in order)
+1. **Schema enrichment — migration `0008`** (see "Content / schema gap" above): add supplier profile depth
+   + seed the 12 prototype suppliers (their data is in the `<script type="text/x-dc">` block of
+   `SourceSutraCustomer.dc.html`, the `SUPPLIERS = [...]` array — company type, tags, logoBg/logoFg,
+   catalogue, workHistory, production, tradeTerms, products, facilityPhotos, rich certifications, contact).
+   Then `npx supabase db push` to cloud + reseed (SQL Editor). Keep it ADDITIVE.
+2. **Vertical slice** (task): reskin `web/app/buyer/suppliers/page.tsx` (Discover — filters, tag chips,
+   search, monogram cards over imagery; ref `CustomerDiscover.dc.html` + the rendered shot) and
+   `.../[orgId]/page.tsx` (rich profile; ref `CustomerSupplierProfile.dc.html`). Pixel-faithful.
+3. Then roll the design system across the rest (R3 buyer, R4 supplier, R5 inbox/entry) per the Phases list.
+   Extract shared primitives (Button/Card/Chip/Monogram/Tab/Shell) into `web/app/_components/ui/` as they recur.
+
+### Asset map so far (`uploads/` → `web/public/img/`, renamed)
+- `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓
+- `ChatGPT ...10_33_52 AM.png` → `hero-panel.png` (landing right panel) ✓
+- Still to map as screens are built: the other 10 PNGs (supplier-card backgrounds / heroes),
+  `onboardingbanner.png` (supplier onboarding), the intro `gif`/`mp4`/`mp3` (intro/landing animation).
+
+### Deploy note
+Vercel auto-deploys on push to `main` (~45s). Pushing mid-redesign puts new + old skin live together — the
+user OK'd shipping the homepage now; hold further pushes until a flow (e.g. buyer) is coherent, unless asked.

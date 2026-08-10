@@ -10,7 +10,14 @@
 
 **BP-1 IS LIVE** → **https://source-sutra-prod.vercel.app** (all 8 steps done). Backend `0001`–`0007` +
 frontend FE-0→FE-4 on Vercel, backed by Supabase cloud `wtbfwejothkzldfebjbm` (ap-south-1). Verified live for
-both personas. **Next work = BP-2** (swap the 5 fakes for real integrations INT-1…5 + reviewer console FE-5).
+both personas.
+
+> ⚡ **ACTIVE TRACK = the frontend redesign** — the BP-1 UI was functional but off-brand; we're rebuilding it
+> to the **original prototype design** (`.dc.html` files). See **[`frontend-redesign.md`](./frontend-redesign.md)**
+> (plan + progress + resume point). **Done & live:** the design system (Fraunces/Inter + warm palette) and the
+> **homepage** (now the default screen at `/`). **Next:** schema enrichment (migration `0008`) → the buyer
+> Discover→Supplier-Profile slice. Deferred: **BP-2** (real integrations INT-1…5 + reviewer FE-5) comes after
+> the redesign.
 
 **Cloud coordinates:** Supabase project `wtbfwejothkzldfebjbm` "SourceSutra-Prod" (ap-south-1); an older unused
 `igtgcccaqcocmkvwdgre` (ap-northeast-1) also exists — ignore it. Vercel project root = `web/`, env
