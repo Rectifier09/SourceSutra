@@ -123,3 +123,16 @@ export async function respondInvitation(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/supplier/invitations");
 }
+
+// FE-4: supplier edits their own public profile.
+export async function updateSupplierProfile(formData: FormData) {
+  const { supabase, org_id } = await supplierClient();
+  const { error: e1 } = await supabase.from("orgs").update({ location: str(formData.get("location")) }).eq("id", org_id);
+  if (e1) throw new Error(e1.message);
+  const { error: e2 } = await supabase
+    .from("supplier_profiles")
+    .update({ mission: str(formData.get("mission")), years_in_business: num(formData.get("years_in_business")) })
+    .eq("org_id", org_id);
+  if (e2) throw new Error(e2.message);
+  revalidatePath("/supplier/profile");
+}

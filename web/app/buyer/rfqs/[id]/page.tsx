@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { publishRfq, triageQuote, awardQuote, rejectQuote } from "@/app/buyer/actions";
+import { publishRfq, triageQuote, awardQuote, rejectQuote, inviteSupplier } from "@/app/buyer/actions";
 
 const RSTATUS: Record<string, string> = {
   draft: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
@@ -36,6 +36,17 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
     .select("id, status, unit_price, currency, supplier_org_id, orgs(name, location)")
     .eq("rfq_id", id)
     .order("unit_price", { ascending: true });
+
+  // Invite panel (active RFQs): verified suppliers + who's already invited.
+  const [{ data: directory }, { data: invites }] = await Promise.all([
+    supabase.from("v_supplier_directory").select("org_id, name").order("name"),
+    supabase
+      .from("invitations")
+      .select("supplier_org_id, status, orgs!invitations_supplier_org_id_fkey(name)")
+      .eq("rfq_id", id),
+  ]);
+  const invitedIds = new Set((invites ?? []).map((i: any) => i.supplier_org_id));
+  const invitable = (directory ?? []).filter((s: any) => !invitedIds.has(s.org_id));
 
   const datesReady = rfq.bid_start && rfq.bid_end && rfq.delivery_date;
 
@@ -78,6 +89,43 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
               </p>
             )}
           </div>
+        )}
+
+        {rfq.status === "active" && (
+          <section className="mt-8 rounded-xl border border-black/10 p-5 dark:border-white/10">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
+              Invite suppliers
+            </h3>
+            {(invites ?? []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(invites ?? []).map((i: any) => {
+                  const o = Array.isArray(i.orgs) ? i.orgs[0] : i.orgs;
+                  return (
+                    <span key={i.supplier_org_id} className="rounded-full bg-black/5 px-2.5 py-1 text-xs dark:bg-white/10">
+                      {o?.name ?? "Supplier"} · {i.status}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            {invitable.length > 0 ? (
+              <form action={inviteSupplier} className="mt-3 flex flex-wrap items-center gap-2">
+                <input type="hidden" name="rfq_id" value={rfq.id} />
+                <select name="supplier_org" className="rounded-md border border-black/15 px-2 py-1.5 text-sm dark:border-white/20 dark:bg-transparent">
+                  {invitable.map((s: any) => (
+                    <option key={s.org_id} value={s.org_id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <button className="rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
+                  Invite
+                </button>
+              </form>
+            ) : (
+              <p className="mt-3 text-sm text-black/45 dark:text-white/45">All verified suppliers invited.</p>
+            )}
+          </section>
         )}
 
         {rfq.status !== "draft" && (

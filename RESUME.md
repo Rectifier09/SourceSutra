@@ -2,16 +2,15 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-10 — FE-3 complete.**
+> **Last updated 2026-08-10 — FE-4 complete; all frontend done, only Deploy remains.**
 
 ---
 
 ## Status in one line
 
-BP-1 (deployed self-serve demo, five integrations faked) is **6 of 8 steps done**: backend `0001`–`0006`
-(**136 pgTAP green**) + frontend **FE-0 → FE-3** built, verified in-browser, and committed at
-**`c4fff22`** "FE2 & F3 completed and tested by claude" (clean tree). **Next = FE-4 (notifications &
-profiles)**, then **Deploy**.
+BP-1 (deployed self-serve demo, five integrations faked) is **7 of 8 steps done — ALL FRONTEND COMPLETE**:
+backend `0001`–`0007` + frontend **FE-0 → FE-4** built and verified in-browser + DB-asserted. **Only Deploy
+remains.** FE-2/FE-3 committed at `c4fff22`; **FE-4 + migration `0007` + doc updates are pending commit.**
 
 | Step | State |
 |---|---|
@@ -21,10 +20,17 @@ profiles)**, then **Deploy**.
 | 4 · FE-1 buyer core (create/publish/triage/award) | ✅ verified |
 | 5 · FE-2 supplier onboarding (BP-1 fakes) | ✅ verified + DB-asserted |
 | 6 · FE-3 supplier sourcing (discover/quote/invitations) | ✅ verified + DB-asserted |
-| 7 · **FE-4 notifications & profiles** | ⬜ **← NEXT** |
-| 8 · Deploy (Supabase cloud + Vercel + CI) | ⬜ |
+| 7 · FE-4 notifications & profiles (+ migration `0007`) | ✅ verified + DB-asserted |
+| 8 · **Deploy (Supabase cloud + Vercel + CI)** | ⬜ **← NEXT** |
 
 Then **BP-2** swaps the five fakes for real integrations (INT-1…5) + the reviewer console (FE-5).
+
+**FE-4 adds:** shared `/inbox` (notifications + mark-read) & an unread bell in the (now async) `Header`;
+`/buyer/suppliers` discover + `/buyer/suppliers/[orgId]` public profile (badges + portfolio, **never**
+identity/financials); `/buyer/profile` + `/supplier/profile` edit; a buyer-side `invite_supplier` control on
+the RFQ detail. New migration **`0007_directory.sql`** = `v_supplier_directory` (a **default/definer** view so
+it can read verified-status past the owner-only RLS on `onboarding_sections`). Applied live via psql; already
+in the migration file for future resets.
 
 ---
 
@@ -104,10 +110,11 @@ simulated OTP = `set_identity_check`.
 
 ---
 
-## What FE-4 needs (the next task)
+## FE-4 — DONE. Next task: Deploy (checklist in the status section above)
 
-Screens: in-app inbox, buyer "discover suppliers" (`CustomerDiscover`), supplier public profile
-(`CustomerSupplierProfile`), buyer profile (`CustomerProfile`).
+FE-4 delivered these screens, all verified in-browser + DB-asserted: in-app inbox, buyer "discover suppliers"
+(`CustomerDiscover`), supplier public profile (`CustomerSupplierProfile`), buyer profile (`CustomerProfile`).
+What each does (kept for reference when swapping fakes at BP-2):
 
 - **In-app inbox** — read `notifications` (own org, RLS, newest-first); `update` marks read. Phase-3 triggers
   already write a row on every transition. Consider an unread badge in `Header`.

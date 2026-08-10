@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/supplier/discover", label: "Discover RFQs" },
   { href: "/supplier/quotes", label: "My Quotes" },
   { href: "/supplier/invitations", label: "Invitations" },
+  { href: "/supplier/profile", label: "Profile" },
 ];
 
 // Sub-nav for the supplier workspace. `active` is the href of the current page.

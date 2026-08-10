@@ -192,8 +192,12 @@ Built against the **local** stack first, deployed once the app runs green.
    Invitations tab (`respond_invitation`). Verified in-browser as Anitha + DB-asserted: discovered open +
    invited RFQs, submitted a quote (INR 232, appears buyer-side as 1 application), accepted an invite
    (→ responded + InvitationResponded event). SupplierNav ties the workspace together.
-7. ⬜ **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles. **← NEXT**
-8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live.
+7. ✅ **FE-4 · Notifications & profiles** — shared in-app inbox (`notifications`, mark-read) + Header unread
+   bell; buyer discover verified suppliers (`v_supplier_directory`, migration `0007`) + public profile
+   (badges + portfolio, identity/financials never shown); buyer & supplier profile edit; buyer-side
+   `invite_supplier` control. Verified in-browser + DB-asserted (badges buyer-labelled, privacy held, invite
+   notifies supplier, profile edit persists).
+8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live. **← NEXT**
 
 Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the reviewer console (FE-5).
 
@@ -226,12 +230,12 @@ Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the re
 
 ## 8. Progress log & resume point (2026-08-10)
 
-**Where we are:** BP-1 steps 1–6 done (FE-0 → FE-3). Backend `0001`–`0006`, **136 pgTAP green**. The `web/`
-app (Next 16) runs against the local Supabase stack with **auth + shells (FE-0), buyer core (FE-1), supplier
-onboarding (FE-2), and supplier sourcing (FE-3)** all working and verified in-browser + DB-asserted.
-**Committed** through **`c4fff22`** "FE2 & F3 completed and tested by claude" (clean tree). **Next = FE-4
-(notifications & profiles)**, then **Deploy** (step 8) → BP-1 is live. See the standalone [`RESUME.md`](./RESUME.md)
-for the one-page resume.
+**Where we are:** BP-1 steps 1–7 done — **all frontend (FE-0 → FE-4) is complete**. Backend `0001`–`0007`
+(`0007` = the FE-4 supplier-directory view). The `web/` app (Next 16) runs against the local Supabase stack
+with auth+shells, buyer core, supplier onboarding, supplier sourcing, and notifications+profiles all working
+and verified in-browser + DB-asserted. **Only step 8 (Deploy) remains for BP-1.** FE-2+FE-3 committed at
+`c4fff22`; **FE-4 + `0007` + these doc updates are pending commit.** See [`RESUME.md`](./RESUME.md) for the
+one-page resume.
 
 ### What's built in `web/`
 ```
@@ -256,6 +260,15 @@ web/
   app/supplier/rfqs/[id]/page.tsx            RFQ detail + quote form (submit_quote)
   app/supplier/quotes/page.tsx               my quotes + status
   app/supplier/invitations/page.tsx          v_my_invitations + accept/decline (respond_invitation)
+  --- FE-4 (notifications & profiles) ---
+  app/inbox/{page,actions}.tsx               shared in-app inbox (notifications) + mark-read
+  app/_components/Header.tsx                 now async: role nav + unread bell → /inbox
+  app/buyer/suppliers/page.tsx               discover verified suppliers (v_supplier_directory)
+  app/buyer/suppliers/[orgId]/page.tsx       public profile: badges + portfolio (NO identity/financials)
+  app/buyer/profile/page.tsx                 buyer org/account edit (updateBuyerProfile)
+  app/supplier/profile/page.tsx              supplier public-profile edit (updateSupplierProfile)
+  buyer/actions.ts                           + inviteSupplier, updateBuyerProfile
+  supabase/migrations/0007_directory.sql     v_supplier_directory (definer view, verified suppliers)
 ```
 
 ### How to run (from scratch)
@@ -304,21 +317,21 @@ cd web ; npm run dev                                        # http://localhost:3
 - **pgTAP helpers acting as another role:** make `orgof(uid)` `SECURITY DEFINER`, else RLS on `memberships`
   hides other orgs and `where org_id = <null>` yields false 0s.
 
-### NEXT — FE-4 (notifications & profiles) — the last frontend phase before deploy
-Screens: in-app inbox, buyer "discover suppliers" (`CustomerDiscover`), supplier public profile
-(`CustomerSupplierProfile`), buyer profile (`CustomerProfile`).
-- **In-app inbox:** read `notifications` (own org, RLS) newest-first; `update sent/read` marks read. Every
-  transition already writes rows (Phase-3 triggers) — surface unread count in the header ideally.
-- **Buyer discover suppliers:** list verified suppliers (`supplier_is_verified`), show `v_cert_badges`
-  (buyer-facing labels) + portfolio docs. Identity/Financials must **never** render to a buyer (decision #5:
-  logged-in-only, owner/admin for sensitive sections; RLS already enforces — don't fetch them).
-- **Profiles:** supplier public profile (mission, years, certs, portfolio) and buyer profile.
-- **Small carry-over from FE-3:** wire a buyer-side **invite** control on the buyer RFQ detail
-  (`invite_supplier(rfq_id, supplier_org)`) so the invite loop is fully clickable — needs the supplier list
-  from the discover surface above.
-Then **step 8 · Deploy:** Supabase cloud (ap-south-1) + `db push` + seed, Vercel + env, minimal CI.
+### NEXT — Step 8 · Deploy (the last BP-1 step; makes it live)
+All FE phases are done. Deploy is mostly ops + your hands (creating cloud projects, pasting keys):
+- **Supabase cloud** — create the project (ap-south-1 / Mumbai); `supabase link` + `supabase db push`
+  (applies `0001`–`0007`); load a **curated seed** on the cloud DB. Decide seed strategy: the current
+  `seed.sql` is local-dev; for a public demo, fold the FE-3 active RFQs (and optionally a pre-onboarded
+  Anitha) in so the demo isn't empty. Enable email/password auth, confirmation **off**, no Google.
+- **Vercel** — import `web/`; set `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (cloud) + the
+  auth redirect URLs. Watch for Next-16 build differences vs. dev.
+- **Minimal CI** — GitHub Actions: `supabase test db` on PR; optionally `db push` on main.
+- **Risks (§7):** RLS/seed behaviour on the cloud DB, first-deploy env wiring, keep `service_role`
+  server-only. High-variance, low-code.
+- **Then BP-2:** swap the five fakes for real integrations (§3, INT-1…5) + reviewer console (FE-5).
 
 ---
 
-*Last updated 2026-08-10 (FE-3 complete). Sequenced MVP-first; each phase is usable before the next. Settle
-§6 with product before kickoff. Resume point + run instructions in §8; one-pager in `RESUME.md`.*
+*Last updated 2026-08-10 (FE-4 complete — all frontend done). Sequenced MVP-first; each phase is usable
+before the next. Settle §6 with product before kickoff. Resume point + run instructions in §8; one-pager in
+`RESUME.md`.*
