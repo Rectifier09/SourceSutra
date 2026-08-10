@@ -203,24 +203,29 @@ stateDiagram-v2
 stateDiagram-v2
   [*] --> draft
   draft --> submitted: submit
-  submitted --> under_review: buyer opens/triages
+  submitted --> under_review: buyer triages
   under_review --> shortlisted: buyer shortlists
+  under_review --> submitted: buyer un-triages
+  shortlisted --> under_review: buyer un-shortlists
   submitted --> not_selected: rejectQuote
   under_review --> not_selected: rejectQuote
-  shortlisted --> awarded: awardQuote (this quote)
-  shortlisted --> closed: a sibling quote is awarded
-  submitted --> closed: RFQ foreclosed / sibling awarded
-  under_review --> closed: RFQ foreclosed / sibling awarded
+  shortlisted --> not_selected: rejectQuote
+  submitted --> awarded: awardQuote
+  under_review --> awarded: awardQuote
+  shortlisted --> awarded: awardQuote
+  submitted --> closed: sibling awarded / foreclosed
+  under_review --> closed: sibling awarded / foreclosed
+  shortlisted --> closed: sibling awarded / foreclosed
   awarded --> [*]
 ```
 
 | Transition | Trigger | Guard | Notes |
 |---|---|---|---|
 | `draft → submitted` | supplier `submit` | RFQ is `active`; supplier is `Onboarding Completed`; quote passes §A.9; **one live quote per (supplier, RFQ)** | emits `QuoteSubmitted`; surfaces in buyer's applications |
-| `submitted → under_review → shortlisted` | buyer triage | buyer owns the RFQ | **⚑ decision:** are `under_review`/`shortlisted` buyer‑manual, or auto (e.g. shortlist = above a match threshold)? Prototype shows them as badges but doesn't drive the transition. |
-| `* → not_selected` | `rejectQuote(reason?)` | buyer owns RFQ; quote not terminal | RFQ **stays active**; optional reason stored |
-| `shortlisted/submitted/under_review → closed` | sibling awarded **or** RFQ foreclosed | — | terminal; supplier sees "Not selected / Closed" |
-| `→ awarded` | `awardQuote` | §A.7 | terminal winner |
+| `submitted ↔ under_review ↔ shortlisted` | **buyer triage (manual)** | buyer owns the RFQ | **Resolved:** triage is a manual buyer tool, **not** auto by match threshold; freely **reversible** both ways. States are **visible to the supplier** (badges, per prototype). Shortlist is optional — **not** a precondition for award. |
+| `* → not_selected` | `rejectQuote(reason?)` | buyer owns RFQ; quote non‑terminal (incl. `shortlisted`) | RFQ **stays active**; optional reason stored |
+| `* → awarded` | `awardQuote` | §A.7 — target quote **non‑terminal** (any of submitted / under_review / shortlisted) | terminal winner |
+| `submitted/under_review/shortlisted → closed` | sibling awarded **or** RFQ foreclosed | — | terminal; supplier sees "Not selected / Closed" |
 
 **One‑live‑quote rule:** a supplier may hold at most one non‑terminal quote per RFQ. Re‑submitting
 updates the existing quote (prototype `upsertQuote`), it does not create a second application.
@@ -246,9 +251,9 @@ aggregate locked.
 4. Emit `QuoteAwarded` + `RfqAwarded` (drives notifications, and later post‑award project creation).
 
 **Irreversibility:** v1 has **no un‑award**. The UI copy already says "irreversible"; enforce it
-server‑side (reject any state change on an `awarded` RFQ). **⚑ decision:** do we ever need an
-admin‑only reversal for support cases? If yes, it's a separate privileged, audited operation — not a
-buyer action.
+server‑side (reject any state change on an `awarded` RFQ). **Resolved:** **no un‑award in v1** — a
+mistaken award is corrected only by a manual ops/DB action for now; a proper privileged, audited
+admin reversal is deferred to **Phase 4** (admin console), and is never a buyer action.
 
 **Concurrency:** two buyers can't race here (single owner), but a buyer double‑clicking can. Use an
 **idempotency key** on the award request and a row‑level lock / optimistic version on the RFQ so the
@@ -305,6 +310,12 @@ meetsAllMustHaves = every mustHave is Held
 matchScore  = weighted( mustHaves Held, niceToHaves Held )   // must-haves dominate
 ```
 
+**Match score is advisory** — it drives *default sort order* and the "matching count," and is displayed
+to both personas; it **never** gates eligibility, shortlisting, or award (all manual buyer decisions —
+§A.6). The `priority` (must/nice) tag is stored purely as display/ranking metadata.
+**Default Applications order** (buyer's view): `matchScore` desc, tie‑break unit price asc; the buyer
+can re‑sort, and **nothing is hidden or filtered out**.
+
 ### A.8.3 Customization coverage
 
 ```
@@ -314,19 +325,23 @@ coverage = | RFQ.customizationNeeds ∩ supplier.customizationCapabilities | / |
 
 ### A.8.4 Matching‑supplier count (RFQ wizard)
 
-**Currently hardcoded to `14`** in `CustomerCreateRFQ.dc.html` — this is a fake, not logic. Real rule:
+**Currently hardcoded to `14`** in `CustomerCreateRFQ.dc.html` — this is a fake, not logic. Real rule
+(**Resolved:** certs, coverage, and contract‑type are *advisory* — they rank/display, never filter):
 
 ```
 count = suppliers where
     status = Onboarding Completed (verified)
   AND (RFQ.preferredLocation empty OR supplier.location matches)
   AND (RFQ.minYearsExperience empty OR supplier.yearsInBusiness ≥ it)
-  AND meetsAllMustHaves(supplier, RFQ.requiredCerts)
-  AND (contract/service type compatible)          ⚑ define "compatible"
 ```
-Recomputed live as the buyer edits the wizard. **⚑ decision:** do *nice‑to‑have* certs and
-customization coverage affect the **count** (binary include/exclude) or only the **ranking**? Recommend:
-count = hard must‑have + location + experience filter; everything else ranks.
+Recomputed live as the buyer edits the wizard. **Must/nice‑have certs, customization coverage, and
+contract type do NOT include/exclude** — they only order the ranked results (§A.8.2). Contract type has
+**no structured supplier field** (suppliers self‑select whether to quote); revisit post‑MVP.
+
+> **The count is a soft indicator, not the responder set.** `preferredLocation` / `minYearsExperience`
+> are advisory too — they shape this count but do **not** gate who may respond. Under `open`, *any*
+> verified supplier can quote (§A.8.6), so the real responder set is usually larger than this number;
+> say so in wizard microcopy. Only verified‑status and the invite‑list ever gate a response.
 
 ### A.8.5 RFQ completion meter (publish readiness)
 
@@ -338,12 +353,14 @@ Attachments and matching count are shown but **not** gating.
 
 ### A.8.6 Who‑can‑respond → eligible supplier set
 
+**Resolved:** three modes — the auto‑`matching` mode is **dropped** (eligibility never uses the match
+filter). Only verified‑status and the invite‑list ever gate a response.
+
 | `whoCanRespond` | Eligible set at publish |
 |---|---|
-| `open` (all verified) | every `Onboarding Completed` supplier |
-| `matching` (auto) | suppliers passing the §A.8.4 match filter |
-| `invite` (specific) | only `invitedSuppliers[]` — creates **Invitations** |
-| + `verifiedOnly` flag | intersect with verified set (redundant with `open` but explicit) |
+| `open` | every `Onboarding Completed` supplier |
+| `verifiedOnly` | every `Onboarding Completed` supplier — **behaviourally identical to `open` today** (the whole marketplace is already verified). Stored as buyer *intent*; a real difference is reserved for possible logged‑out/public discovery (open decision #5). |
+| `invite` (specific) | only `invitedSuppliers[]` — creates **Invitations**; the RFQ is **not** visible to non‑invitees |
 
 An RFQ a supplier is **invited** to appears in their *Invitations* tab even if it wouldn't otherwise
 match; a supplier **not** in an invite‑only RFQ's list must not see it in Discover.
@@ -363,15 +380,16 @@ match; a supplier **not** in an invite‑only RFQ's list must not see it in Disc
 | V7 | **`deliveryDate` after `bidEnd`** (validated after the bid window) | RFQ publish | block publish |
 | V8 | Sample fields (type/count/deadline/who‑pays) required **only if** `sampleRequired` | RFQ + Quote | conditional |
 | V9 | `targetPrice` **never required to disclose** (pricing approach can hide it) | RFQ | allow empty |
-| V10 | Colour/size **breakdown** running total ≤ (or =) total quantity | RFQ step 2 | warn/block ⚑ |
+| V10 | Colour/size **breakdown** running total vs total quantity | RFQ step 2 | **warn only** |
 | V11 | Quote only if supplier `Onboarding Completed` **and** RFQ `active` | Quote submit | block |
 | V12 | One live quote per (supplier, RFQ) | Quote submit | upsert not insert |
 | V13 | Award/reject/foreclose/reopen require **RFQ ownership** by caller | Buyer actions | authz |
 | V14 | Reopen `newBidEnd` must be in the future | Reopen | block |
 | V15 | Consent checkbox required on buyer registration | Register | block |
 
-**⚑ decision (V10):** is the breakdown total a hard equality, a ceiling, or advisory? Prototype shows a
-running total but its enforcement isn't specified.
+**Resolved (V10):** the breakdown total is **advisory** — show a running‑total warning on any mismatch
+(over or under) but **never block publish**. The buyer stays in control; a partial or over‑allocated
+breakdown can still publish.
 
 ---
 
@@ -386,7 +404,7 @@ The single most important product rule: **buyers never see a supplier's Identity
 | Own Portfolio | RW | — | R (public profile) | R (public fields ⚑) | R |
 | Supplier public profile | R | R ⚑ | R | ⚑ | R |
 | RFQ (draft) | — | — | RW (owner only) | — | R |
-| RFQ (active) | R (if eligible per §A.8.6) | R (if eligible) | RW (owner) / R (others ⚑) | — | R |
+| RFQ (active) | R (if eligible per §A.8.6) | R (if eligible) | RW (owner) / **R (all buyers)** | — | R |
 | Own quote | RW | — | R (as application, once submitted) | — | R |
 | Sibling quotes on an RFQ | — | **never** (no competitor visibility) | R (RFQ owner) | — | R |
 | Award/reject/foreclose | — | — | **RFQ owner only** | — | R + reversal |
@@ -808,13 +826,37 @@ Collected `⚑` calls, roughly in the order they block a phase:
 | 3 | Exact progress‑bar partial‑credit fractions | Phase 1 |
 | 4 | Full badge vocabulary (Registered / Needs‑correction / audit outcomes) + rules | Phase 1 |
 | 5 | Public supplier profiles: logged‑out visible? supplier‑to‑supplier visible? | Phase 1/3 |
-| 6 | `under_review`/`shortlisted`: buyer‑manual or auto by match threshold? | Phase 2 |
-| 7 | Do nice‑to‑haves/coverage affect match **count** or only ranking? "Compatible contract type" definition | Phase 2 |
-| 8 | Breakdown total: hard equality, ceiling, or advisory (V10)? | Phase 2 |
-| 9 | Can a buyer view an active RFQ they don't own? | Phase 2 |
-| 10 | Admin‑only award reversal for support? | Phase 2/4 |
+| 6 | ~~`under_review`/`shortlisted`: buyer‑manual or auto?~~ **✅ Resolved — manual (§A.6)** | Phase 2 |
+| 7 | ~~nice‑to‑haves/coverage affect count or only ranking? "compatible contract type"?~~ **✅ Resolved — advisory (§A.8.4)** | Phase 2 |
+| 8 | ~~Breakdown total: hard/ceiling/advisory (V10)?~~ **✅ Resolved — advisory / warn‑only (§A.9)** | Phase 2 |
+| 9 | ~~Can a buyer view an active RFQ they don't own?~~ **✅ Resolved — yes, all buyers (§A.10)** | Phase 2 |
+| 10 | ~~Admin‑only award reversal?~~ **✅ Resolved — no un‑award in v1; reversal → Phase 4 (§A.7)** | Phase 2/4 |
 | 11 | WhatsApp as a notification channel? | Phase 3 |
 | 12 | Monetization model (and what it paywalls) | Phase 4 |
+
+**Resolved for Phase 2 (2026‑08‑10) — the sourcing model:**
+
+1. **Certs / coverage / contract‑type are advisory everywhere** — they rank & display, never gate a
+   response, the count, shortlisting, or award (§A.8.2, §A.8.4). Contract type gets no structured
+   supplier field for now; suppliers self‑select whether to quote.
+2. **`preferredLocation` / `minYearsExperience` are advisory too** — they shape the count/ranking but
+   do **not** gate who may respond. Only verified‑status + the invite‑list gate a response (§A.8.4, §A.8.6).
+3. **Shortlisting is manual and optional** — the buyer triages `submitted ↔ under_review ↔ shortlisted`
+   (reversible, and **visible to the supplier**); award is allowed from **any non‑terminal** quote; a
+   shortlisted quote can still be rejected (§A.6).
+4. **Default Applications order:** `matchScore` desc, tie‑break unit price asc; buyer‑resortable; nothing
+   hidden (§A.8.2).
+5. **Who‑can‑respond:** `open` / `verifiedOnly` / `invite`; auto‑`matching` **dropped**; `open` and
+   `verifiedOnly` are behaviourally identical today (§A.8.6).
+6. **Breakdown total (V10) is advisory** — warn on any mismatch (over or under), never block publish (§A.9).
+7. **Active‑RFQ visibility:** owner has RW; **all buyers may view** any active RFQ (view‑only market
+   signal); suppliers see it only if eligible per §A.8.6 — invite‑only restricts the **supplier**
+   audience, not buyer visibility. The Phase‑2 `rfqs_read` policy replaces today's loose `status='active'`
+   rule with this scoping (§A.10).
+8. **No un‑award in v1** — award is one‑shot / irreversible for buyers; an audited admin reversal is
+   deferred to Phase 4 (§A.7).
+
+*All Phase‑2 sourcing decisions are now settled.*
 
 ## C.7 Prototype-fake → real-rule map
 
