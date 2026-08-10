@@ -35,3 +35,9 @@ end;
 $$;
 
 grant execute on function demo_verify_my_section(section_kind) to authenticated;
+
+-- Expose the supplier's own onboarding status to the app. security_invoker so RLS
+-- scopes it to the owner — a supplier reads only their own overall_status/progress
+-- (buyers use supplier_is_verified() for discovery, not this view).
+alter view v_supplier_overall set (security_invoker = on);
+grant select on v_supplier_overall to authenticated;

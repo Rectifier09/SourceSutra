@@ -176,19 +176,19 @@ validation mirroring §A.9 (client-side UX; the DB still enforces), and killing 
 
 Built against the **local** stack first, deployed once the app runs green.
 
-1. **Commit** the backend Phase 1/3 work → tag the backend baseline.
-2. **`0006_phase1_demo.sql`** — the additive demo shims: `demo_verify_my_section(kind)` (auto-approve),
-   and a **curated demo seed** (verified supplier · un-onboarded supplier · buyer · sample RFQs/quotes).
-   Tests stay green (the shim is a new function; nothing existing changes).
-3. **FE-0 · Scaffold + demo auth** — Next.js in `web/`, Supabase browser/server clients, a persona login
-   that signs into the seeded accounts, `v_me`-driven routing to the two shells.
-4. **FE-1 · Buyer core** — create/publish RFQ (+ live `match_count`), My RFQs, applications (triage +
-   award/reject). Highest-value loop; proves the RPC/RLS wiring pattern.
-5. **FE-2 · Onboarding (with fakes)** — sections, mock uploads, simulated OTP, `submit_section` →
-   `demo_verify_my_section` → Onboarding Completed; progress/overall from `v_supplier_overall`.
-6. **FE-3 · Supplier sourcing** — discover RFQs, RFQ detail, create quote, quotations + invitations.
-7. **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles.
-8. **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live.
+1. ⏳ **Commit** the backend Phase 1/3 work + `web/` → tag the baseline. *(user commits)*
+2. ✅ **`0006_phase1_demo.sql`** — `demo_verify_my_section(kind)` (auto-approve) + `v_supplier_overall`
+   exposed to the app; **loginable demo seed** (`seed.sql`: buyer + verified supplier + un-onboarded
+   supplier + sample RFQs/quotes). **136 pgTAP green.**
+3. ✅ **FE-0 · Scaffold + demo auth** — Next.js 16 in `web/`, Supabase clients + `proxy.ts`, persona login
+   → `v_me`-routed shells. Verified in-browser.
+4. ✅ **FE-1 · Buyer core** — My RFQs, Create RFQ (+ live `match_count`), applications (triage / reject /
+   award). Verified in-browser: award drove the real atomic flip + notifications.
+5. ⬜ **FE-2 · Onboarding (with fakes)** — sections, mock uploads, simulated OTP, `submit_section` →
+   `demo_verify_my_section` → Onboarding Completed; progress/overall from `v_supplier_overall`. **← NEXT**
+6. ⬜ **FE-3 · Supplier sourcing** — discover RFQs, RFQ detail, create quote, quotations + invitations.
+7. ⬜ **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles.
+8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live.
 
 Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the reviewer console (FE-5).
 
@@ -219,5 +219,73 @@ Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the re
 
 ---
 
+## 8. Progress log & resume point (2026-08-10)
+
+**Where we are:** BP-1 steps 1–4 done. Backend `0001`–`0006`, **136 pgTAP green**. The `web/` app (Next 16)
+runs against the local Supabase stack with FE-0 (auth + shells) and FE-1 (buyer core) working and verified
+in a browser. **Committed:** backend + scaffold (through `fe3bd05` "scaffoling started"). **Pending commit:**
+the FE-0 + FE-1 code (`web/lib`, `web/proxy.ts`, `web/app/{buyer,login,supplier,_components}`, edited
+`layout`/`page`) + the doc/`0006`-view-exposure edits. **Next = FE-2 (supplier onboarding, with BP-1 fakes).**
+
+### What's built in `web/`
+```
+web/
+  proxy.ts                     Next-16 session refresh (was middleware.ts)
+  .env.local                   NEXT_PUBLIC_SUPABASE_URL/ANON_KEY → local stack (gitignored)
+  lib/supabase/client.ts       browser client (createBrowserClient)
+  lib/supabase/server.ts       server client (async cookies())
+  lib/me.ts                    getMe() → v_me  ·  lib/demo.ts → seeded personas + password
+  app/login/{page,actions}.tsx persona login (signInAs / signOut server actions)
+  app/page.tsx                 root → redirects by role
+  app/_components/Header.tsx   org/role + sign-out
+  app/buyer/page.tsx           My RFQs  ·  buyer/actions.ts (create/publish/triage/award/reject)
+  app/buyer/rfqs/new/          Create RFQ (+ _components/CreateRfqForm.tsx live match_count)
+  app/buyer/rfqs/[id]/         RFQ detail + Applications
+  app/supplier/page.tsx        Supplier shell (live v_supplier_overall)  ← FE-2 fills this in
+```
+
+### How to run (from scratch)
+```powershell
+# 1. Backend (Docker Desktop running). Full paths per memory local-supabase-run.
+$env:PATH = "C:\Program Files\Docker\Docker\resources\bin;" + $env:PATH
+supabase start ; supabase db reset ; supabase test db     # expect 136 passing
+# Studio http://localhost:54323 · DB :54322
+
+# 2. Frontend
+cd web ; npm run dev                                        # http://localhost:3000
+```
+
+### Demo accounts (seed.sql) — password `sourcesutra` for all
+| Who | Email | State |
+|---|---|---|
+| Priya Menon · Vardhman Textiles (buyer) | priya.menon@vardhmantextiles.in | 1 active RFQ (2 quotes) + 1 draft |
+| Suresh Anand · Anand Knitfab (supplier) | suresh@anandknitfab.in | **verified**, has certs/badges |
+| Meena Kaur · Ludhiana Woolworks (supplier) | meena@ludhianawoolworks.in | **verified** |
+| Anitha Rao · Tiruppur Threads (supplier) | anitha@tiruppurthreads.in | **un-onboarded** → use to demo FE-2 |
+
+### Gotchas learned (don't rediscover)
+- **Next 16:** `middleware.ts` → **`proxy.ts`** (export `proxy`); `cookies()` is **async**. Repo warns via
+  `web/AGENTS.md`; docs are bundled at `web/node_modules/next/dist/docs/`.
+- **PostgREST embed ambiguity:** `rfqs↔quotes` has two FKs (`quotes.rfq_id`, `rfqs.awarded_quote_id`) — a
+  bare `quotes(count)` embed errors (PGRST201) and supabase-js nulls the row. Pin it:
+  `quotes!quotes_rfq_id_fkey(count)`.
+- **Loginable seed:** GoTrue password login needs bcrypt (`extensions.crypt`) + `email_confirmed_at` + an
+  `auth.identities` email row (all three) — see `seed.sql`.
+- **pgTAP helpers acting as another role:** make `orgof(uid)` `SECURITY DEFINER`, else RLS on `memberships`
+  hides other orgs and `where org_id = <null>` yields false 0s.
+
+### NEXT — FE-2 (supplier onboarding, with BP-1 fakes)
+As **Anitha** (un-onboarded), build `/supplier` onboarding: three section cards (Identity/Financials/
+Portfolio) driven by `onboarding_sections` + `documents` + `certifications` + `identity_checks`.
+- **Mock upload** = insert a `documents` row (name + `status='uploaded'`, no file). Identity needs GST+PAN;
+  Financials needs 3× MGT-7 FYs (gates in `submit_section`).
+- **Simulated OTP** = a "Send code / Verify" affordance that calls `set_identity_check('email'|'phone'|
+  'aadhaar', true, last4?)` — mirror the prototype timer.
+- Flow per section: fill → `submit_section(kind)` → `demo_verify_my_section(kind)` → verified. When all
+  three land, `v_supplier_overall` → **Onboarding Completed** and the supplier is discoverable
+  (`supplier_is_verified`). Reuse the buyer server-action pattern (`app/buyer/actions.ts`).
+
+---
+
 *Last updated 2026-08-10. Sequenced MVP-first; each phase is usable before the next. Settle §6 with
-product before kickoff.*
+product before kickoff. Resume point + run instructions in §8.*
