@@ -1,26 +1,103 @@
 @import "tailwindcss";
 
+/* ── SourceSutra design system (from the prototype "Demo flows and design system") ──
+   Warm editorial palette + Fraunces/Inter. Committed to a single light look for now
+   (the prototype has no dark mode; a dark pass is a later phase). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf8f4; /* cream canvas */
+  --foreground: #20202b; /* ink */
+
+  --cream: #faf8f4;
+  --panel: #f2eee6; /* warm panel */
+  --panel-2: #fbf1de;
+  --ink: #20202b;
+  --ink-2: #2b2620;
+  --muted: #6b6a78; /* secondary text */
+
+  --primary: #403a77; /* indigo */
+  --primary-2: #6c6aa0;
+  --lav-1: #edecf6;
+  --lav-2: #d6d4ec;
+  --lav-3: #c9c4e8;
+
+  --terra: #b5654a; /* terracotta */
+  --terra-2: #e2792a;
+  --amber: #d9700f;
+
+  --sage: #5b7a5b;
+  --sage-bg: #eff3ee;
+
+  --border: #e4dfd5;
+  --border-2: #e8dfc8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-cream: var(--cream);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel-2);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink-2);
+  --color-muted: var(--muted);
+
+  --color-primary: var(--primary);
+  --color-primary2: var(--primary-2);
+  --color-lav1: var(--lav-1);
+  --color-lav2: var(--lav-2);
+  --color-lav3: var(--lav-3);
+
+  --color-terra: var(--terra);
+  --color-terra2: var(--terra-2);
+  --color-amber: var(--amber);
+
+  --color-sage: var(--sage);
+  --color-sagebg: var(--sage-bg);
+
+  --color-line: var(--border);
+  --color-line2: var(--border-2);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Base element styles live in @layer base so color utilities (text-cream, bg-primary),
+   which cascade after base, can override them on links. */
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--primary);
+  }
+  a:hover {
+    color: var(--primary-2);
+  }
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* The textile "selvedge" divider motif. */
+.selvedge {
+  height: 7px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--primary) 0 3px,
+    transparent 3px 6px,
+    var(--terra-2) 6px 9px,
+    transparent 9px 12px
+  );
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.001ms !important;
+  }
 }
