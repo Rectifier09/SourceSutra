@@ -171,3 +171,7 @@ create policy buyer_accounts_read   on buyer_accounts for select using (is_membe
 create policy buyer_accounts_update on buyer_accounts for update using (is_member(org_id)) with check (is_member(org_id));
 
 grant select on v_me to authenticated;
+
+-- table grants for the 0002 tables (RLS policies above gate the rows).
+grant select, update on profiles       to authenticated;
+grant select, update on buyer_accounts to authenticated;

@@ -306,3 +306,15 @@ create policy awards_read on awards
 grant execute on function award_quote(uuid, text)  to authenticated;
 grant execute on function reject_quote(uuid, text)  to authenticated;
 grant execute on function is_member(uuid)           to authenticated;
+
+-- ---------- table grants for the app's logged-in role ----------
+-- RLS (above) decides WHICH rows are visible/writable; these grants permit table
+-- access at all. Without them the app hits "permission denied for table ...".
+-- Writes are further gated by the policies (some added in 0002) + section_guard.
+grant select, update on orgs                to authenticated;  -- rename/location; update policy in 0002
+grant select         on memberships         to authenticated;
+grant select, update on supplier_profiles   to authenticated;
+grant select, update on onboarding_sections to authenticated;
+grant select         on rfqs                to authenticated;
+grant select         on quotes              to authenticated;
+grant select         on awards              to authenticated;

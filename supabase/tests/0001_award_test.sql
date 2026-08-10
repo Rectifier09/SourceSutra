@@ -61,11 +61,14 @@ insert into memberships (org_id, user_id) values
   ('bbbb0000-0000-0000-0000-000000000002', 'bbbb0000-0000-0000-0000-0000000000a2'); -- Supplier Two user
 
 -- Supplier One onboarding: identity+financials verified, portfolio submitted
---  => overall status "Onboarding Completed" (§A.4).
+--  => overall status "Onboarding Completed" (§A.4). Seeding 'verified' needs the
+--  reviewer escape hatch — 0002's section_guard blocks a client setting verified.
+set local sourcesutra.reviewer = 'on';
 insert into onboarding_sections (org_id, kind, status, weight) values
   ('bbbb0000-0000-0000-0000-000000000001', 'identity',   'verified',          40),
   ('bbbb0000-0000-0000-0000-000000000001', 'financials', 'verified',          40),
   ('bbbb0000-0000-0000-0000-000000000001', 'portfolio',  'submitted_pending', 20);
+set local sourcesutra.reviewer = 'off';
 
 -- One active RFQ with four competing quotes from four suppliers.
 insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date) values

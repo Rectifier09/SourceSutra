@@ -46,7 +46,8 @@ locked until Identity).
 
 If you're using a cloud project instead of the local stack: apply the two migrations in the
 SQL Editor (`0001_core.sql` then `0002_auth.sql` — DDL, so they say *"Success. No rows returned"*,
-which is correct), then paste and run **`tests/verify_in_editor.sql`**.
+which is correct), then paste and run **`verify_in_editor.sql`** (it lives next to the migrations,
+outside `tests/`, so `supabase test db` doesn't try to run it as a pgTAP file).
 
 > ⚠️ Don't run the `tests/0001_*` / `tests/0002_*` pgTAP files in the SQL Editor — those emit their
 > results as many intermediate result sets, and the editor only shows the **last** statement

@@ -137,12 +137,14 @@ select is(
 -- Resolve the org via the publicly-readable orgs.name so the row IS reachable;
 -- the write is blocked purely by the update policy => 0 rows affected.
 select pg_temp.login('eeee0000-0000-0000-0000-0000000000b1');   -- act as the buyer
+-- data-modifying CTE must be top-level, so WITH wraps the whole statement.
+with upd as (
+  update supplier_profiles set mission = 'hacked'
+    where org_id = (select id from orgs where name = 'Anand Knitfab Test')
+    returning 1
+)
 select is(
-  (with upd as (
-     update supplier_profiles set mission = 'hacked'
-       where org_id = (select id from orgs where name = 'Anand Knitfab Test')
-       returning 1)
-   select count(*)::int from upd),
+  (select count(*)::int from upd),
   0, 'a stranger cannot edit another org''s supplier profile (RLS blocks the write)'
 );
 

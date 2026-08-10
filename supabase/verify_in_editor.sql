@@ -62,8 +62,10 @@ begin
     (s2,'supplier','V Supplier Two'),(s3,'supplier','V Supplier Three');
   insert into memberships (org_id,user_id) values (buyer_org,buyer_usr),(s2,s2_usr);
   insert into supplier_profiles (org_id) values (s1);
+  perform set_config('sourcesutra.reviewer','on', true);   -- reviewer path: seed 'verified' past section_guard
   insert into onboarding_sections (org_id,kind,status,weight) values
     (s1,'identity','verified',40),(s1,'financials','verified',40),(s1,'portfolio','submitted_pending',20);
+  perform set_config('sourcesutra.reviewer','off', true);  -- back to client-mode for the self-verify check below
   insert into rfqs (id,buyer_org_id,title,status,bid_start,bid_end,delivery_date) values
     (rfq, buyer_org,'V RFQ 1','active','2026-08-01','2026-08-20','2026-10-15'),
     (rfq2,buyer_org,'V RFQ 2','active','2026-08-01','2026-08-20','2026-10-15');
