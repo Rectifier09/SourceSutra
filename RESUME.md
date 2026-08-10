@@ -8,9 +8,15 @@
 
 ## Status in one line
 
-BP-1 (deployed self-serve demo, five integrations faked) is **7 of 8 steps done — ALL FRONTEND COMPLETE**:
-backend `0001`–`0007` + frontend **FE-0 → FE-4** built and verified in-browser + DB-asserted. **Only Deploy
-remains.** FE-2/FE-3 committed at `c4fff22`; **FE-4 + migration `0007` + doc updates are pending commit.**
+**BP-1 IS LIVE** → **https://source-sutra-prod.vercel.app** (all 8 steps done). Backend `0001`–`0007` +
+frontend FE-0→FE-4 on Vercel, backed by Supabase cloud `wtbfwejothkzldfebjbm` (ap-south-1). Verified live for
+both personas. **Next work = BP-2** (swap the 5 fakes for real integrations INT-1…5 + reviewer console FE-5).
+
+**Cloud coordinates:** Supabase project `wtbfwejothkzldfebjbm` "SourceSutra-Prod" (ap-south-1); an older unused
+`igtgcccaqcocmkvwdgre` (ap-northeast-1) also exists — ignore it. Vercel project root = `web/`, env
+`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Cloud auth: email/password, confirm off. Seed
+was applied via the dashboard SQL Editor (`db push` does not run seeds on remote). CLI is authed via
+`npx supabase` (login persists on this machine; project linked).
 
 | Step | State |
 |---|---|
@@ -21,9 +27,10 @@ remains.** FE-2/FE-3 committed at `c4fff22`; **FE-4 + migration `0007` + doc upd
 | 5 · FE-2 supplier onboarding (BP-1 fakes) | ✅ verified + DB-asserted |
 | 6 · FE-3 supplier sourcing (discover/quote/invitations) | ✅ verified + DB-asserted |
 | 7 · FE-4 notifications & profiles (+ migration `0007`) | ✅ verified + DB-asserted |
-| 8 · **Deploy (Supabase cloud + Vercel + CI)** | ⬜ **← NEXT** |
+| 8 · Deploy (Supabase cloud + Vercel + CI) | ✅ **LIVE** |
 
-Then **BP-2** swaps the five fakes for real integrations (INT-1…5) + the reviewer console (FE-5).
+**BP-1 done.** Next = **BP-2**: swap the five fakes for real integrations (INT-1…5) + the reviewer console
+(FE-5). Start the OTP/KYC provider pick (§6 D1 — the only true external dependency).
 
 **FE-4 adds:** shared `/inbox` (notifications + mark-read) & an unread bell in the (now async) `Header`;
 `/buyer/suppliers` discover + `/buyer/suppliers/[orgId]` public profile (badges + portfolio, **never**

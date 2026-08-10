@@ -197,7 +197,10 @@ Built against the **local** stack first, deployed once the app runs green.
    (badges + portfolio, identity/financials never shown); buyer & supplier profile edit; buyer-side
    `invite_supplier` control. Verified in-browser + DB-asserted (badges buyer-labelled, privacy held, invite
    notifies supplier, profile edit persists).
-8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live. **← NEXT**
+8. ✅ **Deploy — BP-1 IS LIVE** at **https://source-sutra-prod.vercel.app** (Supabase cloud
+   `wtbfwejothkzldfebjbm`, ap-south-1; `db push` `0001`–`0007`; seed via SQL Editor; Vercel root=`web/`;
+   CI `db-tests.yml`). Verified live: buyer + supplier persona login (cloud GoTrue), RLS reads, seeded RFQs/
+   quotes/invitation, notifications. **BP-1 complete.**
 
 Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the reviewer console (FE-5).
 
