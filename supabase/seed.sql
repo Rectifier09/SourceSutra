@@ -102,4 +102,11 @@ begin
 
   insert into rfqs (buyer_org_id, title, status, who_can_respond)
   values (buyer, 'Fleece hoodies, winter capsule (draft)', 'draft', 'open');
+
+  -- invite-only RFQ so the Invitations flow is demoable out of the box (Anitha is invited).
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values ('f0000000-0000-0000-0000-000000000002', buyer, 'Merino base layer, invite pilot',
+          'active', '2026-08-01', '2026-08-25', '2026-09-30', 'invite', 5000, 'pcs', 'Sample + bulk');
+  insert into invitations (rfq_id, supplier_org_id)
+    select 'f0000000-0000-0000-0000-000000000002', id from orgs where name = 'Tiruppur Threads';
 end $$;

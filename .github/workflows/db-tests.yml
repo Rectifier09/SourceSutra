@@ -1,0 +1,28 @@
+name: db-tests
+
+# Minimal CI (BP-1): run the pgTAP suite against a fresh Supabase stack whenever the
+# database (migrations/tests/seed) changes. Keeps the frontend honest against the
+# well-tested backend contract.
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/db-tests.yml"
+
+jobs:
+  pgtap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase (applies migrations 0001–0007)
+        run: supabase db start
+      - name: Run pgTAP suite
+        run: supabase test db
