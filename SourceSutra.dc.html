@@ -217,14 +217,15 @@ class Component extends DCLogic {
   }
   handleSignup = () => {
     this.setState({ screen: 'intro', introStep: 0 });
-    if (this._prm) { this.setState({ introStep: 3 }); this._goDashboard(); return; }
+    // No auto-advance: the intro plays, then waits for the user to click "Enter"
+    // (handleSkipIntro). Reduced-motion shows the final state at once, also waiting.
+    if (this._prm) { this.setState({ introStep: 3 }); return; }
     this._timer1 = setTimeout(() => this.setState({ introStep: 1 }), 700);
     this._timer2 = setTimeout(() => this.setState({ introStep: 2 }), 1500);
     this._timer3 = setTimeout(() => this.setState({ introStep: 3 }), 2300);
-    this._timer4 = setTimeout(() => this._goDashboard(), 3300);
   };
   handleSkipIntro = () => {
-    [this._timer1, this._timer2, this._timer3, this._timer4].forEach(t => t && clearTimeout(t));
+    [this._timer1, this._timer2, this._timer3].forEach(t => t && clearTimeout(t));
     this._goDashboard();
   };
   _goDashboard = () => this.setState({ screen: 'dashboard' });
