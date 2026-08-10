@@ -9,8 +9,8 @@ The repo has two layers:
 - **Clickable prototype** — the front-end design: `*.dc.html` screens + the `support.js` runtime +
   the `rfq-store.js` `localStorage` store. Two persona apps (supplier / buyer), synced to the Claude
   design project *"Demo flows and design system"*.
-- **Supabase backend** (`supabase/`) — the domain logic made real in Postgres. Step #1 + Phase 0 +
-  Phase 2 are built & green (**71 pgTAP tests**).
+- **Supabase backend** (`supabase/`) — the domain logic made real in Postgres. Step #1 + Phases 0–3
+  are built & green (**128 pgTAP tests**).
 
 ## Start here
 
@@ -26,13 +26,15 @@ The repo has two layers:
   or `SourceSutraCustomer.dc.html` (buyer). Needs internet at runtime (React/fonts from CDN). Details in
   `userjourney.md` §12.
 - **Backend:** see `supabase/README.md` — `supabase start && supabase db reset && supabase test db`
-  (expect **71 passing**). Studio at http://localhost:54323.
+  (expect **128 passing**). Studio at http://localhost:54323.
 
 ## Status (2026-08-10)
 
 - ✅ **Prototype** — 15 screens + shared `RFQStore`; the intro no longer auto-skips (click **Enter dashboard**).
-- ✅ **Backend** — Step #1 (award transaction), Phase 0 (auth & accounts), Phase 2 (RFQ ↔ Quote ↔ Award). 71 pgTAP green.
-- ⬜ **Next** — Phase 1 (verification pipeline), Phase 3 (notifications + Invitations tab + lapse scheduling), then the Next.js frontend on Vercel.
+- ✅ **Backend** — Step #1 (award transaction) + Phases 0–3: auth & accounts, RFQ ↔ Quote ↔ Award,
+  onboarding & verification, notifications & invitations. 128 pgTAP green; lapse job scheduled via pg_cron.
+- ⬜ **Next** — real OTP/KYC + document storage/scanning, Phase 4 (post-award ops + admin console), then
+  the Next.js frontend on Vercel.
 
 ## Layout
 

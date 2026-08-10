@@ -773,10 +773,13 @@ remediation required (supplier), onboarding complete (supplier), invitation rece
 Each phase ships end‑to‑end (rules + data + APIs) with a **done bar**. Earlier phases are usable
 without later ones.
 
-> **Implementation status (2026‑08‑10):** **Step #1 + Phase 0 + Phase 2 are built & green** in
-> `supabase/` (`0001` + `0002` + `0003`) — **71 pgTAP tests passing**. Phase 1 is next. Descriptive
-> RFQ/quote fields live in a `spec jsonb` catch‑all; documents/storage (§B.8) and the `lapse` scheduler
-> (pg_cron/Edge) are deferred. See `supabase/README.md`.
+> **Implementation status (2026‑08‑10):** **Step #1 + Phases 0–3 are built & green** in `supabase/`
+> (`0001`–`0005`) — **128 pgTAP tests passing**. The verification pipeline (§B.6), full badge vocabulary
+> (§A.8.1), progress curve (§A.4), and event‑driven notifications + invitations (§B.7) are all real; the
+> `lapse` sweeper is scheduled via **pg_cron**. Still stubbed for later: descriptive RFQ/quote fields in a
+> `spec jsonb` catch‑all; real OTP/KYC + presigned document storage & AV scanning (§B.5/B.8 — docs carry
+> status + a `storage_path` placeholder); email notices persist as rows but aren't sent yet. See
+> `supabase/README.md`.
 
 ## C.1 Phase 0 — Accounts & access (foundation)
 - **Rules:** §A.2 personas/roles/org scoping; consent (V15); permission skeleton (§A.10).
@@ -784,13 +787,17 @@ without later ones.
 - **Done bar:** a supplier can sign in with Google and land on an empty onboarding; a buyer can
   register (consent enforced) and reach an empty shell. No sensitive data crosses personas.
 
-## C.2 Phase 1 — Onboarding & verification
+## C.2 Phase 1 — Onboarding & verification ✅ *(built & green — `0004`)*
 - **Rules:** §A.3 section machine, §A.4 overall status + progress, gating (Financials‑lock,
   marketplace‑lock), §A.9 V1–V5, privacy rule, §A.8.1 badges.
-- **Data/API:** `sections`, `documents`, `certifications`; `/onboarding/*`, `/verify/otp/*`, portfolio
-  edit; **verification pipeline (§B.6)** with a minimal ops review queue.
-- **Done bar:** a supplier completes all three sections, hits **Onboarding Completed**, and appears in
-  discovery; a real reviewer can flag a field → supplier sees remediation → resubmits → verified.
+- **Data/API:** `documents`, `certifications`, `identity_checks` (OTP result‑only/masked, A.11.5);
+  `submit_section` (V3/V4/V5) + reviewer `review_section` (verify / remediate‑with‑reasons); the full
+  badge vocabulary + buyer/supplier label maps; progress curve; editing a verified section re‑opens it.
+- **Done bar:** ✅ a supplier completes all three sections, hits **Onboarding Completed** (emits
+  `SupplierOnboarded`), and appears in discovery; a reviewer flags a field → supplier sees remediation →
+  resubmits → verified.
+- **Deferred:** real OTP/KYC provider + presigned document storage & AV scanning (§B.5/B.8) — the pipeline
+  is real; the file/provider integrations are stubbed (`storage_path` placeholder).
 
 ## C.3 Phase 2 — RFQ ↔ Quote ↔ Award (the marketplace core)
 - **Rules:** §A.5 RFQ, §A.6 Quote, **§A.7 award transaction + all invariants**, §A.8.2–A.8.6
@@ -801,11 +808,15 @@ without later ones.
   → RFQ + all siblings flip atomically, correctly, and idempotently. This phase = the prototype's whole
   value, made real.
 
-## C.4 Phase 3 — Notifications & invitations
+## C.4 Phase 3 — Notifications & invitations ✅ *(built & green — `0005`)*
 - **Rules:** §A.8.6 invite‑only visibility; event → notification mapping (§B.4/B.7).
-- **Data/API:** `notifications`; event consumers; invitation accept/decline; supplier *Invitations* tab.
-- **Done bar:** every meaningful transition reaches the right person in‑app + email; invite‑only RFQs
-  are visible only to invitees.
+- **Data/API:** `notifications` (in‑app + email); event triggers on quotes/rfqs/invitations → a single
+  fan‑out consumer over `domain_events`; `respond_invitation` + `v_my_invitations` (supplier *Invitations*
+  tab); the `lapse` sweeper scheduled via **pg_cron** (`*/15 * * * *`).
+- **Done bar:** ✅ every meaningful transition reaches the right person in‑app + email; invite‑only
+  publish notifies **only** invitees.
+- **Deferred:** email is persisted (channel = `email`) but not actually sent — a delivery Edge Function
+  ships later; WhatsApp channel remains open decision #11 (→ Phase 4).
 
 ## C.5 Phase 4 — Beyond the prototype (deferred features)
 Each is a **⚑ product decision** to design when we get here:
@@ -826,17 +837,17 @@ Collected `⚑` calls, roughly in the order they block a phase:
 
 | # | Decision | Blocks |
 |---|---|---|
-| 1 | Multi‑user per org in v1? | Phase 0 |
-| 2 | Editing a *verified* section — re‑verify all, field‑level, or cosmetic‑exempt? | Phase 1 |
-| 3 | Exact progress‑bar partial‑credit fractions | Phase 1 |
-| 4 | Full badge vocabulary (Registered / Needs‑correction / audit outcomes) + rules | Phase 1 |
-| 5 | Public supplier profiles: logged‑out visible? supplier‑to‑supplier visible? | Phase 1/3 |
+| 1 | ~~Multi‑user per org in v1?~~ **✅ Resolved — single active user in v1** (schema already allows N; no migration to revisit) | Phase 0 |
+| 2 | ~~Editing a *verified* section — re‑verify all, field‑level, or cosmetic‑exempt?~~ **✅ Resolved — any edit re‑opens the whole section** (`0004` trigger) | Phase 1 |
+| 3 | ~~Exact progress‑bar partial‑credit fractions~~ **✅ Resolved — `not_started 0 · draft 0.4 · submitted_pending 0.7 · verified 1.0` × weight** | Phase 1 |
+| 4 | ~~Full badge vocabulary (Registered / Needs‑correction / audit outcomes) + rules~~ **✅ Resolved — full set, one computation + two label maps (§A.8.1)** | Phase 1 |
+| 5 | ~~Public supplier profiles: logged‑out visible? supplier‑to‑supplier visible?~~ **✅ Resolved — logged‑in only; suppliers may view each other; no anonymous access** | Phase 1/3 |
 | 6 | ~~`under_review`/`shortlisted`: buyer‑manual or auto?~~ **✅ Resolved — manual (§A.6)** | Phase 2 |
 | 7 | ~~nice‑to‑haves/coverage affect count or only ranking? "compatible contract type"?~~ **✅ Resolved — advisory (§A.8.4)** | Phase 2 |
 | 8 | ~~Breakdown total: hard/ceiling/advisory (V10)?~~ **✅ Resolved — advisory / warn‑only (§A.9)** | Phase 2 |
 | 9 | ~~Can a buyer view an active RFQ they don't own?~~ **✅ Resolved — yes, all buyers (§A.10)** | Phase 2 |
 | 10 | ~~Admin‑only award reversal?~~ **✅ Resolved — no un‑award in v1; reversal → Phase 4 (§A.7)** | Phase 2/4 |
-| 11 | WhatsApp as a notification channel? | Phase 3 |
+| 11 | WhatsApp as a notification channel? **Deferred — v1 ships in‑app + email; WhatsApp → Phase 4** | Phase 3/4 |
 | 12 | Monetization model (and what it paywalls) | Phase 4 |
 
 **Resolved for Phase 2 (2026‑08‑10) — the sourcing model:**
@@ -863,21 +874,42 @@ Collected `⚑` calls, roughly in the order they block a phase:
 
 *All Phase‑2 sourcing decisions are now settled.*
 
+**Resolved for Phases 1 & 3 (2026‑08‑10) — onboarding, verification & notifications:**
+
+1. **Single active user per org in v1** (#1) — the `memberships` PK already allows N users per org, so
+   teammate invites are a later UI addition, not a schema change.
+2. **Editing a verified section re‑opens the whole section** (#2) — any content edit (a doc/cert write by
+   the owner) flips that section `verified → submitted_pending`; the reviewer escape hatch is exempt so the
+   verify path itself doesn't bounce. Simpler than field‑level re‑verification.
+3. **Progress curve** (#3) — `not_started 0 · draft 0.4 · submitted_pending 0.7 · remediation 0.4 ·
+   verified 1.0`, times the section weight (Identity 40 · Financials 40 · Portfolio 20).
+4. **Full badge vocabulary** (#4) — one `cert_badge()` computation → Verified · Self‑declared · Registered
+   (regulatory) · Expiring soon · Expired · Needs correction · and the audit outcomes Passed / Passed with
+   corrective actions / Failed / Pending; a buyer label map renders Verified→Certified, Self‑declared→Claimed.
+5. **Public profiles are logged‑in only** (#5) — portfolio + certifications are readable by any
+   authenticated user (buyers *and* suppliers); Identity/Financials never leave the owner/admin. No
+   anonymous/SEO access in v1.
+6. **Notification channels = in‑app + email** (#11) — WhatsApp stays a stored contact field; a real send
+   path (and WhatsApp) is Phase 4. Email rows are persisted now; delivery Edge Function ships later.
+
+*All Phase‑1 & Phase‑3 decisions are now settled.*
+
 ## C.7 Prototype-fake → real-rule map
 
 The concrete gap between today's clickable prototype and the system this doc specifies:
 
-| Prototype today | Real rule (this doc) |
-|---|---|
-| Verification auto‑passes on a `setTimeout(~3.2s)` | Auto‑checks + ops review queue → verified/remediation (§B.6) |
-| OTP/upload resolve on `setTimeout` | Real OTP provider (result‑only) + presigned upload + scan (§B.5/B.8) |
-| `matchingSupplierCount = 14` (hardcoded) | Computed match filter over verified suppliers (§A.8.4) |
-| `computeBadge` produces 4 labels | Full badge vocabulary incl. Registered/audit outcomes (§A.8.1 ⚑4) |
-| RFQ `lapsed` is **seeded** | Scheduled lapse job from `bidEnd` vs clock (§A.5, §B.9) |
-| Award = 3 sequential `localStorage` writes | One ACID transaction + UNIQUE(rfq_id) + idempotency key (§A.7) |
-| One supplier profile per app load; state resets on logout | Persistent org‑scoped profiles, verified once (§A.2) |
-| Buyer never sees Identity/Financials (UI‑enforced) | Server‑enforced projection + document ACLs (§A.10, invariant A.11.5) |
-| Single‑award only (UI copy) | Server‑enforced single‑award invariant; split awards = Phase 4 |
+| Prototype today | Real rule (this doc) | Status |
+|---|---|---|
+| Verification auto‑passes on a `setTimeout(~3.2s)` | Auto‑checks + ops review queue → verified/remediation (§B.6) | ✅ `review_section` (`0004`); auto‑check/queue UI later |
+| OTP/upload resolve on `setTimeout` | Real OTP provider (result‑only) + presigned upload + scan (§B.5/B.8) | ◑ result‑only modelled (`identity_checks`, masked); real provider + storage deferred |
+| `matchingSupplierCount = 14` (hardcoded) | Computed match filter over verified suppliers (§A.8.4) | ✅ `match_count` (`0003`) |
+| `computeBadge` produces 4 labels | Full badge vocabulary incl. Registered/audit outcomes (§A.8.1) | ✅ `cert_badge` (`0004`) |
+| RFQ `lapsed` is **seeded** | Scheduled lapse job from `bidEnd` vs clock (§A.5, §B.9) | ✅ `lapse_expired_rfqs` + pg_cron (`0003`/`0005`) |
+| Award = 3 sequential `localStorage` writes | One ACID transaction + UNIQUE(rfq_id) + idempotency key (§A.7) | ✅ `award_quote` (`0001`) |
+| One supplier profile per app load; state resets on logout | Persistent org‑scoped profiles, verified once (§A.2) | ✅ (`0001`/`0002`/`0004`) |
+| Buyer never sees Identity/Financials (UI‑enforced) | Server‑enforced projection + document ACLs (§A.10, invariant A.11.5) | ✅ RLS on sections + `documents`/`identity_checks` (`0002`/`0004`) |
+| No notifications | Event‑driven in‑app + email on every transition (§B.7) | ✅ `notifications` + fan‑out consumer (`0005`); email send deferred |
+| Single‑award only (UI copy) | Server‑enforced single‑award invariant; split awards = Phase 4 | ✅ `UNIQUE(rfq_id)` award guard (`0001`) |
 
 ---
 
