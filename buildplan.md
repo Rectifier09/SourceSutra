@@ -184,9 +184,11 @@ Built against the **local** stack first, deployed once the app runs green.
    → `v_me`-routed shells. Verified in-browser.
 4. ✅ **FE-1 · Buyer core** — My RFQs, Create RFQ (+ live `match_count`), applications (triage / reject /
    award). Verified in-browser: award drove the real atomic flip + notifications.
-5. ⬜ **FE-2 · Onboarding (with fakes)** — sections, mock uploads, simulated OTP, `submit_section` →
-   `demo_verify_my_section` → Onboarding Completed; progress/overall from `v_supplier_overall`. **← NEXT**
-6. ⬜ **FE-3 · Supplier sourcing** — discover RFQs, RFQ detail, create quote, quotations + invitations.
+5. ✅ **FE-2 · Onboarding (with fakes)** — three section cards, mock uploads, simulated OTP, `submit_section`
+   → `demo_verify_my_section` → Onboarding Completed; progress/overall from `v_supplier_overall`. Verified
+   in-browser as Anitha + DB-asserted: 3 sections verified, 100%, `supplier_is_verified`=true, aadhaar last-4
+   only, events SectionSubmitted×3 / SectionVerified×3 / SupplierOnboarded×1.
+6. ⬜ **FE-3 · Supplier sourcing** — discover RFQs, RFQ detail, create quote, quotations + invitations. **← NEXT**
 7. ⬜ **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles.
 8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live.
 
