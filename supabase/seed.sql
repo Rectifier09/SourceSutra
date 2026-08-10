@@ -1,60 +1,105 @@
--- Local-only seed for eyeballing data in Studio after `supabase db reset`.
--- Loaded as the postgres superuser, so RLS is bypassed here. Tests do NOT use
--- this file — they build their own fixtures.
+-- ============================================================================
+-- BP-1 demo seed — a LOGINABLE demo cast (email/password) for the deployed demo.
+-- Loaded as the postgres superuser on `supabase db reset`; tests do NOT use it.
 --
--- Since Phase 0 (0002_auth.sql), memberships.user_id has a real FK to auth.users
--- and a trigger provisions a full account on signup. So the buyer below is a REAL
--- auth user (canonical local-signup column set, same as tests/0002_auth_test.sql):
--- inserting it fires provision_account, which creates the buyer's profile, org,
--- owner membership, and buyer_accounts. We then hang the demo RFQ off that org.
+--   Password for EVERY demo account: "sourcesutra"
+--
+--   buyer     Priya Menon   · Vardhman Textiles    priya.menon@vardhmantextiles.in
+--   supplier  Suresh Anand  · Anand Knitfab        suresh@anandknitfab.in      (VERIFIED)
+--   supplier  Meena Kaur    · Ludhiana Woolworks   meena@ludhianawoolworks.in  (VERIFIED)
+--   supplier  Anitha Rao    · Tiruppur Threads     anitha@tiruppurthreads.in   (UN-ONBOARDED — walk the onboarding flow)
+--
+-- Each signup fires the provisioning trigger (profile/org/membership/sections).
+-- ============================================================================
 
--- ── Buyer: a real auth user; the trigger builds the Vardhman account ──────────
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  confirmation_token, email_change, email_change_token_new, recovery_token
-) values (
-  '00000000-0000-0000-0000-000000000000',
-  'b0000000-0000-0000-0000-0000000000a1', 'authenticated', 'authenticated',
-  'priya.menon@vardhmantextiles.in',
-  '$2a$10$abcdefghijklmnopqrstuvwxyz012345678901234567890123456',
-  '{"provider":"email","providers":["email"]}',
-  '{"role":"buyer","full_name":"Priya Menon","company":"Vardhman Textiles",
-    "phone":"+91 98150 00000","products_sourced":["Knitwear","Denim"],
-    "consent_version":"v1"}',
-  now(), now(), '', '', '', ''
-);
+-- Loginable signup: bcrypt password + confirmed email + an `email` identity row
+-- (GoTrue's password grant needs all three). pg_temp = dropped with the session.
+create function pg_temp.signup(uid uuid, email text, pw text, meta jsonb) returns void
+language plpgsql as $$
+begin
+  insert into auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new, recovery_token
+  ) values (
+    '00000000-0000-0000-0000-000000000000', uid, 'authenticated', 'authenticated', email,
+    extensions.crypt(pw, extensions.gen_salt('bf')), now(),
+    '{"provider":"email","providers":["email"]}', meta, now(), now(), '', '', '', ''
+  );
+  insert into auth.identities (id, user_id, provider, provider_id, identity_data, created_at, updated_at)
+  values (gen_random_uuid(), uid, 'email', uid::text,
+          jsonb_build_object('sub', uid::text, 'email', email), now(), now());
+end;
+$$;
 
--- give the trigger-created buyer org a location (the trigger sets name+kind only)
-update orgs set location = 'Ludhiana, Punjab'
- where kind = 'buyer' and name = 'Vardhman Textiles';
+select pg_temp.signup('b0000000-0000-0000-0000-0000000000a1', 'priya.menon@vardhmantextiles.in', 'sourcesutra',
+  '{"role":"buyer","full_name":"Priya Menon","company":"Vardhman Textiles","phone":"+91 98150 00000","products_sourced":["Knitwear","Denim"],"consent_version":"v1"}');
+select pg_temp.signup('c0000000-0000-0000-0000-0000000000a1', 'suresh@anandknitfab.in', 'sourcesutra',
+  '{"role":"supplier","full_name":"Suresh Anand","company":"Anand Knitfab"}');
+select pg_temp.signup('c0000000-0000-0000-0000-0000000000a2', 'meena@ludhianawoolworks.in', 'sourcesutra',
+  '{"role":"supplier","full_name":"Meena Kaur","company":"Ludhiana Woolworks"}');
+select pg_temp.signup('c0000000-0000-0000-0000-0000000000a3', 'anitha@tiruppurthreads.in', 'sourcesutra',
+  '{"role":"supplier","full_name":"Anitha Rao","company":"Tiruppur Threads"}');
 
--- ── Suppliers: curated orgs (browse-only; no auth users / memberships needed) ──
-insert into orgs (id, kind, name, location) values
-  ('50000000-0000-0000-0000-000000000001', 'supplier', 'Anand Knitfab',      'Tiruppur, Tamil Nadu'),
-  ('50000000-0000-0000-0000-000000000002', 'supplier', 'Ludhiana Woolworks', 'Ludhiana, Punjab');
+-- ── org metadata ─────────────────────────────────────────────────────────────
+update orgs set location = 'Ludhiana, Punjab'     where kind = 'buyer'    and name = 'Vardhman Textiles';
+update orgs set location = 'Tiruppur, Tamil Nadu' where kind = 'supplier' and name = 'Anand Knitfab';
+update orgs set location = 'Ludhiana, Punjab'     where kind = 'supplier' and name = 'Ludhiana Woolworks';
+update orgs set location = 'Tiruppur, Tamil Nadu' where kind = 'supplier' and name = 'Tiruppur Threads';
 
-insert into supplier_profiles (org_id, mission) values
-  ('50000000-0000-0000-0000-000000000001', 'Precision knit fabric, delivered on time, every time.'),
-  ('50000000-0000-0000-0000-000000000002', 'Woven and knitwear CMT for winterwear, built for volume.');
+update supplier_profiles set mission = 'Precision knit fabric, delivered on time, every time.', years_in_business = 12
+  where org_id = (select id from orgs where name = 'Anand Knitfab');
+update supplier_profiles set mission = 'Woven & knitwear CMT for winterwear, built for volume.', years_in_business = 8
+  where org_id = (select id from orgs where name = 'Ludhiana Woolworks');
+update supplier_profiles set mission = 'Sustainable cotton knits for growing brands.', years_in_business = 3
+  where org_id = (select id from orgs where name = 'Tiruppur Threads');
 
--- Seeded "verified" sections need the reviewer path — the same escape hatch the
--- Phase-1 verification function uses (`set ... sourcesutra.reviewer='on'`) so the
--- section_guard lets a non-client set verified/remediation.
+-- ── Verify the two established suppliers via the reviewer escape hatch. Do the
+--    doc/cert/identity inserts INSIDE the reviewer block so the "any edit re-opens"
+--    trigger stays exempt (it skips while sourcesutra.reviewer='on'). ────────────
 set session sourcesutra.reviewer = 'on';
-insert into onboarding_sections (org_id, kind, status, weight) values
-  ('50000000-0000-0000-0000-000000000001', 'identity',   'verified',          40),
-  ('50000000-0000-0000-0000-000000000001', 'financials', 'verified',          40),
-  ('50000000-0000-0000-0000-000000000001', 'portfolio',  'submitted_pending', 20);
+do $$
+declare a uuid := (select id from orgs where name = 'Anand Knitfab');
+        b uuid := (select id from orgs where name = 'Ludhiana Woolworks');
+begin
+  insert into documents (org_id, section_kind, doc_type, fy, status) values
+    (a,'identity','GST',null,'verified'),(a,'identity','PAN',null,'verified'),
+    (a,'financials','MGT7','2023-24','verified'),(a,'financials','MGT7','2022-23','verified'),(a,'financials','MGT7','2021-22','verified'),
+    (a,'portfolio','FacilityPhoto',null,'uploaded'),
+    (b,'identity','GST',null,'verified'),(b,'identity','PAN',null,'verified'),
+    (b,'financials','MGT7','2023-24','verified'),(b,'financials','MGT7','2022-23','verified'),(b,'financials','MGT7','2021-22','verified'),
+    (b,'portfolio','FacilityPhoto',null,'uploaded');
+
+  insert into identity_checks (org_id, email_verified, phone_verified, aadhaar_verified, aadhaar_last4) values
+    (a, true, true, true, '1234'), (b, true, true, true, '5678');
+
+  insert into certifications (org_id, kind, category, name, field_status, does_not_expire, expiry_date, audit_outcome) values
+    (a,'standard','ISO','ISO 9001','verified',true, null,             null),
+    (a,'standard','GOTS','GOTS','verified',false, current_date + 240, null),
+    (a,'standard','OEKO-TEX','STeP','verified',false, current_date + 30, null),   -- "Expiring soon"
+    (a,'audit','Buyer Audit','Brand X SMETA','verified',true, null,   'passed'),
+    (b,'standard','ISO','ISO 9001','verified',true, null,             null),
+    (b,'regulatory','Factory Licence','Factory Licence','verified',true, null, null);  -- "Registered"
+
+  update onboarding_sections set status = 'verified'          where org_id in (a,b) and kind in ('identity','financials');
+  update onboarding_sections set status = 'submitted_pending' where org_id in (a,b) and kind = 'portfolio';
+end $$;
 reset sourcesutra.reviewer;
 
--- ── One live RFQ (buyer = Priya's provisioned org) with two competing quotes ──
-insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date)
-select 'f0000000-0000-0000-0000-000000000001', o.id,
-       'Single-jersey T-shirts, basics line', 'active', '2026-08-01', '2026-08-20', '2026-10-15'
-  from orgs o
- where o.kind = 'buyer' and o.name = 'Vardhman Textiles';
+-- ── Demo RFQs off the buyer org: one live (two competing quotes to award) + one draft ──
+do $$
+declare buyer uuid := (select id from orgs where kind = 'buyer' and name = 'Vardhman Textiles');
+        a uuid := (select id from orgs where name = 'Anand Knitfab');
+        b uuid := (select id from orgs where name = 'Ludhiana Woolworks');
+begin
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values ('f0000000-0000-0000-0000-000000000001', buyer, 'Single-jersey T-shirts, basics line',
+          'active', '2026-08-01', '2026-08-20', '2026-10-15', 'open', 25000, 'pcs', 'CMT');
 
-insert into quotes (id, rfq_id, supplier_org_id, status, unit_price) values
-  ('90000000-0000-0000-0000-000000000001', 'f0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', 'submitted', 152),
-  ('90000000-0000-0000-0000-000000000002', 'f0000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000002', 'submitted', 148);
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    ('f0000000-0000-0000-0000-000000000001', a, 'submitted', 152, now()),
+    ('f0000000-0000-0000-0000-000000000001', b, 'submitted', 148, now());
+
+  insert into rfqs (buyer_org_id, title, status, who_can_respond)
+  values (buyer, 'Fleece hoodies, winter capsule (draft)', 'draft', 'open');
+end $$;
