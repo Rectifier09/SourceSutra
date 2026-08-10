@@ -188,8 +188,11 @@ Built against the **local** stack first, deployed once the app runs green.
    → `demo_verify_my_section` → Onboarding Completed; progress/overall from `v_supplier_overall`. Verified
    in-browser as Anitha + DB-asserted: 3 sections verified, 100%, `supplier_is_verified`=true, aadhaar last-4
    only, events SectionSubmitted×3 / SectionVerified×3 / SupplierOnboarded×1.
-6. ⬜ **FE-3 · Supplier sourcing** — discover RFQs, RFQ detail, create quote, quotations + invitations. **← NEXT**
-7. ⬜ **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles.
+6. ✅ **FE-3 · Supplier sourcing** — discover RFQs (RLS `can_view_rfq`), RFQ detail + quote form, My Quotes,
+   Invitations tab (`respond_invitation`). Verified in-browser as Anitha + DB-asserted: discovered open +
+   invited RFQs, submitted a quote (INR 232, appears buyer-side as 1 application), accepted an invite
+   (→ responded + InvitationResponded event). SupplierNav ties the workspace together.
+7. ⬜ **FE-4 · Notifications & profiles** — in-app inbox, discover suppliers, supplier/buyer profiles. **← NEXT**
 8. ⬜ **Deploy** — Supabase cloud (ap-south-1) + `db push` + seed, Vercel, minimal CI. → BP-1 is live.
 
 Then **BP-2** swaps each fake for its real integration (§3, INT-1…5) + the reviewer console (FE-5).

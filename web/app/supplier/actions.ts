@@ -1,11 +1,16 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 function str(v: FormDataEntryValue | null): string | null {
   const s = (v ?? "").toString().trim();
   return s === "" ? null : s;
+}
+function num(v: FormDataEntryValue | null): number | null {
+  const s = str(v);
+  return s === null ? null : Number(s);
 }
 
 // Resolve the caller and assert supplier — every action below mutates supplier-owned rows.
@@ -82,4 +87,39 @@ export async function submitSection(formData: FormData) {
   const { error: verErr } = await supabase.rpc("demo_verify_my_section", { p_kind: kind });
   if (verErr) throw new Error(verErr.message);
   revalidatePath("/supplier");
+}
+
+// ── FE-3 · sourcing ─────────────────────────────────────────────────────────
+
+// Upsert the supplier's one live quote (V12). draft=1 saves without submitting;
+// otherwise submit_quote enforces V11 (RFQ active + verified + invited-if-invite-only).
+export async function submitQuote(formData: FormData) {
+  const { supabase } = await supplierClient();
+  const rfq_id = String(formData.get("rfq_id"));
+  const asDraft = formData.get("draft") === "1";
+  const { error } = await supabase.rpc("submit_quote", {
+    p_rfq_id: rfq_id,
+    p_unit_price: num(formData.get("unit_price")),
+    p_currency: str(formData.get("currency")) ?? "INR",
+    p_quantity_fulfil: num(formData.get("quantity_fulfil")),
+    p_moq: num(formData.get("moq")),
+    p_bulk_lead_time: str(formData.get("bulk_lead_time")),
+    p_incoterm: str(formData.get("incoterm")),
+    p_payment_terms: str(formData.get("payment_terms")),
+    p_notes: str(formData.get("notes")),
+    p_submit: !asDraft,
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/supplier/rfqs/${rfq_id}`);
+  revalidatePath("/supplier/quotes");
+  redirect("/supplier/quotes");
+}
+
+export async function respondInvitation(formData: FormData) {
+  const { supabase } = await supplierClient();
+  const rfq_id = String(formData.get("rfq_id"));
+  const accept = formData.get("accept") === "1";
+  const { error } = await supabase.rpc("respond_invitation", { p_rfq_id: rfq_id, p_accept: accept });
+  if (error) throw new Error(error.message);
+  revalidatePath("/supplier/invitations");
 }
