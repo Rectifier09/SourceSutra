@@ -773,6 +773,11 @@ remediation required (supplier), onboarding complete (supplier), invitation rece
 Each phase ships end‑to‑end (rules + data + APIs) with a **done bar**. Earlier phases are usable
 without later ones.
 
+> **Implementation status (2026‑08‑10):** **Step #1 + Phase 0 + Phase 2 are built & green** in
+> `supabase/` (`0001` + `0002` + `0003`) — **71 pgTAP tests passing**. Phase 1 is next. Descriptive
+> RFQ/quote fields live in a `spec jsonb` catch‑all; documents/storage (§B.8) and the `lapse` scheduler
+> (pg_cron/Edge) are deferred. See `supabase/README.md`.
+
 ## C.1 Phase 0 — Accounts & access (foundation)
 - **Rules:** §A.2 personas/roles/org scoping; consent (V15); permission skeleton (§A.10).
 - **Data/API:** `users/orgs/memberships`; `/auth/*`, `/me`.

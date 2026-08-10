@@ -108,7 +108,7 @@ certification taxonomy, and the RFQ/quote schema.
 flowchart TD
   L[ScreenLanding] -->|"Sign up / Log in as supplier (Google)"| SI[ScreenIntro]
   L -->|"Customer login"| CR[CustomerRegister]
-  SI -->|animation ends / Enter| DASH[Supplier Dashboard]
+  SI -->|"Enter dashboard (click)"| DASH[Supplier Dashboard]
   CR -->|Create account / Google| CUST[Customer app]
 ```
 
@@ -151,9 +151,11 @@ closing CTA. Primary action: **Sign up as a supplier with Google**.
 ### 6.2 Intro (`ScreenIntro.dc.html`)
 
 A short cinematic bridge after signup: three cards animate in — **First: Identity → Then:
-Financials → Alongside: Portfolio** — over a woven background with audio, an **Enter** (skip)
-button, and *"Setting up your dashboard…"*. Driven by a stepped timer in the orchestrator
-(`introStep` 0→3, ~3.3 s total; skipped instantly under reduced‑motion).
+Financials → Alongside: Portfolio** — over a woven background with audio. Driven by a stepped timer
+in the orchestrator (`introStep` 0→3). It **does not auto‑advance**: when the cards finish it shows
+*"Your dashboard is ready."* with a prominent **"Enter dashboard →"** button; a small top‑right
+**Skip** jumps ahead during the animation. Reduced‑motion shows the final state at once and also waits
+for the click. *(Earlier builds auto‑jumped to the dashboard after ~3.3 s — removed 2026‑08‑10.)*
 
 ### 6.3 Dashboard · Overview (`ScreenDashboard.dc.html`)
 
@@ -528,6 +530,23 @@ The whole project is vendored into this repo and runs in a normal browser:
 > Items 6–9 have since been **pushed to the design project** too — 11 HTML files + the new
 > `uploads/onboardingbanner.png` — so the live prototype matches this working copy.
 
+### Change log — 2026‑08‑10 (backend build + intro)
+
+10. **Built the Supabase backend** (`supabase/`) — the prototype's `localStorage` logic is now real
+    Postgres. **Step #1** (award transaction), **Phase 0** (auth & accounts), and **Phase 2** (the RFQ ↔
+    Quote ↔ Award marketplace core) are implemented and **green — 71 pgTAP tests** (`0001`+`0002`+`0003`).
+    See `bizlogic.md` Part C and `supabase/README.md`.
+11. **Settled the Phase‑2 sourcing model** (`bizlogic.md` §C.6): manual, reversible triage; certs /
+    coverage / contract‑type / location / experience all **advisory** (only verified‑status + invite‑list
+    gate a response); all buyers may view active RFQs; advisory breakdown‑total; no un‑award in v1.
+12. **Removed the intro auto‑skip** (`SourceSutra.dc.html` + `ScreenIntro.dc.html`) — signup no longer
+    auto‑jumps to the dashboard after ~3.3 s. The intro waits for a prominent **"Enter dashboard →"**
+    button (top‑right **Skip** during the animation). **Pushed to the design project.**
+13. Confirmed **`ScreenLanding` is the shared homepage** (both persona logins already present) — no change.
+
+> The backend (`supabase/`, `bizlogic.md`) is **not** part of the design project; only the two `.dc.html`
+> intro changes (item 12) were pushed there.
+
 ---
 
 ## 13. Appendix — screen / file map
@@ -560,4 +579,6 @@ design system"). Now **15 screens** (added `CustomerProfile.dc.html`) + shared r
 `uploads/` assets. All changes — the `SourceSutra.dc.html` fix and the later working‑copy changes
 (prototype‑note removal, onboarding banner, Buyer Profile page, Discover cover background, plus the
 new `CustomerProfile.dc.html` and `onboardingbanner.png`) — have been pushed to the design project.
-Last updated 2026‑08‑10.*
+A **Supabase backend** (`supabase/`) now implements the logic behind the prototype — **Step #1 + Phase 0
++ Phase 2 built & green (71 pgTAP)**; see `bizlogic.md` Part C and `supabase/README.md`. The intro
+auto‑skip removal (2026‑08‑10) was pushed to the design project. Last updated 2026‑08‑10.*
