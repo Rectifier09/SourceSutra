@@ -26,10 +26,10 @@ export default async function Home() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href="/register"
                   className="rounded-lg border border-primary2 px-[18px] py-2.5 text-sm text-primary2 hover:bg-lav1"
                 >
-                  Customer login
+                  Sign up
                 </Link>
                 <Link
                   href="/login"
@@ -58,13 +58,21 @@ export default async function Home() {
             </p>
             <div className="flex flex-wrap items-center gap-3.5">
               <Link
-                href="/login"
+                href="/register?role=supplier"
                 className="inline-flex items-center gap-2.5 rounded-[9px] bg-primary px-[22px] py-3.5 text-[15px] font-semibold text-cream hover:opacity-90"
+              >
+                Get started
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2.5 rounded-[9px] border border-primary2 px-[22px] py-3.5 text-[15px] font-semibold text-primary2 hover:bg-lav1"
               >
                 Enter the demo
               </Link>
-              <span className="text-[13px] text-muted">Seeded buyer &amp; supplier accounts — one click.</span>
             </div>
+            <span className="mt-2 block text-[13px] text-muted">
+              Create a real account, or use a seeded buyer/supplier demo — one click.
+            </span>
           </div>
           <div className="min-h-[460px] flex-[1_1_560px] self-stretch overflow-hidden rounded-2xl border border-lav2">
             {/* eslint-disable-next-line @next/next/no-img-element */}

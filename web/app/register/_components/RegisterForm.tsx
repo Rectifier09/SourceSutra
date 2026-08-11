@@ -149,7 +149,7 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
           name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={viaGoogle}
+          readOnly={viaGoogle}
           placeholder="you@company.com"
           className={`${input} ${viaGoogle ? "bg-panel" : ""}`}
         />

@@ -39,9 +39,30 @@ export default async function LoginPage() {
           ))}
         </div>
 
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-line" />
+          <span className="text-[12px] text-muted">new to SourceSutra?</span>
+          <div className="h-px flex-1 bg-line" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/register?role=buyer"
+            className="rounded-[12px] border border-line bg-white px-4 py-3 text-center text-[13.5px] font-semibold text-primary hover:border-lav3"
+          >
+            Sign up as a customer
+          </Link>
+          <Link
+            href="/register?role=supplier"
+            className="rounded-[12px] border border-line bg-white px-4 py-3 text-center text-[13.5px] font-semibold text-primary hover:border-lav3"
+          >
+            Sign up as a supplier
+          </Link>
+        </div>
+
         <p className="mt-6 text-center text-[12px] text-muted">
-          Seeded demo accounts · password <code className="rounded bg-panel px-1 py-0.5">sourcesutra</code> · BP-1
-          (no public signup yet)
+          Or use a seeded demo account · password{" "}
+          <code className="rounded bg-panel px-1 py-0.5">sourcesutra</code>
         </p>
       </div>
     </main>
