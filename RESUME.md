@@ -18,15 +18,19 @@ plan — the only integration needing a licensed provider.
 
 **What's live vs. what needs one more step from you:**
 - ✅ **INT-1 document storage** — fully live, no further action.
-- ✅ **INT-5 CI job** exists in `.github/workflows/db-tests.yml` but is inert until you add two GitHub repo
-  secrets: **Settings → Secrets and variables → Actions** → `SUPABASE_ACCESS_TOKEN` (from
-  `supabase login` / the Supabase dashboard access-tokens page) and `SUPABASE_DB_PASSWORD` (the cloud
-  project's Postgres password). Once set, every push to `main` auto-runs `supabase db push`.
-- ⏳ **INT-3 email delivery** — migration `0011` (`notifications.sent_at`, `get_org_member_emails` RPC) is
-  live on cloud; `supabase/functions/send-notification-emails/index.ts` is written but **not deployed** (no
-  Edge Functions exist yet in this project). To go live: create a Resend account + API key, then
-  `supabase functions deploy send-notification-emails` and `supabase secrets set RESEND_API_KEY=<key>`
-  (optionally `NOTIFICATIONS_FROM_ADDRESS`). Until then it's simply not running — nothing breaks.
+- ✅ **INT-5 CI job — CONFIRMED LIVE (2026-08-11).** User added `SUPABASE_ACCESS_TOKEN` +
+  `SUPABASE_DB_PASSWORD` as GitHub repo secrets; verification run (commit `6774893`) went green end-to-end —
+  both the "Link the cloud project" and "Push migrations to cloud" steps succeeded
+  ([run 31516737140](https://github.com/Rectifier09/SourceSutra/actions/runs/31516737140)). Every future push
+  to `main` touching `supabase/**` now auto-runs `supabase db push` against prod.
+- ✅ **INT-3 email delivery — Edge Function deployed (2026-08-11).** Migration `0011`
+  (`notifications.sent_at`, `get_org_member_emails` RPC) is live on cloud, and
+  `supabase/functions/send-notification-emails` is now deployed to `wtbfwejothkzldfebjbm`. `RESEND_API_KEY`
+  is not yet set, so it safely responds `{sent:0, skipped:"RESEND_API_KEY not set"}` if invoked — nothing
+  breaks. To fully activate: create a Resend account + API key, then
+  `supabase secrets set RESEND_API_KEY=<key>` (optionally `NOTIFICATIONS_FROM_ADDRESS`), and schedule the
+  function (Supabase Dashboard → Edge Functions → send-notification-emails → Cron) since no scheduler is
+  wired up yet.
 - ⏳ **INT-4 Google OAuth** — migration `0012` (`finish_oauth_signup`) is live on cloud; the real
   "Continue with Google" button, `/auth/callback`, and `/onboarding/finish` are live in prod and correctly
   reach Supabase's GoTrue — verified end-to-end on the local DB (role-switch, buyer-stays-buyer upsert, the
@@ -42,12 +46,13 @@ DEPLOYED & LIVE** (pushed `78194d3`; migration `0009` applied to cloud; verified
 renders and a completed supplier shows the rich VendorProfile view), and the **Create-RFQ multi-step wizard**
 was pushed as `643690f` (live before this session's BP-2 work began).
 
-**Git:** `main` pushed through `c88abcc`. Migrations `0001`–`0012` are on **both local and cloud**. Everything
+**Git:** `main` pushed through `6774893`. Migrations `0001`–`0012` are on **both local and cloud**. Everything
 is live at https://source-sutra-prod.vercel.app.
 
 **What the onboarding rebuild added** (all browser-verified locally; full detail + phase log in
 [`frontend-redesign.md`](./frontend-redesign.md) §"Onboarding rebuild"):
-- **Public signup** — `/register` (customer/supplier toggle, mock Google chooser, real `auth.signUp`) →
+- **Public signup** — `/register` (customer/supplier toggle, real `auth.signUp` password path or real
+  `signInWithOAuth` Google path — the original mock Google chooser was replaced by INT-4, see above) →
   supplier goes to `/supplier/welcome` (onboarding animation) → dashboard. Homepage + login wired to it.
 - **Migration `0009`** — `supplier_directors` + `supplier_financials` (owner-only RLS), identity detail cols
   on `supplier_profiles`, `documents.doc_number`, cert dates/evidence.
@@ -93,10 +98,10 @@ the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `front
 §"Create-RFQ wizard".
 
 **NEXT STEPS to resume (nothing blocking):**
-1. Add the two GitHub repo secrets so INT-5's CI deploy job actually runs (see above).
-2. Get a Resend API key + `supabase functions deploy send-notification-emails` to make INT-3 send real email.
-3. Add Google OAuth Client ID/Secret in the Supabase dashboard to make INT-4's real Google button work.
-4. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
+1. Get a Resend API key + `supabase secrets set RESEND_API_KEY=<key>` (function already deployed) + schedule
+   it via Supabase Dashboard → Edge Functions → Cron, to make INT-3 send real email.
+2. Add Google OAuth Client ID/Secret in the Supabase dashboard to make INT-4's real Google button work.
+3. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
    console (FE-5).
 
 ---
