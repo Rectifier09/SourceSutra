@@ -89,6 +89,257 @@ export async function submitSection(formData: FormData) {
   revalidatePath("/supplier");
 }
 
+// ============================================================================
+// Rich onboarding (design-faithful) — one structured save per section. Each takes
+// the whole section payload from its client form and persists it (profile columns,
+// the 0008/0009 jsonb + detail tables, and demo "uploaded" document rows). Editing
+// re-opens a verified section via the content/detail reopen triggers (decision #2).
+// ============================================================================
+
+export type IdentityPayload = {
+  company: string;
+  contactName: string;
+  designation: string;
+  email: string;
+  emailLanguage: string;
+  phone: string;
+  altContact: string;
+  website: string;
+  established: string; // yyyy-mm-dd
+  yearsInBusiness: string;
+  natureOfBusiness: string;
+  directors: { name: string; contact: string; email: string; aadhaarVerified: boolean; aadhaarLast4: string }[];
+  docs: { type: "GST" | "PAN" | "MSME" | "CIN"; number: string; uploaded: boolean }[];
+};
+
+export async function saveIdentity(p: IdentityPayload) {
+  const { supabase, org_id } = await supplierClient();
+
+  if (p.company?.trim()) {
+    const { error } = await supabase.from("orgs").update({ name: p.company.trim() }).eq("id", org_id);
+    if (error) throw new Error(error.message);
+  }
+
+  const { error: eProf } = await supabase
+    .from("supplier_profiles")
+    .update({
+      contact_name: p.contactName || null,
+      designation: p.designation || null,
+      email_language: p.emailLanguage || null,
+      phone: p.phone || null,
+      alt_contact: p.altContact || null,
+      website: p.website || null,
+      established_date: p.established || null,
+      years_in_business: p.yearsInBusiness ? Number(p.yearsInBusiness) : null,
+      nature_of_business: p.natureOfBusiness || null,
+    })
+    .eq("org_id", org_id);
+  if (eProf) throw new Error(eProf.message);
+
+  // Directors — replace the whole set.
+  await supabase.from("supplier_directors").delete().eq("org_id", org_id);
+  const dirs = (p.directors ?? [])
+    .filter((d) => d.name?.trim())
+    .map((d) => ({
+      org_id,
+      name: d.name.trim(),
+      contact: d.contact || null,
+      email: d.email || null,
+      aadhaar_verified: !!d.aadhaarVerified,
+      aadhaar_last4: d.aadhaarLast4 || null,
+    }));
+  if (dirs.length) {
+    const { error } = await supabase.from("supplier_directors").insert(dirs);
+    if (error) throw new Error(error.message);
+  }
+
+  // Registration docs (GST/PAN/MSME/CIN) — replace, storing the number + demo "uploaded".
+  await supabase.from("documents").delete().eq("org_id", org_id).eq("section_kind", "identity").in("doc_type", ["GST", "PAN", "MSME", "CIN"]);
+  const docs = (p.docs ?? [])
+    .filter((d) => d.number?.trim() || d.uploaded)
+    .map((d) => ({ org_id, section_kind: "identity", doc_type: d.type, doc_number: d.number || null, status: "uploaded" }));
+  if (docs.length) {
+    const { error } = await supabase.from("documents").insert(docs);
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/supplier");
+}
+
+export type FinancialsPayload = {
+  bankCountry: string;
+  bankName: string;
+  beneficiaryName: string;
+  routingType: string;
+  routingCode: string;
+  accountNumber: string;
+  billing: Record<string, string>;
+  legal: Record<string, string>;
+  mgt7: { year: string; uploaded: boolean }[];
+  signedForm: boolean;
+  rpt: boolean;
+  taxDoc: boolean;
+  otherDocs: { fileName: string }[];
+};
+
+export async function saveFinancials(p: FinancialsPayload) {
+  const { supabase, org_id } = await supplierClient();
+
+  const { error: eFin } = await supabase.from("supplier_financials").upsert(
+    {
+      org_id,
+      bank_country: p.bankCountry || null,
+      bank_name: p.bankName || null,
+      beneficiary_name: p.beneficiaryName || null,
+      routing_type: p.routingType || null,
+      routing_code: p.routingCode || null,
+      account_number: p.accountNumber || null,
+      billing: p.billing ?? {},
+      legal: p.legal ?? {},
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "org_id" },
+  );
+  if (eFin) throw new Error(eFin.message);
+
+  // Financial docs — replace MGT7 (per FY) + single docs.
+  await supabase.from("documents").delete().eq("org_id", org_id).eq("section_kind", "financials");
+  const rows: any[] = [];
+  (p.mgt7 ?? []).forEach((m) => {
+    if (m.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "MGT7", fy: m.year, status: "uploaded" });
+  });
+  if (p.signedForm) rows.push({ org_id, section_kind: "financials", doc_type: "SignedForm", status: "uploaded" });
+  if (p.rpt) rows.push({ org_id, section_kind: "financials", doc_type: "RPT", status: "uploaded" });
+  if (p.taxDoc) rows.push({ org_id, section_kind: "financials", doc_type: "TaxDoc", status: "uploaded" });
+  (p.otherDocs ?? []).forEach((o, i) =>
+    rows.push({ org_id, section_kind: "financials", doc_type: "OtherFin", fy: `other-${i}`, status: "uploaded" }),
+  );
+  if (rows.length) {
+    const { error } = await supabase.from("documents").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/supplier");
+}
+
+export type PortfolioPayload = {
+  mission: string;
+  logoUploaded: boolean;
+  production: Record<string, string>;
+  tradeTerms: Record<string, string>;
+  capabilities: string[];
+  products: { name: string; category: string; material: string; moq: string; priceRange: string }[];
+  facilityPhotos: number;
+  workHistory: { clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string }[];
+  catalogue: { fileName: string }[];
+  tags: string[];
+  certs: {
+    category: string;
+    name: string;
+    number: string;
+    issuingBody: string;
+    scope: string;
+    facility: string;
+    issueDate: string;
+    expiryDate: string;
+    doesNotExpire: boolean;
+    lastAuditDate: string;
+    nextAuditDate: string;
+    verificationUrl: string;
+    buyerName: string;
+    auditType: string;
+    auditDate: string;
+    outcome: string;
+  }[];
+};
+
+const OUTCOME_MAP: Record<string, string> = {
+  Passed: "passed",
+  "Passed with corrective actions": "passed_with_corrective",
+  Failed: "failed",
+  Pending: "pending",
+};
+
+export async function savePortfolio(p: PortfolioPayload) {
+  const { supabase, org_id } = await supplierClient();
+
+  const { error: eProf } = await supabase
+    .from("supplier_profiles")
+    .update({
+      mission: p.mission || null,
+      logo_path: p.logoUploaded ? "uploaded" : null,
+      production: p.production ?? {},
+      trade_terms: p.tradeTerms ?? {},
+      customization_capabilities: p.capabilities ?? [],
+      products: p.products ?? [],
+      facility_photos: Array.from({ length: Math.max(0, p.facilityPhotos || 0) }, () => ({})),
+      // map the form's work-history shape to the 0008 shape the buyer profile reads
+      work_history: (p.workHistory ?? []).map((w) => ({
+        client: w.clientName,
+        role: w.role,
+        frequency: w.frequency,
+        start: w.startYear,
+        end: w.endYear,
+        desc: w.description,
+      })),
+      catalogue: p.catalogue ?? [],
+      tags: p.tags ?? [],
+    })
+    .eq("org_id", org_id);
+  if (eProf) throw new Error(eProf.message);
+
+  // Certifications — replace the whole set.
+  await supabase.from("certifications").delete().eq("org_id", org_id);
+  const certs = (p.certs ?? [])
+    .filter((c) => c.category)
+    .map((c) => {
+      const isAudit = c.category === "Buyer / Brand Audits";
+      const isRegulatory = c.category === "Indian Regulatory & Legal Compliance";
+      return {
+        org_id,
+        kind: isAudit ? "audit" : isRegulatory ? "regulatory" : "standard",
+        category: c.category,
+        name: isAudit ? c.auditType || "Audit" : c.name || c.category,
+        issuer: c.issuingBody || null,
+        number: c.number || null,
+        scope: c.scope || null,
+        facility: c.facility || null,
+        issue_date: c.issueDate || null,
+        expiry_date: c.doesNotExpire ? null : c.expiryDate || null,
+        does_not_expire: !!c.doesNotExpire,
+        field_status: "uploaded",
+        last_audit_date: c.lastAuditDate || null,
+        next_audit_date: c.nextAuditDate || null,
+        verification_url: c.verificationUrl || null,
+        audit_buyer: isAudit ? c.buyerName || null : null,
+        audit_type: isAudit ? c.auditType || null : null,
+        audit_date: isAudit ? c.auditDate || null : null,
+        audit_outcome: isAudit ? OUTCOME_MAP[c.outcome] ?? "pending" : null,
+      };
+    });
+  if (certs.length) {
+    const { error } = await supabase.from("certifications").insert(certs);
+    if (error) throw new Error(error.message);
+  }
+  revalidatePath("/supplier");
+}
+
+// Object-form OTP verify (rich Identity form calls this directly on each confirm).
+export async function verifyChannel(channel: "email" | "phone" | "aadhaar", last4?: string) {
+  const { supabase } = await supplierClient();
+  const { error } = await supabase.rpc("set_identity_check", { p_channel: channel, p_verified: true, p_last4: last4 ?? null });
+  if (error) throw new Error(error.message);
+  revalidatePath("/supplier");
+}
+
+// Object-form section submit → auto-verify (demo). Gates enforced in the DB.
+export async function submitOnboardingSection(kind: "identity" | "financials" | "portfolio") {
+  const { supabase } = await supplierClient();
+  const { error: subErr } = await supabase.rpc("submit_section", { p_kind: kind });
+  if (subErr) throw new Error(subErr.message);
+  const { error: verErr } = await supabase.rpc("demo_verify_my_section", { p_kind: kind });
+  if (verErr) throw new Error(verErr.message);
+  revalidatePath("/supplier");
+}
+
 // ── FE-3 · sourcing ─────────────────────────────────────────────────────────
 
 // Upsert the supplier's one live quote (V12). draft=1 saves without submitting;

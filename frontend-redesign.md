@@ -172,6 +172,41 @@ Remaining polish / deferred (not blocking):
 - **Shared primitives** — extract Button/Card/Chip/Monogram/Tab/section-label into `web/app/_components/ui/`
   as a refactor (the patterns now repeat across many files).
 
+---
+
+## Onboarding rebuild (NEW TRACK, started 2026-08-11) — public signup + rich vendor onboarding
+User asked to build the full journey per the design project: sign up (customer or supplier) → mock Google
+auth → onboarding animation → rich onboarding dashboard (overview + Identity/Financials/Portfolio detail
+screens) with EVERY field, accordion, and dropdown. **Three decisions (locked):** (1) **fully persisted** —
+new schema + actions, not just UI; (2) **real Supabase signup** creates real accounts; (3) the rich design
+**replaces** the current `/supplier` onboarding, keeping Submit→verified→discoverable wired.
+
+Source of truth = local `.dc.html` (complete, match the project): `CustomerRegister` (signup), `ScreenIntro`
+(animation), **`ScreenDashboard`** (1053 lines — overview + Identity/Financials/Portfolio detail + completed
+vendor-profile view).
+
+**Phase plan & status:**
+- **A. Data model — DONE** (`0009_rich_onboarding.sql`, validated via db reset): `supplier_directors` +
+  `supplier_financials` (owner-only RLS) tables; identity detail cols on `supplier_profiles`
+  (contact_name/designation/email_language/phone/alt_contact/website/established_date/nature_of_business/
+  logo_path); `documents.doc_number`; `certifications` last/next_audit_date + evidence jsonb; edit-reopens
+  triggers for the two new tables. **NOT yet pushed to cloud** (`supabase db push` when deploying).
+- **C. Entry flow — DONE & browser-verified** (commit `d1a6664`, NOT pushed): `register/actions.ts` `signUp`
+  (real `auth.signUp` + existing provisioning; confirmations off); `/register` (`RegisterForm`: customer|
+  supplier toggle, mock Google chooser, all fields, tag input, consent) → suppliers route to
+  `/supplier/welcome` (`Intro` animation, ScreenIntro port) → `/supplier`. Homepage + login wired to
+  `/register`. Assets: `register-bg.png`, `intro.gif`/`intro.mp3`, `onboarding-banner.png`. **Gotcha fixed:**
+  a via-Google email input must be `readOnly` not `disabled` (disabled inputs don't submit).
+- **B/D. Onboarding overview + Identity screen — NEXT** (server actions to persist identity/directors/docs +
+  the rich UI; replaces the current `/supplier` overview + adds `?section=identity`).
+- **E. Financials screen** (bank/routing/account + billing & legal addresses + MGT-7/signed-form/RPT/other docs).
+- **F. Portfolio screen** (logo/mission/production/trade-terms/capabilities/products/certs/gallery/work-history/
+  catalogue/tags — mostly 0008 fields) **+ the completed vendor-profile view**.
+- Then: push (`db push` 0009 + reseed if needed + push web); the whole journey goes live.
+
+Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
+while verifying Phase C).
+
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓
 - `ChatGPT ...10_33_52 AM.png` → `hero-panel.png` (landing right panel) ✓
