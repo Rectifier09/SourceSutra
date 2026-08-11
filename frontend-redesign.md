@@ -127,13 +127,33 @@ Backend `0001`–`0007` + the live deploy (https://source-sutra-prod.vercel.app)
 - **NOT pushed yet.** `tsc --noEmit` clean. Cloud still needs `npx supabase db push` (migration) + reseed
   via SQL Editor before this goes live; Vercel auto-deploys the FE on push to `main`.
 
+### Done — deploy + shared shell + buyer home (2026-08-11, cont.)
+- **Cloud migration `0008` APPLIED** to the deployed Supabase project via `npx supabase db push` (verified
+  `migration list` shows `0008` local+remote). The **cloud seed** is the one manual step left: paste
+  **`supabase/snippets/0008_seed_cloud.sql`** into the dashboard SQL Editor + Run (idempotent, guarded org
+  inserts + cert delete/reinsert). Until then the live directory shows only the 2 originally-verified suppliers
+  (no error — just sparse). FE was committed + pushed by the user (Vercel auto-deploys).
+- **Shared shell reskinned** — `web/app/_components/Header.tsx` is now the prototype sticky cream tab-bar
+  (Fraunces brand, role tabs with indigo active underline via new client `web/app/_components/NavTabs.tsx`,
+  inbox bell, buyer-only "+ Create RFQ" CTA, Log out). Works for **both** roles. Removed the old-skin
+  `SupplierNav` (deleted the component + its 6 usages) that duplicated the header tabs on supplier pages.
+- **Buyer My RFQs** (`web/app/buyer/page.tsx`) reskinned to the design system (Fraunces heading, warm status
+  badges: active=sage, draft=panel, awarded=lav, lapsed=terra).
+- `tsc` clean; verified in-browser for both Priya (buyer) and Suresh (supplier).
+
+### DEFERRED decision to revisit
+- **Persona toggle** (decision #1: Customer/Supplier switch as a demo persona-switcher) is NOT in the reskinned
+  Header yet — it needs a real "sign-in-as the seeded counterpart" action, so it's a small feature, not pure
+  reskin. Add it when reskinning entry/auth (R5) or sooner if wanted.
+
 ### NEXT (in order)
-1. **Deploy this slice** (when ready): `npx supabase db push` to cloud (applies `0008`) + re-apply the new
-   seed block via the dashboard SQL Editor (remote `db push` does not run seeds); then commit + push `web/`
-   so Vercel ships the reskinned discover/profile. Old-skin inner pages still ship alongside — that's fine.
-2. Then roll the design system across the rest (R3 buyer: My RFQs, Create-RFQ wizard, Profile; R4 supplier;
-   R5 inbox/entry) per the Phases list. Extract shared primitives (Button/Card/Chip/Monogram/Tab/Shell)
-   into `web/app/_components/ui/` as they recur — and reskin the shared `Header`/shell (still old-skin).
+1. **Cloud seed** (user): run `0008_seed_cloud.sql` in the SQL Editor so the live directory shows all 12.
+2. **R3 finish buyer**: reskin `web/app/buyer/profile/page.tsx` + the Create-RFQ wizard (`buyer/rfqs/new`) +
+   RFQ detail (`buyer/rfqs/[id]`) to the design system (refs `CustomerProfile.dc.html`, `CustomerCreateRFQ.dc.html`).
+3. **R4 supplier**: reskin the supplier bodies (dashboard/onboarding, discover, quote, quotations, profile)
+   — the shell is already branded; only the page bodies remain old-skin.
+4. **R5**: inbox, entry (intro/register), persona toggle, responsive/dark-mode pass. Extract shared primitives
+   (Button/Card/Chip/Monogram/Tab) into `web/app/_components/ui/` as they recur.
 
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓

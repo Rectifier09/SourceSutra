@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { SupplierNav } from "@/app/supplier/_components/SupplierNav";
 import { updateSupplierProfile } from "@/app/supplier/actions";
 
 const field = "mt-1 w-full rounded-md border border-black/15 px-3 py-2 text-sm dark:border-white/20 dark:bg-transparent";
@@ -21,7 +20,6 @@ export default async function SupplierProfileEdit() {
   return (
     <>
       <Header me={me} />
-      <SupplierNav active="/supplier/profile" />
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
         <h2 className="text-xl font-semibold tracking-tight">Public profile</h2>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">

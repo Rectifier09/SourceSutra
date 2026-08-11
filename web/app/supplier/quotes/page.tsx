@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { SupplierNav } from "@/app/supplier/_components/SupplierNav";
 
 const QUOTE_PILL: Record<string, string> = {
   draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
@@ -31,7 +30,6 @@ export default async function MyQuotes() {
   return (
     <>
       <Header me={me} />
-      <SupplierNav active="/supplier/quotes" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h2 className="text-xl font-semibold tracking-tight">My Quotes</h2>
 

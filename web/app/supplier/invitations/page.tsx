@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { SupplierNav } from "@/app/supplier/_components/SupplierNav";
 import { respondInvitation } from "@/app/supplier/actions";
 
 const INV_PILL: Record<string, string> = {
@@ -26,7 +25,6 @@ export default async function Invitations() {
   return (
     <>
       <Header me={me} />
-      <SupplierNav active="/supplier/invitations" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h2 className="text-xl font-semibold tracking-tight">Invitations</h2>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">

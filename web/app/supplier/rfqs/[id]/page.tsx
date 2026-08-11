@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { SupplierNav } from "@/app/supplier/_components/SupplierNav";
 import { submitQuote } from "@/app/supplier/actions";
 
 const QUOTE_PILL: Record<string, string> = {
@@ -48,7 +47,6 @@ export default async function SupplierRfqDetail({ params }: { params: Promise<{ 
   return (
     <>
       <Header me={me} />
-      <SupplierNav active="/supplier/discover" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link href="/supplier/discover" className="text-sm text-black/50 hover:underline dark:text-white/50">
           ← Discover

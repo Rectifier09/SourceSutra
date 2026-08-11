@@ -2,8 +2,12 @@ import Link from "next/link";
 import { signOut } from "@/app/login/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { Me } from "@/lib/me";
+import { NavTabs, type NavItem } from "./NavTabs";
 
-// Async server component: also resolves the caller's unread in-app count for the bell.
+// The app shell, reskinned to the prototype (SourceSutraCustomer / SourceSutra):
+// a sticky cream tab-bar — Fraunces brand, role tabs with an indigo active underline,
+// inbox bell, and (for buyers) the "+ Create RFQ" CTA. Async so it can resolve the
+// caller's unread in-app count for the bell.
 export async function Header({ me }: { me: Me }) {
   const supabase = await createClient();
   const { count } = await supabase
@@ -13,54 +17,65 @@ export async function Header({ me }: { me: Me }) {
     .is("read_at", null);
   const unread = count ?? 0;
 
-  // Buyer nav lives in the header; suppliers get SupplierNav as a sub-nav instead.
-  const buyerNav =
+  const tabs: NavItem[] =
     me.role === "buyer"
       ? [
-          { href: "/buyer", label: "My RFQs" },
-          { href: "/buyer/suppliers", label: "Suppliers" },
+          { href: "/buyer", label: "My RFQs", exact: true },
+          { href: "/buyer/suppliers", label: "Discover suppliers" },
           { href: "/buyer/profile", label: "Profile" },
         ]
-      : [];
+      : [
+          { href: "/supplier", label: "Dashboard", exact: true },
+          { href: "/supplier/discover", label: "Discover RFQs" },
+          { href: "/supplier/invitations", label: "Invitations" },
+          { href: "/supplier/quotes", label: "Quotations" },
+          { href: "/supplier/profile", label: "Profile" },
+        ];
+
+  const home = me.role === "buyer" ? "/buyer" : "/supplier";
 
   return (
-    <header className="border-b border-black/10 dark:border-white/10">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-5">
-          <Link href={me.role === "buyer" ? "/buyer" : "/supplier"} className="text-lg font-semibold tracking-tight">
-            SourceSutra
-          </Link>
-          <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium capitalize dark:bg-white/10">
-            {me.role}
-          </span>
-          <nav className="hidden gap-4 text-sm text-black/60 sm:flex dark:text-white/60">
-            {buyerNav.map((l) => (
-              <Link key={l.href} href={l.href} className="hover:text-black dark:hover:text-white">
-                {l.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-20 border-b border-line bg-cream">
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-5 px-6 py-4">
+        <Link
+          href={home}
+          className="whitespace-nowrap font-display text-[20px] font-semibold text-primary"
+        >
+          SourceSutra
+        </Link>
 
-        <div className="flex items-center gap-4 text-sm">
+        <NavTabs items={tabs} />
+
+        <div className="flex items-center gap-3">
           <Link
             href="/inbox"
-            className="relative rounded-md border border-black/15 px-3 py-1.5 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="relative rounded-lg border border-line px-3 py-2 text-[13px] font-medium text-muted hover:bg-panel"
           >
             Inbox
             {unread > 0 && (
-              <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1.5 py-0.5 text-xs font-semibold text-white">
+              <span className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-terra px-1.5 py-0.5 text-[11px] font-semibold text-cream">
                 {unread}
               </span>
             )}
           </Link>
+
+          {me.role === "buyer" && (
+            <Link
+              href="/buyer/rfqs/new"
+              className="whitespace-nowrap rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90"
+            >
+              + Create RFQ
+            </Link>
+          )}
+
           <div className="hidden text-right leading-tight sm:block">
-            <div className="font-medium">{me.full_name}</div>
-            <div className="text-black/50 dark:text-white/50">{me.org_name}</div>
+            <div className="text-[13px] font-semibold text-ink">{me.full_name}</div>
+            <div className="text-[12px] text-muted">{me.org_name}</div>
           </div>
+
           <form action={signOut}>
-            <button className="rounded-md border border-black/15 px-3 py-1.5 text-sm hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
-              Sign out
+            <button className="whitespace-nowrap rounded-lg border border-line px-3.5 py-2 text-[13px] font-medium text-muted hover:bg-panel">
+              Log out
             </button>
           </form>
         </div>

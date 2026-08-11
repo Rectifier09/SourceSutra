@@ -4,12 +4,13 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 
+// RFQ status → badge colours, in the warm design-system palette.
 const STATUS_STYLES: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  awarded: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  foreclosed: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  lapsed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  draft: "bg-panel text-muted",
+  active: "bg-sagebg text-sage",
+  awarded: "bg-lav1 text-primary",
+  foreclosed: "bg-panel2 text-amber",
+  lapsed: "bg-[#F7ECE8] text-terra",
 };
 
 export default async function BuyerHome() {
@@ -28,42 +29,51 @@ export default async function BuyerHome() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-6 py-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">My RFQs</h2>
+          <div>
+            <h1 className="font-display text-[28px] font-medium text-ink">My RFQs</h1>
+            <p className="mt-1 text-[14px] text-muted">
+              Requests for quotation you&apos;ve published, drafted, or awarded.
+            </p>
+          </div>
           <Link
             href="/buyer/rfqs/new"
-            className="rounded-md bg-black px-3.5 py-2 text-sm font-medium text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85"
+            className="whitespace-nowrap rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90"
           >
-            New RFQ
+            + Create RFQ
           </Link>
         </div>
 
-        <div className="mt-6 divide-y divide-black/5 overflow-hidden rounded-xl border border-black/10 dark:divide-white/5 dark:border-white/10">
-          {(rfqs ?? []).map((r: any) => (
+        <div className="mt-7 overflow-hidden rounded-[14px] border border-line bg-cream">
+          {(rfqs ?? []).map((r: any, i: number) => (
             <Link
               key={r.id}
               href={`/buyer/rfqs/${r.id}`}
-              className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+              className={`flex items-center justify-between gap-4 px-5 py-4 hover:bg-panel ${
+                i > 0 ? "border-t border-line" : ""
+              }`}
             >
               <div className="min-w-0">
-                <div className="truncate font-medium">{r.title}</div>
-                <div className="mt-0.5 text-xs text-black/50 dark:text-white/50">
+                <div className="truncate text-[15px] font-semibold text-ink">{r.title}</div>
+                <div className="mt-0.5 text-[12px] text-muted">
                   {r.bid_start && r.bid_end ? `Bids ${r.bid_start} → ${r.bid_end}` : "No bid window yet"}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">
-                <span className="text-xs text-black/50 dark:text-white/50">
-                  {r.quotes?.[0]?.count ?? 0} quotes
-                </span>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[r.status] ?? ""}`}>
+                <span className="text-[12px] text-muted">{r.quotes?.[0]?.count ?? 0} quotes</span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold capitalize ${
+                    STATUS_STYLES[r.status] ?? "bg-panel text-muted"
+                  }`}
+                >
                   {r.status}
                 </span>
               </div>
             </Link>
           ))}
           {(!rfqs || rfqs.length === 0) && (
-            <div className="px-5 py-10 text-center text-sm text-black/50 dark:text-white/50">
+            <div className="px-5 py-12 text-center text-[14px] text-muted">
               No RFQs yet — create your first one.
             </div>
           )}

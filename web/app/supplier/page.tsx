@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-import { SupplierNav } from "@/app/supplier/_components/SupplierNav";
 import { OtpChannel } from "@/app/supplier/_components/OtpChannel";
 import { uploadDoc, removeDoc, addCertification, submitSection } from "@/app/supplier/actions";
 
@@ -146,7 +145,6 @@ export default async function SupplierHome() {
   return (
     <>
       <Header me={me} />
-      <SupplierNav active="/supplier" />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h2 className="text-xl font-semibold tracking-tight">Supplier onboarding</h2>
         <p className="mt-1 text-sm text-black/60 dark:text-white/60">Welcome, {me.full_name}.</p>
