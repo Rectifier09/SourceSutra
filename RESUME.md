@@ -2,7 +2,42 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-10 — FE-4 complete; all frontend done, only Deploy remains.**
+> **Last updated 2026-08-11.**
+
+---
+
+## ▶ RESUME HERE (2026-08-11) — onboarding rebuild, built locally, NOT pushed
+
+The full app **reskin is COMPLETE and LIVE** on prod. Since then, a big **onboarding-rebuild track** was
+built **locally and committed but NOT deployed**. Pick up from deploying it (or a final walk-through).
+
+**Git:** on `main`, commits `d1a6664` (Phase A+C) + `1a3a3c0` (Phase D/E/F) are **local, not pushed**.
+Last-pushed prod commit is `a4ea386` (R5). Migration `0009` is applied **locally only** (NOT on cloud).
+
+**What the onboarding rebuild added** (all browser-verified locally; full detail + phase log in
+[`frontend-redesign.md`](./frontend-redesign.md) §"Onboarding rebuild"):
+- **Public signup** — `/register` (customer/supplier toggle, mock Google chooser, real `auth.signUp`) →
+  supplier goes to `/supplier/welcome` (onboarding animation) → dashboard. Homepage + login wired to it.
+- **Migration `0009`** — `supplier_directors` + `supplier_financials` (owner-only RLS), identity detail cols
+  on `supplier_profiles`, `documents.doc_number`, cert dates/evidence.
+- **Rich vendor onboarding** replacing `/supplier`: `supplier/page.tsx` routes by `?section=` (overview cards
+  w/ lock → `IdentityForm` / `FinancialsForm` / `PortfolioForm` in `supplier/_components/`; completed →
+  `VendorProfile`). Server actions `saveIdentity`/`saveFinancials`/`savePortfolio` + `verifyChannel` +
+  `submitOnboardingSection` in `supplier/actions.ts`. Persistence DB-confirmed (Portfolio round-trip).
+
+**NEXT STEPS to resume:**
+1. **(optional) full walk-through** — drive ONE account Identity submit → Financials → Portfolio submit →
+   completed `VendorProfile` (renders + one save were verified; the multi-section submit-to-done wasn't fully driven).
+2. **Deploy the whole track:** `npx supabase db push` (applies `0009` to cloud) → `git push origin main`
+   (Vercel auto-deploys `web/`). No reseed needed (0009 is additive; no seed rows). `db query --linked -f`
+   remains the way to run any remote SQL/seed.
+3. A local demo account `newvendor.demo@example.com` / `Sharma Textile Mills` (pw `sourcesutra`) was created
+   while testing — wiped by `supabase db reset`.
+
+**Deferred (unchanged):** dark mode; Create-RFQ multi-step wizard; extracting shared UI primitives; BP-2 real
+integrations (INT-1…5) + reviewer console (FE-5).
+
+---
 
 ---
 
@@ -12,12 +47,10 @@
 frontend FE-0→FE-4 on Vercel, backed by Supabase cloud `wtbfwejothkzldfebjbm` (ap-south-1). Verified live for
 both personas.
 
-> ⚡ **ACTIVE TRACK = the frontend redesign** — the BP-1 UI was functional but off-brand; we're rebuilding it
-> to the **original prototype design** (`.dc.html` files). See **[`frontend-redesign.md`](./frontend-redesign.md)**
-> (plan + progress + resume point). **Done & live:** the design system (Fraunces/Inter + warm palette) and the
-> **homepage** (now the default screen at `/`). **Next:** schema enrichment (migration `0008`) → the buyer
-> Discover→Supplier-Profile slice. Deferred: **BP-2** (real integrations INT-1…5 + reviewer FE-5) comes after
-> the redesign.
+> ⚡ **ACTIVE TRACK = the onboarding rebuild** (see the ▶ RESUME HERE block at the top). The frontend redesign
+> (reskin to the `.dc.html` prototype) is **complete and live**; the onboarding rebuild (public signup + rich
+> vendor onboarding) is built locally and awaiting deploy. Plan + full phase log in
+> **[`frontend-redesign.md`](./frontend-redesign.md)**. Deferred: **BP-2** (real integrations INT-1…5 + reviewer FE-5).
 
 **Cloud coordinates:** Supabase project `wtbfwejothkzldfebjbm` "SourceSutra-Prod" (ap-south-1); an older unused
 `igtgcccaqcocmkvwdgre` (ap-northeast-1) also exists — ignore it. Vercel project root = `web/`, env

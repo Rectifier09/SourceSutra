@@ -4,6 +4,11 @@
 > files / Claude Design project "Demo flows and design system"). Companion to [`buildplan.md`](./buildplan.md)
 > and [`RESUME.md`](./RESUME.md). Started 2026-08-10.
 
+> **▶ RESUME POINT (2026-08-11):** the reskin is **done & LIVE**. Current work = the **onboarding rebuild**
+> (public signup + rich vendor onboarding) — **built locally, committed (`d1a6664`, `1a3a3c0`), NOT pushed;
+> migration `0009` applied locally only**. Jump to the [`## Onboarding rebuild`](#onboarding-rebuild-new-track-started-2026-08-11)
+> section at the bottom for the phase log + exact next steps (deploy: `supabase db push` + `git push`).
+
 ## The core insight
 **The engine is right; the skin is wrong.** Auth, RLS reads, RPCs, routing, and the live Supabase/Vercel
 deploy all work (verified in production). This is a **reskin over a proven spine** — keep every server action
@@ -197,12 +202,20 @@ vendor-profile view).
   `/supplier/welcome` (`Intro` animation, ScreenIntro port) → `/supplier`. Homepage + login wired to
   `/register`. Assets: `register-bg.png`, `intro.gif`/`intro.mp3`, `onboarding-banner.png`. **Gotcha fixed:**
   a via-Google email input must be `readOnly` not `disabled` (disabled inputs don't submit).
-- **B/D. Onboarding overview + Identity screen — NEXT** (server actions to persist identity/directors/docs +
-  the rich UI; replaces the current `/supplier` overview + adds `?section=identity`).
-- **E. Financials screen** (bank/routing/account + billing & legal addresses + MGT-7/signed-form/RPT/other docs).
-- **F. Portfolio screen** (logo/mission/production/trade-terms/capabilities/products/certs/gallery/work-history/
-  catalogue/tags — mostly 0008 fields) **+ the completed vendor-profile view**.
-- Then: push (`db push` 0009 + reseed if needed + push web); the whole journey goes live.
+- **B/D/E/F. Rich onboarding — DONE** (commit `1a3a3c0`, NOT pushed). Replaced the simple `/supplier` with
+  the full `ScreenDashboard`: `web/app/supplier/page.tsx` routes by `?section` (overview cards w/ lock →
+  Identity/Financials/Portfolio forms; completed → `VendorProfile`). Client forms `_components/IdentityForm`
+  (company identity, designation + email-language dropdowns, Aadhaar/email/phone OTP, dynamic directors,
+  GST/PAN/MSME/CIN doc cards w/ numbers), `FinancialsForm` (bank/routing/account+confirm, billing & legal
+  addresses, MGT-7×3 + signed-form/RPT/tax/other docs), `PortfolioForm` (logo/mission-charcount/production/
+  trade-terms/capability-chips/products+certs+work-history accordions/gallery/catalogue/tags). Server actions
+  `saveIdentity`/`saveFinancials`/`savePortfolio` (structured payloads) + `verifyChannel` +
+  `submitOnboardingSection` in `supplier/actions.ts`. Submit → real section→verified→discoverable (demo shim).
+  Verified: overview + all 3 forms render faithfully; Portfolio save round-trips to `supplier_profiles`
+  (mission/logo/production confirmed in DB). `tsc` clean.
+- **Then (LEFT TO DO): deploy the whole track** — `npx supabase db push` (applies `0009` to cloud) + commit/push
+  `web/` so the register/entry + rich onboarding go live. Also worth: a full submit-to-completion walk-through
+  (Identity submit → Financials → Portfolio submit → VendorProfile) wasn't exhaustively driven yet.
 
 Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
 while verifying Phase C).
