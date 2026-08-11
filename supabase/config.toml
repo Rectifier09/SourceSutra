@@ -371,6 +371,11 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions.send-notification-emails]
+# Only Cron (with the project's service_role key) or a manual authenticated call
+# should trigger this — it sends real email and burns Resend quota.
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
