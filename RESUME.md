@@ -6,13 +6,14 @@
 
 ---
 
-## ▶ RESUME HERE (2026-08-11) — onboarding rebuild, built locally, NOT pushed
+## ▶ RESUME HERE (2026-08-11) — onboarding rebuild DEPLOYED & LIVE
 
-The full app **reskin is COMPLETE and LIVE** on prod. Since then, a big **onboarding-rebuild track** was
-built **locally and committed but NOT deployed**. Pick up from deploying it (or a final walk-through).
+The full app **reskin is COMPLETE and LIVE**, and the **onboarding-rebuild track is now DEPLOYED & LIVE**
+too (pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register` renders and
+a completed supplier shows the rich VendorProfile view).
 
-**Git:** on `main`, commits `d1a6664` (Phase A+C) + `1a3a3c0` (Phase D/E/F) are **local, not pushed**.
-Last-pushed prod commit is `a4ea386` (R5). Migration `0009` is applied **locally only** (NOT on cloud).
+**Git:** `main` pushed through `78194d3`. Migration `0009` is on **both local and cloud**. Everything is live at
+https://source-sutra-prod.vercel.app.
 
 **What the onboarding rebuild added** (all browser-verified locally; full detail + phase log in
 [`frontend-redesign.md`](./frontend-redesign.md) §"Onboarding rebuild"):
@@ -25,14 +26,17 @@ Last-pushed prod commit is `a4ea386` (R5). Migration `0009` is applied **locally
   `VendorProfile`). Server actions `saveIdentity`/`saveFinancials`/`savePortfolio` + `verifyChannel` +
   `submitOnboardingSection` in `supplier/actions.ts`. Persistence DB-confirmed (Portfolio round-trip).
 
-**NEXT STEPS to resume:**
-1. **(optional) full walk-through** — drive ONE account Identity submit → Financials → Portfolio submit →
-   completed `VendorProfile` (renders + one save were verified; the multi-section submit-to-done wasn't fully driven).
-2. **Deploy the whole track:** `npx supabase db push` (applies `0009` to cloud) → `git push origin main`
-   (Vercel auto-deploys `web/`). No reseed needed (0009 is additive; no seed rows). `db query --linked -f`
-   remains the way to run any remote SQL/seed.
-3. A local demo account `newvendor.demo@example.com` / `Sharma Textile Mills` (pw `sourcesutra`) was created
-   while testing — wiped by `supabase db reset`.
+**DONE (this deploy):** `npx supabase db push` applied `0009` to cloud; `git push` shipped the FE; verified
+live (public `/register` + rich onboarding VendorProfile). `db query --linked -f` remains the way to run any
+remote SQL/seed.
+
+**NEXT STEPS to resume (optional polish, nothing blocking):**
+1. **Full walk-through on prod/local** — drive ONE new account all the way: Identity submit → Financials →
+   Portfolio submit → completed `VendorProfile`. Renders + a Portfolio save were verified; the end-to-end
+   multi-section submit-to-done wasn't exhaustively driven.
+2. Seeded suppliers (Suresh etc.) predate `0009`, so their Identity/Financials detail shows `—` until edited —
+   optionally backfill via seed/SQL for a richer demo.
+3. Deferred still: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
 
 **Deferred (unchanged):** dark mode; Create-RFQ multi-step wizard; extracting shared UI primitives; BP-2 real
 integrations (INT-1…5) + reviewer console (FE-5).

@@ -4,10 +4,11 @@
 > files / Claude Design project "Demo flows and design system"). Companion to [`buildplan.md`](./buildplan.md)
 > and [`RESUME.md`](./RESUME.md). Started 2026-08-10.
 
-> **▶ RESUME POINT (2026-08-11):** the reskin is **done & LIVE**. Current work = the **onboarding rebuild**
-> (public signup + rich vendor onboarding) — **built locally, committed (`d1a6664`, `1a3a3c0`), NOT pushed;
-> migration `0009` applied locally only**. Jump to the [`## Onboarding rebuild`](#onboarding-rebuild-new-track-started-2026-08-11)
-> section at the bottom for the phase log + exact next steps (deploy: `supabase db push` + `git push`).
+> **▶ RESUME POINT (2026-08-11):** the reskin is **done & LIVE**, and the **onboarding rebuild** (public signup
+> + rich vendor onboarding) is now **DEPLOYED & LIVE** too — pushed `78194d3`, migration `0009` on cloud,
+> verified on prod. Jump to the [`## Onboarding rebuild`](#onboarding-rebuild-new-track-started-2026-08-11)
+> section for the phase log. Optional next: a full submit-to-completion walk-through; backfill seeded suppliers'
+> new `0009` fields.
 
 ## The core insight
 **The engine is right; the skin is wrong.** Auth, RLS reads, RPCs, routing, and the live Supabase/Vercel
@@ -213,9 +214,11 @@ vendor-profile view).
   `submitOnboardingSection` in `supplier/actions.ts`. Submit → real section→verified→discoverable (demo shim).
   Verified: overview + all 3 forms render faithfully; Portfolio save round-trips to `supplier_profiles`
   (mission/logo/production confirmed in DB). `tsc` clean.
-- **Then (LEFT TO DO): deploy the whole track** — `npx supabase db push` (applies `0009` to cloud) + commit/push
-  `web/` so the register/entry + rich onboarding go live. Also worth: a full submit-to-completion walk-through
-  (Identity submit → Financials → Portfolio submit → VendorProfile) wasn't exhaustively driven yet.
+- **DEPLOYED & LIVE** (2026-08-11, pushed `78194d3`): `npx supabase db push` applied `0009` to cloud; `git push`
+  shipped `web/`. Verified on prod — public `/register` renders + a completed supplier shows the rich
+  VendorProfile view. Optional polish: a full submit-to-completion walk-through (Identity→Financials→Portfolio
+  →VendorProfile) wasn't exhaustively driven; seeded suppliers predate `0009` so their Identity/Financials
+  detail shows `—` until edited (could backfill via seed/SQL).
 
 Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
 while verifying Phase C).
