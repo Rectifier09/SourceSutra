@@ -2,7 +2,43 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-11.**
+> **Last updated 2026-08-11 (post-INT-4 UX fix, commit `7035c31`).**
+
+---
+
+## ▶ LATEST FIX (2026-08-11) — Google signup completion page was missing identity fields
+
+Real report: "post google auth Email should be auto populated along with First name and surname and password
+field should be hidden... [then] able to login as either as buyer or supplier basis the selection." Root
+cause: `/onboarding/finish` (the page real Google OAuth lands on post-redirect) never showed Email/First
+name/Last name at all — it jumped straight to Company/Products/Phone, which read as a broken/incomplete
+continuation of signup. Password was already correctly absent (never a bug). Fixed in commit `7035c31`:
+- `page.tsx` now reads the authenticated user's `user_metadata` (Google's `given_name`/`family_name`, with a
+  `full_name`/`name` split as fallback for providers that only send a combined name) and passes Email/First
+  name/Last name into the form.
+- `FinishOAuthForm.tsx` shows Email read-only, First/Last name editable+pre-filled, and a **role toggle**
+  (buyer/supplier) so the choice can still be corrected after the Google redirect, not just locked in from
+  before it.
+- `actions.ts` now also writes the (possibly user-corrected) name to `profiles.full_name`.
+- Added `error.tsx` (this route had none, and neither does any other route in the app — the whole codebase's
+  server actions blind-`throw`, which Next renders as a raw "This page couldn't load" crash screen with no
+  app-level boundary anywhere). Scoped to just this route rather than a sweeping app-wide fix. Catches
+  `finish_oauth_signup`'s 10-minute expiry guard specifically with an actionable message + a way back to
+  `/register`.
+- **Verified for real**, not just by code review: pre-fill confirmed via a real session (Anitha's persona,
+  both to exercise the full_name-split fallback path); a genuinely fresh scratch OAuth-shaped user (proper
+  `auth.identities` row + non-null token columns, or GoTrue 500s with "Database error finding user") confirmed
+  the full submit path — `profiles.full_name` update and `finish_oauth_signup` both succeed within the
+  10-minute window; re-tested against Anitha's stale account to confirm the new error boundary renders the
+  friendly "signup link has expired" message instead of the crash screen. Local pgTAP still 136/136, `tsc`
+  clean, prod confirmed serving the updated `/register` page after deploy.
+- ⚠️ **Browser-automation gotcha hit repeatedly this session:** `read_page`'s ref-based coordinates and the
+  `computer` tool's click coordinates were drifting from the true DOM layout (confirmed via
+  `getBoundingClientRect()` — real position nowhere near the ref/screenshot-implied one). Root cause not
+  pinned down. Workaround: `javascript_tool` — read/set real values via `getBoundingClientRect`/direct DOM
+  access, and dispatch real events (`el.click()` for buttons/checkboxes; the native `HTMLInputElement.value`
+  setter + an `input` event for React-controlled text fields, since a plain `el.value = x` is silently
+  ignored by React). Try this first if clicks stop landing again.
 
 ---
 
