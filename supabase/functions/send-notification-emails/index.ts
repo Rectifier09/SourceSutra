@@ -17,6 +17,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const FROM_ADDRESS = Deno.env.get("NOTIFICATIONS_FROM_ADDRESS") ?? "SourceSutra <notifications@sourcesutra.app>";
 const BATCH_SIZE = 50;
+// Matches the partial index in migration 0013 — keep these two in sync.
+const MAX_SEND_ATTEMPTS = 5;
 
 type NotificationRow = {
   id: number;
@@ -24,6 +26,7 @@ type NotificationRow = {
   type: string;
   title: string;
   body: string;
+  send_attempts: number;
 };
 
 Deno.serve(async () => {
@@ -35,9 +38,10 @@ Deno.serve(async () => {
 
   const { data: pending, error: fetchError } = await supabase
     .from("notifications")
-    .select("id, org_id, type, title, body")
+    .select("id, org_id, type, title, body, send_attempts")
     .eq("channel", "email")
     .is("sent_at", null)
+    .lt("send_attempts", MAX_SEND_ATTEMPTS)
     .order("created_at", { ascending: true })
     .limit(BATCH_SIZE);
 
@@ -49,12 +53,16 @@ Deno.serve(async () => {
   let sent = 0;
   const failures: { id: number; error: string }[] = [];
 
+  const bumpAttempts = (row: NotificationRow) =>
+    supabase.from("notifications").update({ send_attempts: row.send_attempts + 1 }).eq("id", row.id);
+
   for (const row of rows) {
     const { data: recipients, error: rpcError } = await supabase.rpc("get_org_member_emails", {
       p_org: row.org_id,
     });
 
     if (rpcError || !recipients || recipients.length === 0) {
+      await bumpAttempts(row);
       failures.push({ id: row.id, error: rpcError?.message ?? "no recipients" });
       continue;
     }
@@ -76,6 +84,7 @@ Deno.serve(async () => {
     });
 
     if (!res.ok) {
+      await bumpAttempts(row);
       failures.push({ id: row.id, error: `resend ${res.status}: ${await res.text()}` });
       continue;
     }
