@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { saveRfqDraft, publishRfqWizard, type RfqDraftPayload } from "@/app/buyer/actions";
+import { type WizardState, emptyState } from "./rfqWizardState";
+
+export type { WizardState } from "./rfqWizardState";
 
 // ============================================================================
 // Field taxonomies (CustomerCreateRFQ.dc.html) — kept exactly as the prototype
@@ -66,71 +69,6 @@ const inputCls = "rounded-lg border border-line bg-white px-3 py-2.5 text-[14.5p
 const smallInput = "rounded-md border border-line bg-white px-3 py-2 text-[13.5px]";
 const cardCls = "rounded-[14px] border border-line bg-cream p-6";
 const req = <span className="text-terra">*</span>;
-
-type Cert = { category: string; name: string; priority: "must" | "nice" };
-type QtyRow = { colour: string; size: string; qty: string };
-type Doc = { fileName: string; docType: string };
-
-type WizardState = {
-  // step 1
-  title: string;
-  productCategory: string;
-  contractType: string;
-  manufacturingArrangement: string;
-  customizationNeeds: string[];
-  primaryMaterial: string;
-  fabricWeight: string;
-  sizeRange: string[];
-  colours: string[];
-  targetMarket: string;
-  additionalRequirements: string;
-  // step 2
-  quantity: string;
-  unit: string;
-  breakdownEnabled: boolean;
-  quantityBreakdown: QtyRow[];
-  pricingApproach: "target" | "quote" | "negotiable" | "";
-  currency: string;
-  targetPrice: string;
-  bidStart: string;
-  bidEnd: string;
-  sampleRequired: boolean | null;
-  sampleType: string;
-  sampleCount: string;
-  sampleDeadline: string;
-  sampleShipPaidBy: string;
-  // step 3
-  requiredCerts: Cert[];
-  complianceNotes: string;
-  minYearsExperience: string;
-  preferredLocation: string;
-  whoCanRespond: "open" | "verified_only" | "invite";
-  inviteOrgIds: string[];
-  // step 4
-  deliveryDate: string;
-  leadTimeDays: string;
-  deliveryCity: string;
-  deliveryState: string;
-  deliveryPincode: string;
-  shippingMethod: string;
-  incoterm: string;
-  paymentTerms: string;
-  packagingNotes: string;
-  documents: Doc[];
-};
-
-const emptyState: WizardState = {
-  title: "", productCategory: "", contractType: "", manufacturingArrangement: "",
-  customizationNeeds: [], primaryMaterial: "", fabricWeight: "", sizeRange: [], colours: [],
-  targetMarket: "", additionalRequirements: "",
-  quantity: "", unit: "Pieces", breakdownEnabled: false, quantityBreakdown: [],
-  pricingApproach: "", currency: "INR", targetPrice: "", bidStart: "", bidEnd: "",
-  sampleRequired: null, sampleType: "", sampleCount: "", sampleDeadline: "", sampleShipPaidBy: "",
-  requiredCerts: [], complianceNotes: "", minYearsExperience: "", preferredLocation: "",
-  whoCanRespond: "open", inviteOrgIds: [],
-  deliveryDate: "", leadTimeDays: "", deliveryCity: "", deliveryState: "", deliveryPincode: "",
-  shippingMethod: "", incoterm: "", paymentTerms: "", packagingNotes: "", documents: [],
-};
 
 export type SupplierOption = { org_id: string; name: string; location: string | null; company_type: string | null };
 
@@ -252,13 +190,24 @@ function StepDots({ step }: { step: number }) {
   );
 }
 
-export function CreateRfqWizard({ supplierOptions, initialInviteOrgId }: { supplierOptions: SupplierOption[]; initialInviteOrgId?: string }) {
+export function CreateRfqWizard({
+  supplierOptions,
+  initialInviteOrgId,
+  existingRfqId,
+  initialState,
+}: {
+  supplierOptions: SupplierOption[];
+  initialInviteOrgId?: string;
+  existingRfqId?: string;
+  initialState?: Partial<WizardState>;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [s, setS] = useState<WizardState>(() =>
-    initialInviteOrgId ? { ...emptyState, whoCanRespond: "invite", inviteOrgIds: [initialInviteOrgId] } : emptyState,
-  );
-  const [rfqId, setRfqId] = useState<string | null>(null);
+  const [s, setS] = useState<WizardState>(() => {
+    if (initialState) return { ...emptyState, ...initialState };
+    return initialInviteOrgId ? { ...emptyState, whoCanRespond: "invite", inviteOrgIds: [initialInviteOrgId] } : emptyState;
+  });
+  const [rfqId, setRfqId] = useState<string | null>(existingRfqId ?? null);
   const [saving, setSaving] = useState(false);
   const [published, setPublished] = useState(false);
   const [matchCount, setMatchCount] = useState<number | null>(null);

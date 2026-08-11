@@ -4,6 +4,9 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { publishRfq, triageQuote, awardQuote, rejectQuote, inviteSupplier } from "@/app/buyer/actions";
+import { CreateRfqWizard } from "@/app/buyer/_components/CreateRfqWizard";
+import { mapRfqToWizardState } from "@/app/buyer/_components/rfqWizardState";
+import { RfqDetails } from "@/app/_components/RfqDetails";
 
 const RSTATUS: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -38,9 +41,10 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
     .eq("rfq_id", id)
     .order("unit_price", { ascending: true });
 
-  // Invite panel (active RFQs): verified suppliers + who's already invited.
+  // Invite panel (active RFQs) needs org_id/name; the draft-resume wizard below
+  // needs the full SupplierOption shape (same fields rfqs/new/page.tsx fetches).
   const [{ data: directory }, { data: invites }] = await Promise.all([
-    supabase.from("v_supplier_directory").select("org_id, name").order("name"),
+    supabase.from("v_supplier_directory").select("org_id, name, location, company_type").order("name"),
     supabase
       .from("invitations")
       .select("supplier_org_id, status, orgs!invitations_supplier_org_id_fkey(name)")
@@ -50,6 +54,25 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
   const invitable = (directory ?? []).filter((s: any) => !invitedIds.has(s.org_id));
 
   const datesReady = rfq.bid_start && rfq.bid_end && rfq.delivery_date;
+
+  // A draft reopens the same wizard it was created in, pre-filled, so the buyer can
+  // actually finish it — the old static "Publish" block only ever worked once every
+  // date field already happened to be set, with no way to fill in anything else.
+  if (rfq.status === "draft") {
+    return (
+      <>
+        <Header me={me} />
+        <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+          <Link href="/buyer" className="text-[14px] text-primary underline">
+            ← My RFQs
+          </Link>
+          <h1 className="mt-3 font-display text-[28px] font-medium text-ink">Continue your draft</h1>
+          <p className="mb-6 mt-1 text-[14px] text-muted">Pick up where you left off, then publish to eligible suppliers.</p>
+          <CreateRfqWizard supplierOptions={directory ?? []} existingRfqId={rfq.id} initialState={mapRfqToWizardState(rfq)} />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -73,26 +96,7 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
           {datesReady ? `bids ${rfq.bid_start} → ${rfq.bid_end} · delivery ${rfq.delivery_date}` : "no bid window yet"}
         </div>
 
-        {rfq.status === "draft" && (
-          <div className="mt-6 rounded-[14px] border border-line bg-cream p-5">
-            {datesReady ? (
-              <form action={publishRfq}>
-                <input type="hidden" name="rfq_id" value={rfq.id} />
-                <p className="text-[13.5px] text-muted">
-                  This RFQ is a draft. Publishing fans it out to eligible suppliers.
-                </p>
-                <button className="mt-3 rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90">
-                  Publish RFQ
-                </button>
-              </form>
-            ) : (
-              <p className="text-[13.5px] text-amber">
-                This draft needs a bid window + delivery date before it can be published. (Editing a draft&apos;s
-                dates isn&apos;t in BP-1 yet — create a new RFQ with dates.)
-              </p>
-            )}
-          </div>
-        )}
+        <RfqDetails rfq={rfq} />
 
         {rfq.status === "active" && (
           <section className="mt-8 rounded-[14px] border border-line bg-cream p-5">
@@ -129,9 +133,8 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
           </section>
         )}
 
-        {rfq.status !== "draft" && (
-          <section className="mt-8">
-            <h2 className={sectionHead}>Applications ({quotes?.length ?? 0})</h2>
+        <section className="mt-8">
+          <h2 className={sectionHead}>Applications ({quotes?.length ?? 0})</h2>
             <div className="mt-3 flex flex-col gap-3">
               {(quotes ?? []).map((q: any) => {
                 const org = Array.isArray(q.orgs) ? q.orgs[0] : q.orgs;
@@ -197,7 +200,6 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
               )}
             </div>
           </section>
-        )}
       </main>
     </>
   );

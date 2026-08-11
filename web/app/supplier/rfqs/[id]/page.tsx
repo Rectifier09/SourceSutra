@@ -4,6 +4,7 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { submitQuote } from "@/app/supplier/actions";
+import { RfqDetails } from "@/app/_components/RfqDetails";
 
 const QUOTE_PILL: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -67,24 +68,7 @@ export default async function SupplierRfqDetail({ params }: { params: Promise<{ 
           {buyer?.location ? ` · ${buyer.location}` : ""}
         </div>
 
-        {/* RFQ spec */}
-        <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 rounded-[14px] border border-line bg-cream p-5 sm:grid-cols-4">
-          {[
-            ["Quantity", rfq.quantity ? `${rfq.quantity} ${rfq.unit ?? ""}` : "—"],
-            ["Contract", rfq.contract_type ?? "—"],
-            ["Preferred location", rfq.preferred_location ?? "Any"],
-            ["Min. experience", rfq.min_years_experience ? `${rfq.min_years_experience} yrs` : "—"],
-            ["Bid window", rfq.bid_start && rfq.bid_end ? `${rfq.bid_start} → ${rfq.bid_end}` : "—"],
-            ["Delivery by", rfq.delivery_date ?? "—"],
-            ["Target price", rfq.target_price ? `${rfq.currency ?? "INR"} ${rfq.target_price}` : "—"],
-            ["Audience", rfq.who_can_respond?.replace("_", " ") ?? "open"],
-          ].map(([k, v]) => (
-            <div key={k as string}>
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">{k}</dt>
-              <dd className="mt-0.5 text-[14px] font-medium capitalize text-ink">{v as string}</dd>
-            </div>
-          ))}
-        </dl>
+        <RfqDetails rfq={rfq} />
 
         {/* Quote form (active RFQs only) */}
         {canQuote ? (
