@@ -1,17 +1,157 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
+import {
+  SupplierProfileView,
+  type CertCard,
+  type CertGroup,
+  type ProfileData,
+} from "./_components/SupplierProfileView";
 
-const BADGE_CLS: Record<string, string> = {
-  Certified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  Registered: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  "Expiring soon": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  Expired: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  "Needs correction": "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  Claimed: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+// Category display order — ported from the prototype (CustomerSupplierProfile).
+const CERT_CATEGORIES_ORDER = [
+  "Quality Management",
+  "Environmental Management",
+  "Health & Safety",
+  "Social Compliance",
+  "Sustainable & Organic Textiles",
+  "Recycled Materials",
+  "Chemical & Product Safety",
+  "Responsible Materials",
+  "Indian Regulatory & Legal Compliance",
+  "Buyer / Brand Audits",
+  "Other",
+];
+
+const AUDIT_OUTCOME_LABEL: Record<string, string> = {
+  passed: "Passed",
+  passed_with_corrective: "Passed with corrective actions",
+  failed: "Failed",
+  pending: "Pending",
 };
+
+function initials(name: string, max = 2): string {
+  return name
+    .split(" ")
+    .slice(0, max)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+// Row from the certifications table (0004 + 0008 columns).
+type CertRow = {
+  id: string;
+  kind: string;
+  category: string;
+  name: string | null;
+  issuer: string | null;
+  number: string | null;
+  scope: string | null;
+  issue_date: string | null;
+  expiry_date: string | null;
+  does_not_expire: boolean;
+  field_status: string;
+  audit_outcome: string | null;
+  verification_url: string | null;
+  audit_buyer: string | null;
+  audit_type: string | null;
+  audit_date: string | null;
+};
+
+// Replicates the prototype's badge + grouping logic against DB rows.
+function shapeCerts(rows: CertRow[]): {
+  groups: CertGroup[];
+  summary: ProfileData["certSummary"];
+} {
+  const today = new Date();
+  const DAY = 86_400_000;
+
+  const computed = rows.map((c): CertCard & { category: string; expired: boolean } => {
+    const isAudit = c.kind === "audit" || c.category === "Buyer / Brand Audits";
+    if (isAudit) {
+      const outcome = AUDIT_OUTCOME_LABEL[c.audit_outcome ?? "pending"] ?? "Pending";
+      const badge =
+        outcome === "Passed"
+          ? { label: outcome, bg: "#EFF3EE", fg: "#5B7A5B" }
+          : outcome === "Failed"
+            ? { label: outcome, bg: "#F7ECE8", fg: "#B5654A" }
+            : { label: outcome, bg: "#F2EEE6", fg: "#6B6A78" };
+      return {
+        key: c.id,
+        category: c.category,
+        isAudit: true,
+        badge,
+        opacity: 1,
+        expired: false,
+        buyerName: c.audit_buyer ?? "—",
+        auditType: c.audit_type ?? "",
+        auditDate: c.audit_date ?? "",
+      };
+    }
+
+    const expired = !c.does_not_expire && !!c.expiry_date && new Date(c.expiry_date) < today;
+    const isRegulatory = c.category === "Indian Regulatory & Legal Compliance";
+    let badge: CertCard["badge"];
+    if (expired) badge = { label: "Expired", bg: "#F7ECE8", fg: "#B5654A" };
+    else if (isRegulatory)
+      badge =
+        c.field_status === "verified"
+          ? { label: "Registered", bg: "#EFF3EE", fg: "#5B7A5B" }
+          : { label: "Claimed", bg: "#EDECF6", fg: "#403A77" };
+    else if (c.field_status === "verified") badge = { label: "Certified", bg: "#EFF3EE", fg: "#5B7A5B" };
+    else badge = { label: "Claimed", bg: "#EDECF6", fg: "#403A77" };
+
+    const validityLabel = c.does_not_expire
+      ? "Does not expire"
+      : c.issue_date && c.expiry_date
+        ? `${c.issue_date} – ${c.expiry_date}`
+        : "—";
+
+    return {
+      key: c.id,
+      category: c.category,
+      isAudit: false,
+      badge,
+      opacity: expired ? 0.65 : 1,
+      expired,
+      name: c.name ?? "—",
+      issuingBody: c.issuer ?? "—",
+      certNumber: c.number ?? "—",
+      scope: c.scope ?? "",
+      validityLabel,
+      verificationUrl: c.verification_url,
+    };
+  });
+
+  const groups: CertGroup[] = CERT_CATEGORIES_ORDER.map((category) => ({
+    category,
+    records: computed.filter((c) => c.category === category),
+  })).filter((g) => g.records.length > 0);
+
+  const verified = computed.filter(
+    (c) => !c.isAudit && (c.badge.label === "Certified" || c.badge.label === "Registered"),
+  ).length;
+  const expiringSoon = rows.filter((c) => {
+    if (c.kind === "audit" || c.does_not_expire || !c.expiry_date) return false;
+    const days = (new Date(c.expiry_date).getTime() - today.getTime()) / DAY;
+    return days >= 0 && days <= 60;
+  }).length;
+  const expired = computed.filter((c) => c.expired).length;
+
+  return {
+    groups,
+    summary: {
+      total: computed.length,
+      verified,
+      expiringSoon,
+      expired,
+      categoriesCovered: new Set(computed.map((c) => c.category)).size,
+      categoriesTotal: CERT_CATEGORIES_ORDER.length,
+    },
+  };
+}
 
 export default async function SupplierProfile({ params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
@@ -20,83 +160,78 @@ export default async function SupplierProfile({ params }: { params: Promise<{ or
   if (me.role !== "buyer") redirect("/supplier");
 
   const supabase = await createClient();
-  const [{ data: org }, { data: profile }, { data: badges }, { data: portfolio }] = await Promise.all([
-    supabase.from("orgs").select("name, location").eq("id", orgId).maybeSingle(),
-    supabase.from("supplier_profiles").select("mission, years_in_business").eq("org_id", orgId).maybeSingle(),
-    supabase.from("v_cert_badges").select("id, name, category, badge_buyer, expiry_date").eq("org_id", orgId),
-    // Portfolio docs ONLY. Identity/Financials are never fetched — and documents RLS
-    // would hide them from a non-member buyer anyway (decision #5, §A.10).
-    supabase.from("documents").select("id, doc_type, status").eq("org_id", orgId).eq("section_kind", "portfolio"),
+
+  // v_supplier_directory = verified suppliers only. If the org isn't in it, the
+  // profile isn't buyer-visible — bounce back to discover.
+  const { data: dir } = await supabase
+    .from("v_supplier_directory")
+    .select("org_id, name, location, mission, company_type, logo_bg, logo_fg")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (!dir) redirect("/buyer/suppliers");
+
+  const [{ data: prof }, { data: certs }] = await Promise.all([
+    supabase
+      .from("supplier_profiles")
+      .select("production, trade_terms, customization_capabilities, products, facility_photos, work_history, contact")
+      .eq("org_id", orgId)
+      .maybeSingle(),
+    supabase.from("certifications").select("*").eq("org_id", orgId),
   ]);
 
-  if (!org) redirect("/buyer/suppliers");
+  const prod = (prof?.production ?? {}) as Record<string, unknown>;
+  const trade = (prof?.trade_terms ?? {}) as Record<string, unknown>;
+  const contact = (prof?.contact ?? {}) as Record<string, string>;
+  const dash = (v: unknown) => (v === undefined || v === null || v === "" ? "—" : String(v));
+
+  const { groups, summary } = shapeCerts((certs ?? []) as CertRow[]);
+
+  const data: ProfileData = {
+    orgId,
+    name: dir.name,
+    mission: dir.mission,
+    companyType: dir.company_type,
+    location: dir.location,
+    logoBg: dir.logo_bg ?? "#EDECF6",
+    logoFg: dir.logo_fg ?? "#403A77",
+    initials: initials(dir.name),
+    production: {
+      factoryArea: dash(prod.factoryArea),
+      employees: dash(prod.employees),
+      monthlyCapacity: dash(prod.monthlyCapacity),
+      productionLines: dash(prod.productionLines),
+    },
+    trade: {
+      moq: dash(trade.moq),
+      incoterms: dash(trade.incoterms),
+      paymentTerms: dash(trade.paymentTerms),
+      leadTime: dash(trade.leadTime),
+    },
+    customization: (prof?.customization_capabilities ?? []) as string[],
+    products: (prof?.products ?? []) as ProfileData["products"],
+    facilityCount: ((prof?.facility_photos ?? []) as unknown[]).length,
+    certGroups: groups,
+    certSummary: summary,
+    hasCerts: summary.total > 0,
+    workHistory: ((prof?.work_history ?? []) as { start: string; end: string }[]).map((w) => ({
+      ...(w as object),
+      years: `${w.start}–${w.end}`,
+    })) as ProfileData["workHistory"],
+    contact: {
+      name: dash(contact.name),
+      title: dash(contact.title),
+      email: dash(contact.email),
+      phone: dash(contact.phone),
+      languages: dash(contact.languages),
+      responseTime: dash(contact.responseTime),
+      initials: contact.name ? initials(contact.name) : "",
+    },
+  };
 
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <Link href="/buyer/suppliers" className="text-sm text-black/50 hover:underline dark:text-white/50">
-          ← Verified suppliers
-        </Link>
-
-        <div className="mt-2 flex items-center gap-2">
-          <h2 className="text-xl font-semibold tracking-tight">{org.name}</h2>
-          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-            Verified
-          </span>
-        </div>
-        <div className="mt-0.5 text-sm text-black/60 dark:text-white/60">
-          {org.location ?? "—"}
-          {profile?.years_in_business ? ` · ${profile.years_in_business} yrs in business` : ""}
-        </div>
-        {profile?.mission && <p className="mt-4 text-black/80 dark:text-white/80">{profile.mission}</p>}
-
-        {/* Certifications & badges (buyer-facing labels) */}
-        <section className="mt-8">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-            Certifications
-          </h3>
-          <div className="mt-3 space-y-2">
-            {(badges ?? []).map((b: any) => (
-              <div key={b.id} className="flex items-center justify-between gap-3 rounded-lg border border-black/10 px-3 py-2 text-sm dark:border-white/10">
-                <div>
-                  <span className="font-medium">{b.name}</span>
-                  <span className="ml-2 text-xs text-black/45 dark:text-white/45">
-                    {b.category}
-                    {b.expiry_date ? ` · exp ${b.expiry_date}` : ""}
-                  </span>
-                </div>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${BADGE_CLS[b.badge_buyer] ?? "bg-black/5 text-black/60 dark:bg-white/10 dark:text-white/60"}`}>
-                  {b.badge_buyer}
-                </span>
-              </div>
-            ))}
-            {(!badges || badges.length === 0) && (
-              <div className="text-sm text-black/45 dark:text-white/45">No certifications listed.</div>
-            )}
-          </div>
-        </section>
-
-        {/* Portfolio (public docs only) */}
-        <section className="mt-8">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-            Portfolio
-          </h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(portfolio ?? []).map((d: any) => (
-              <span key={d.id} className="rounded-lg border border-black/10 px-3 py-2 text-sm dark:border-white/10">
-                {d.doc_type}
-              </span>
-            ))}
-            {(!portfolio || portfolio.length === 0) && (
-              <div className="text-sm text-black/45 dark:text-white/45">No portfolio items yet.</div>
-            )}
-          </div>
-          <p className="mt-3 text-xs text-black/40 dark:text-white/40">
-            Identity & financial documents are private and never shown to buyers.
-          </p>
-        </section>
-      </main>
+      <SupplierProfileView data={data} />
     </>
   );
 }

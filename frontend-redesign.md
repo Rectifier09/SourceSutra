@@ -101,21 +101,44 @@ Backend `0001`–`0007` + the live deploy (https://source-sutra-prod.vercel.app)
   open the `.dc.html` (e.g. `npx http-server . -p 8145` → `http://localhost:8145/SourceSutraCustomer.dc.html`).
   A static server may squat a port — see the buildplan port-3000 gotcha.
 
+### Done — migration `0008` + the buyer Discover→Profile slice (2026-08-11, LOCAL, not yet pushed)
+- **Migration `0008_supplier_enrichment.sql`** (ADDITIVE): `supplier_profiles` gained `company_type`,
+  `tags[]`, `logo_bg`/`logo_fg`, `customization_capabilities[]`, and jsonb `production`, `trade_terms`,
+  `catalogue`, `work_history`, `products`, `facility_photos`, `contact`; `certifications` gained
+  `verification_url`, `audit_buyer`, `audit_type`, `audit_date`; `v_supplier_directory` recreated
+  (append-only) to also expose `company_type`, `tags`, `logo_bg`, `logo_fg` for the discover cards.
+- **Seed** (`seed.sql`): all **12 prototype suppliers** enriched + verified — 10 new directory-only orgs
+  (no auth user; "verified" derives from `onboarding_sections`) + the 2 existing loginable ones (Anand
+  Knitfab, Ludhiana Woolworks). Prototype certs for the 6 rich suppliers; **badges left to the engine**
+  (`cert_badge()` derives Verified/Registered/Expiring soon/Expired/Needs correction/Passed from dates+kind,
+  so seed only sets `field_status` = verified vs needs_correction). Verified locally via `supabase db reset`.
+- **Discover** (`web/app/buyer/suppliers/page.tsx` + `_components/DiscoverClient.tsx`): server fetches
+  `v_supplier_directory`; client does live filtering (type/location select, tag-chip toggle, expanding
+  search) + monogram glass cards over the botanical hero (`web/public/img/discover-bg.png`, from
+  `uploads/ChatGPT …04_07_47 PM.png`).
+- **Profile** (`.../[orgId]/page.tsx` + `_components/SupplierProfileView.tsx`): server shapes the enriched
+  data + replicates the prototype's cert grouping/badge logic (`CERT_CATEGORIES_ORDER`, summary counts,
+  audit vs cert cards, expired-dim); client renders header, production/trade/customization/products,
+  grouped certs, facility gallery, work history, contact, and the view-doc modal. Guards to verified
+  suppliers only (redirects if the org isn't in `v_supplier_directory`).
+- **Verified in-browser** (localhost:3000, Priya buyer): discover shows 12/12 with the hero + filters;
+  Anand Knitfab profile shows production/trade/certs (ISO 9001 → *Expired* dimmed, RCS → *Certified*;
+  summary 2 total · 1 verified · 1 expiring soon · 1 expired), gallery, work history, modal all correct.
+- **NOT pushed yet.** `tsc --noEmit` clean. Cloud still needs `npx supabase db push` (migration) + reseed
+  via SQL Editor before this goes live; Vercel auto-deploys the FE on push to `main`.
+
 ### NEXT (in order)
-1. **Schema enrichment — migration `0008`** (see "Content / schema gap" above): add supplier profile depth
-   + seed the 12 prototype suppliers (their data is in the `<script type="text/x-dc">` block of
-   `SourceSutraCustomer.dc.html`, the `SUPPLIERS = [...]` array — company type, tags, logoBg/logoFg,
-   catalogue, workHistory, production, tradeTerms, products, facilityPhotos, rich certifications, contact).
-   Then `npx supabase db push` to cloud + reseed (SQL Editor). Keep it ADDITIVE.
-2. **Vertical slice** (task): reskin `web/app/buyer/suppliers/page.tsx` (Discover — filters, tag chips,
-   search, monogram cards over imagery; ref `CustomerDiscover.dc.html` + the rendered shot) and
-   `.../[orgId]/page.tsx` (rich profile; ref `CustomerSupplierProfile.dc.html`). Pixel-faithful.
-3. Then roll the design system across the rest (R3 buyer, R4 supplier, R5 inbox/entry) per the Phases list.
-   Extract shared primitives (Button/Card/Chip/Monogram/Tab/Shell) into `web/app/_components/ui/` as they recur.
+1. **Deploy this slice** (when ready): `npx supabase db push` to cloud (applies `0008`) + re-apply the new
+   seed block via the dashboard SQL Editor (remote `db push` does not run seeds); then commit + push `web/`
+   so Vercel ships the reskinned discover/profile. Old-skin inner pages still ship alongside — that's fine.
+2. Then roll the design system across the rest (R3 buyer: My RFQs, Create-RFQ wizard, Profile; R4 supplier;
+   R5 inbox/entry) per the Phases list. Extract shared primitives (Button/Card/Chip/Monogram/Tab/Shell)
+   into `web/app/_components/ui/` as they recur — and reskin the shared `Header`/shell (still old-skin).
 
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓
 - `ChatGPT ...10_33_52 AM.png` → `hero-panel.png` (landing right panel) ✓
+- `ChatGPT ...04_07_47 PM.png` → `discover-bg.png` (buyer discover fixed hero, 2.2 MB — compress later) ✓
 - Still to map as screens are built: the other 10 PNGs (supplier-card backgrounds / heroes),
   `onboardingbanner.png` (supplier onboarding), the intro `gif`/`mp4`/`mp3` (intro/landing animation).
 
