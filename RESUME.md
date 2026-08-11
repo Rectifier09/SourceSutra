@@ -6,15 +6,44 @@
 
 ---
 
-## ▶ RESUME HERE (2026-08-11) — onboarding rebuild DEPLOYED & LIVE; Create-RFQ wizard built locally
+## ▶ RESUME HERE (2026-08-11) — BP-2 INT-1/3/4/5 DEPLOYED & LIVE (INT-2 deferred)
 
-The full app **reskin is COMPLETE and LIVE**, the **onboarding-rebuild track is DEPLOYED & LIVE**
-(pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register` renders and
-a completed supplier shows the rich VendorProfile view), and the **Create-RFQ multi-step wizard is now built
-and verified locally** (not yet pushed — see the dedicated section below).
+Create-RFQ wizard shipped, then **BP-2's four approved integrations were built and deployed** (commit
+`c88abcc`, migrations `0010`–`0012` on cloud): **INT-1 real document storage** (fully live — Identity/
+Financials/Portfolio forms upload real files to a private `onboarding-docs` Storage bucket, RLS mirrors the
+existing table ACL), **INT-5 CI cloud-deploy job** (needs repo secrets, see below), and **INT-3 email
+delivery** + **INT-4 Google OAuth** — both fully coded, migrated, and verified (DB logic + browser), but each
+stops at an external-credential boundary only the account owner can cross. **INT-2 (OTP/KYC) deferred** per
+plan — the only integration needing a licensed provider.
 
-**Git:** `main` pushed through `78194d3`. Migration `0009` is on **both local and cloud**. Everything is live at
-https://source-sutra-prod.vercel.app.
+**What's live vs. what needs one more step from you:**
+- ✅ **INT-1 document storage** — fully live, no further action.
+- ✅ **INT-5 CI job** exists in `.github/workflows/db-tests.yml` but is inert until you add two GitHub repo
+  secrets: **Settings → Secrets and variables → Actions** → `SUPABASE_ACCESS_TOKEN` (from
+  `supabase login` / the Supabase dashboard access-tokens page) and `SUPABASE_DB_PASSWORD` (the cloud
+  project's Postgres password). Once set, every push to `main` auto-runs `supabase db push`.
+- ⏳ **INT-3 email delivery** — migration `0011` (`notifications.sent_at`, `get_org_member_emails` RPC) is
+  live on cloud; `supabase/functions/send-notification-emails/index.ts` is written but **not deployed** (no
+  Edge Functions exist yet in this project). To go live: create a Resend account + API key, then
+  `supabase functions deploy send-notification-emails` and `supabase secrets set RESEND_API_KEY=<key>`
+  (optionally `NOTIFICATIONS_FROM_ADDRESS`). Until then it's simply not running — nothing breaks.
+- ⏳ **INT-4 Google OAuth** — migration `0012` (`finish_oauth_signup`) is live on cloud; the real
+  "Continue with Google" button, `/auth/callback`, and `/onboarding/finish` are live in prod and correctly
+  reach Supabase's GoTrue — verified end-to-end on the local DB (role-switch, buyer-stays-buyer upsert, the
+  10-minute replay guard, and the auth guard all behave correctly) and in-browser on prod (clicking the
+  button reaches `.../auth/v1/authorize?provider=google&...` and fails with exactly
+  `"Unsupported provider: provider is not enabled"`). To go live: **Google Cloud Console** → create an OAuth
+  2.0 Client ID (Web application) → authorized redirect URI = `https://wtbfwejothkzldfebjbm.supabase.co/auth/v1/callback`
+  → then **Supabase Dashboard → Authentication → Providers → Google** → paste the Client ID + Secret → Save.
+  No code changes needed after that.
+
+Earlier in this track: the full app **reskin is COMPLETE and LIVE**, the **onboarding-rebuild track is
+DEPLOYED & LIVE** (pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register`
+renders and a completed supplier shows the rich VendorProfile view), and the **Create-RFQ multi-step wizard**
+was pushed as `643690f` (live before this session's BP-2 work began).
+
+**Git:** `main` pushed through `c88abcc`. Migrations `0001`–`0012` are on **both local and cloud**. Everything
+is live at https://source-sutra-prod.vercel.app.
 
 **What the onboarding rebuild added** (all browser-verified locally; full detail + phase log in
 [`frontend-redesign.md`](./frontend-redesign.md) §"Onboarding rebuild"):
@@ -63,12 +92,12 @@ Walked the full wizard start-to-publish in-browser locally, verified the resulti
 the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `frontend-redesign.md`
 §"Create-RFQ wizard".
 
-**NEXT STEPS to resume (optional polish, nothing blocking):**
-1. Push the Create-RFQ wizard to cloud (`git push`) once you're ready to ship it.
-2. Deferred: dark mode; extract shared UI primitives; BP-2 integrations.
-
-**Deferred (unchanged):** dark mode; extracting shared UI primitives; BP-2 real integrations (INT-1…5) +
-reviewer console (FE-5).
+**NEXT STEPS to resume (nothing blocking):**
+1. Add the two GitHub repo secrets so INT-5's CI deploy job actually runs (see above).
+2. Get a Resend API key + `supabase functions deploy send-notification-emails` to make INT-3 send real email.
+3. Add Google OAuth Client ID/Secret in the Supabase dashboard to make INT-4's real Google button work.
+4. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
+   console (FE-5).
 
 ---
 
@@ -80,10 +109,10 @@ reviewer console (FE-5).
 frontend FE-0→FE-4 on Vercel, backed by Supabase cloud `wtbfwejothkzldfebjbm` (ap-south-1). Verified live for
 both personas.
 
-> ⚡ **ACTIVE TRACK = the onboarding rebuild** (see the ▶ RESUME HERE block at the top). The frontend redesign
-> (reskin to the `.dc.html` prototype) is **complete and live**; the onboarding rebuild (public signup + rich
-> vendor onboarding) is built locally and awaiting deploy. Plan + full phase log in
-> **[`frontend-redesign.md`](./frontend-redesign.md)**. Deferred: **BP-2** (real integrations INT-1…5 + reviewer FE-5).
+> ⚡ **ACTIVE TRACK = BP-2 real integrations** (see the ▶ RESUME HERE block at the top). The frontend redesign
+> and onboarding rebuild are **complete and live**; INT-1/INT-3/INT-4/INT-5 are built, migrated, and deployed
+> (INT-3/INT-4 need external credentials to fully activate — see above). Plan + full phase log in
+> **[`frontend-redesign.md`](./frontend-redesign.md)**. Deferred: **INT-2** (OTP/KYC) + reviewer console (FE-5).
 
 **Cloud coordinates:** Supabase project `wtbfwejothkzldfebjbm` "SourceSutra-Prod" (ap-south-1); an older unused
 `igtgcccaqcocmkvwdgre` (ap-northeast-1) also exists — ignore it. Vercel project root = `web/`, env
@@ -102,8 +131,8 @@ was applied via the dashboard SQL Editor (`db push` does not run seeds on remote
 | 7 · FE-4 notifications & profiles (+ migration `0007`) | ✅ verified + DB-asserted |
 | 8 · Deploy (Supabase cloud + Vercel + CI) | ✅ **LIVE** |
 
-**BP-1 done.** Next = **BP-2**: swap the five fakes for real integrations (INT-1…5) + the reviewer console
-(FE-5). Start the OTP/KYC provider pick (§6 D1 — the only true external dependency).
+**BP-1 done. BP-2 INT-1/3/4/5 done** (INT-3/INT-4 pending external credentials — see the ▶ RESUME HERE block).
+Remaining: INT-2 (OTP/KYC — needs a licensed provider) + the reviewer console (FE-5).
 
 **FE-4 adds:** shared `/inbox` (notifications + mark-read) & an unread bell in the (now async) `Header`;
 `/buyer/suppliers` discover + `/buyer/suppliers/[orgId]` public profile (badges + portfolio, **never**
