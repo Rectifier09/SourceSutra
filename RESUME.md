@@ -38,11 +38,18 @@ dates/evidence). Added to `seed.sql` (survives `db reset`) and applied live to c
 values instead of `—`. Anitha Rao (Tiruppur Threads) deliberately left un-onboarded (walk-through account);
 the other 10 directory-only suppliers have no login so their owner-only Identity/Financials are moot.
 
+**DONE (2026-08-11, full walk-through):** Drove Anitha Rao (Tiruppur Threads, the un-onboarded demo account)
+through the whole flow on local — Identity (contact, directors, Aadhaar/email/phone OTP, GST/PAN upload) →
+submit → auto-verified → Financials (bank, billing/legal address, 3× MGT-7) → submit → auto-verified →
+Portfolio (logo, production, trade terms, capabilities, 1 product, work history, catalogue, tags) → submit →
+`Onboarding Completed`, 100%. Confirmed the completed `VendorProfile` renders every field, and that the new
+supplier shows up live in the buyer's Discover Suppliers directory with Identity/Financials correctly hidden
+(only Portfolio-derived fields render on the buyer-facing profile). No bugs found in the onboarding→discovery
+path. (Hit one unrelated dev-server hiccup — a stale `next dev` process throwing on Next's internal
+`jest-worker` — fixed by restarting `npm run dev`; not a code issue.)
+
 **NEXT STEPS to resume (optional polish, nothing blocking):**
-1. **Full walk-through on prod/local** — drive ONE new account all the way: Identity submit → Financials →
-   Portfolio submit → completed `VendorProfile`. Renders + a Portfolio save were verified; the end-to-end
-   multi-section submit-to-done wasn't exhaustively driven.
-2. Deferred still: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
+1. Deferred: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
 
 **Deferred (unchanged):** dark mode; Create-RFQ multi-step wizard; extracting shared UI primitives; BP-2 real
 integrations (INT-1…5) + reviewer console (FE-5).

@@ -223,6 +223,12 @@ vendor-profile view).
   designation, established date, nature of business, a director, GST/PAN doc numbers, bank + billing address,
   cert audit dates/evidence) and applied the same SQL live via `supabase db query --linked -f`. Verified
   in-browser both local and prod. Anitha Rao intentionally untouched (walk-through account).
+- **Full submit-to-completion walk-through done** (2026-08-11, local): drove Anitha Rao/Tiruppur Threads
+  through Identity→Financials→Portfolio, each submit auto-verifying, landing on `Onboarding Completed` 100%
+  with a fully-populated `VendorProfile`. Also confirmed she now appears in the buyer Discover Suppliers
+  directory with Identity/Financials correctly withheld (decision #5) — only Portfolio fields (production,
+  trade terms, capabilities, products, work history, catalogue, tags) render on the buyer-facing profile. No
+  bugs found end-to-end.
 
 Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
 while verifying Phase C).
