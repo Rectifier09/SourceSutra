@@ -4,6 +4,9 @@ name: db-tests
 # Supabase stack whenever the database (migrations/tests/seed) changes, on every PR and
 # on push to main. On push to main only, once the suite is green, push the migrations to
 # the linked cloud project (ap-south-1) so main == what's live.
+#
+# INT-5 verification run: 2026-08-11, first push after SUPABASE_ACCESS_TOKEN/
+# SUPABASE_DB_PASSWORD repo secrets were added.
 on:
   pull_request:
     paths:
