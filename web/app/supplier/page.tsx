@@ -8,7 +8,7 @@ import { FinancialsForm } from "./_components/FinancialsForm";
 import { PortfolioForm } from "./_components/PortfolioForm";
 import { VendorProfile } from "./_components/VendorProfile";
 
-const BANNER = "linear-gradient(rgba(250,248,244,0.82),rgba(250,248,244,0.92)), url('/img/onboarding-banner.png')";
+const BANNER = "linear-gradient(rgba(250,248,244,0.2),rgba(250,248,244,0.32)), url('/img/onboarding-banner.png')";
 
 const CARD_BADGE: Record<string, { label: string; cls: string }> = {
   not_started: { label: "Pending", cls: "bg-panel text-muted" },

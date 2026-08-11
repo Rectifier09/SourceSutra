@@ -9,7 +9,7 @@ export default async function Home() {
   return (
     <div
       className="min-h-screen bg-cover bg-center bg-fixed"
-      style={{ backgroundImage: "linear-gradient(rgba(250,248,244,0.72),rgba(250,248,244,0.86)), url('/img/hero-bg.png')" }}
+      style={{ backgroundImage: "linear-gradient(rgba(250,248,244,0.2),rgba(250,248,244,0.32)), url('/img/hero-bg.png')" }}
     >
       <div className="mx-auto max-w-[1180px] px-6 pb-24">
         {/* Top bar */}

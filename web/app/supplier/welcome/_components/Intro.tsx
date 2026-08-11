@@ -19,6 +19,14 @@ export function Intro() {
       audioRef.current.volume = 0.6;
       audioRef.current.play().catch(() => {});
     }
+    // Reduced-motion: show the final state at once rather than stepping
+    // through timers the user won't see animate anyway (globals.css forces
+    // transition-duration: 0.001ms under this setting, so without this the
+    // cards would just silently pop in with no visible motion at all).
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const t = setTimeout(() => setStep(3), 300);
+      return () => clearTimeout(t);
+    }
     const timers = [
       setTimeout(() => setStep(1), 700),
       setTimeout(() => setStep(2), 1600),
