@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { signOut } from "@/app/login/actions";
+import { signOut, signInAs } from "@/app/login/actions";
 import { createClient } from "@/lib/supabase/server";
 import type { Me } from "@/lib/me";
+import { DEMO_PERSONAS } from "@/lib/demo";
 import { NavTabs, type NavItem } from "./NavTabs";
+
+// Canonical demo accounts the Customer/Supplier toggle flips between (decision #1).
+const BUYER_EMAIL = DEMO_PERSONAS.find((p) => p.role === "buyer")!.email;
+const SUPPLIER_EMAIL = DEMO_PERSONAS.find((p) => p.role === "supplier")!.email;
 
 // The app shell, reskinned to the prototype (SourceSutraCustomer / SourceSutra):
 // a sticky cream tab-bar — Fraunces brand, role tabs with an indigo active underline,
@@ -46,7 +51,31 @@ export async function Header({ me }: { me: Me }) {
 
         <NavTabs items={tabs} />
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
+          {/* Demo persona switcher — flips between the seeded buyer & supplier accounts. */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-line bg-panel p-0.5">
+            {me.role === "buyer" ? (
+              <span className="rounded-md bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-cream">Customer</span>
+            ) : (
+              <form action={signInAs}>
+                <input type="hidden" name="email" value={BUYER_EMAIL} />
+                <button className="rounded-md px-3 py-1.5 text-[12.5px] font-semibold text-muted hover:text-primary">
+                  Customer
+                </button>
+              </form>
+            )}
+            {me.role === "supplier" ? (
+              <span className="rounded-md bg-primary px-3 py-1.5 text-[12.5px] font-semibold text-cream">Supplier</span>
+            ) : (
+              <form action={signInAs}>
+                <input type="hidden" name="email" value={SUPPLIER_EMAIL} />
+                <button className="rounded-md px-3 py-1.5 text-[12.5px] font-semibold text-muted hover:text-primary">
+                  Supplier
+                </button>
+              </form>
+            )}
+          </div>
+
           <Link
             href="/inbox"
             className="relative rounded-lg border border-line px-3 py-2 text-[13px] font-medium text-muted hover:bg-panel"

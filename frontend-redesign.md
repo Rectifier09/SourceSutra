@@ -157,10 +157,20 @@ Backend `0001`–`0007` + the live deploy (https://source-sutra-prod.vercel.app)
    (`supplier/discover` + client `RfqDiscoverClient` filters), RFQ detail + quote form (`supplier/rfqs/[id]`),
    quotations (`supplier/quotes`), invitations (`supplier/invitations`), supplier profile (`supplier/profile`).
    All server actions preserved; `tsc` clean; onboarding dashboard + buyer profile browser-verified.
-4. **R5 (next)**: inbox (`/inbox`), entry screens (intro/register), the **persona toggle** (needs a
-   sign-in-as-counterpart action), responsive + dark-mode pass. Extract shared primitives
-   (Button/Card/Chip/Monogram/Tab) into `web/app/_components/ui/` as they recur.
-   Also consider rebuilding Create-RFQ as the multi-step wizard (`CustomerCreateRFQ.dc.html`).
+4. ~~R5~~ **MOSTLY DONE**: inbox (`/inbox`) reskinned; login (`/login`) reskinned (Fraunces + `.selvedge`
+   motif + persona cards); **persona toggle LIVE in the Header** — a Customer/Supplier pill group that
+   flips between the seeded buyer (Priya) & supplier (Suresh) accounts via `signInAs` (decision #1 done).
+   Header polished to a single clean row (nav scrolls with hidden scrollbar; right cluster `shrink-0`).
+
+### The redesign is now COMPLETE across the whole app (all screens on-brand & live).
+Remaining polish / deferred (not blocking):
+- **Dark mode** — intentionally deferred; `globals.css` commits to a single light look for now.
+- **Entry intro/register** (`ScreenIntro`, `CustomerRegister`) — these are for a future PUBLIC-SIGNUP flow;
+  BP-1 has no public signup (persona login is the entry), so they're out of scope until signup lands.
+- **Create-RFQ multi-step wizard** (`CustomerCreateRFQ.dc.html`) — current form is single-page & functional;
+  the wizard is a feature-sized rebuild, do it if/when desired.
+- **Shared primitives** — extract Button/Card/Chip/Monogram/Tab/section-label into `web/app/_components/ui/`
+  as a refactor (the patterns now repeat across many files).
 
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓

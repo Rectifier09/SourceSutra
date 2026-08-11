@@ -10,7 +10,7 @@ export function NavTabs({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 gap-1.5 overflow-x-auto">
+    <nav className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {items.map((it) => {
         const active = it.exact
           ? pathname === it.href
