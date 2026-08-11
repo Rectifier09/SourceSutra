@@ -21,7 +21,20 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function FinishOAuthForm({ role }: { role: "buyer" | "supplier" }) {
+export function FinishOAuthForm({
+  initialRole,
+  email,
+  initialFirstName,
+  initialLastName,
+}: {
+  initialRole: "buyer" | "supplier";
+  email: string;
+  initialFirstName: string;
+  initialLastName: string;
+}) {
+  const [role, setRole] = useState<"buyer" | "supplier">(initialRole);
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
   const [company, setCompany] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
@@ -29,9 +42,11 @@ export function FinishOAuthForm({ role }: { role: "buyer" | "supplier" }) {
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
 
+  const isSupplier = role === "supplier";
+
   const requiredFilled = useMemo(
-    () => !!(company && tags.length && areaCode && phone && consent),
-    [company, tags, areaCode, phone, consent],
+    () => !!(firstName && lastName && company && tags.length && areaCode && phone && consent),
+    [firstName, lastName, company, tags, areaCode, phone, consent],
   );
 
   const addTag = () => {
@@ -47,7 +62,44 @@ export function FinishOAuthForm({ role }: { role: "buyer" | "supplier" }) {
   return (
     <form action={finishOAuthSignup} className="flex flex-col gap-3.5">
       <input type="hidden" name="role" value={role} />
+      <input type="hidden" name="first_name" value={firstName} />
+      <input type="hidden" name="last_name" value={lastName} />
       <input type="hidden" name="products_sourced" value={tags.join(", ")} />
+
+      <div className="text-[11.5px] font-semibold uppercase tracking-[0.03em] text-primary2">Account information</div>
+
+      <div className="flex w-full items-center gap-0.5 rounded-lg border border-line bg-panel p-0.5">
+        {(["buyer", "supplier"] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRole(r)}
+            className={`flex-1 rounded-md px-3 py-2 text-[13px] font-semibold transition-colors ${
+              role === r ? "bg-primary text-cream" : "text-muted hover:text-primary"
+            }`}
+          >
+            {r === "buyer" ? "Customer (Buyer)" : "Supplier (Vendor)"}
+          </button>
+        ))}
+      </div>
+
+      <label className="flex flex-col gap-1.5">
+        <span className={labelText}>Email address</span>
+        <input value={email} readOnly className={`${input} bg-panel`} />
+      </label>
+
+      <div className="mt-0.5 text-[11.5px] font-semibold uppercase tracking-[0.03em] text-primary2">Business information</div>
+
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className={labelText}>First name {req}</span>
+          <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name" className={input} />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className={labelText}>Last name {req}</span>
+          <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name" className={input} />
+        </label>
+      </div>
 
       <label className="flex flex-col gap-1.5">
         <span className={labelText}>Company name {req}</span>
@@ -55,7 +107,7 @@ export function FinishOAuthForm({ role }: { role: "buyer" | "supplier" }) {
       </label>
 
       <div>
-        <span className={labelText}>{role === "supplier" ? "Products you make" : "Products you're looking to source"} {req}</span>
+        <span className={labelText}>{isSupplier ? "Products you make" : "Products you're looking to source"} {req}</span>
         <div className="mb-1.5 mt-1.5 flex flex-wrap gap-1.5">
           {tags.map((t) => (
             <span key={t} className="flex items-center gap-1.5 rounded-full bg-lav1 px-2.5 py-1 text-[12px] text-primary">
