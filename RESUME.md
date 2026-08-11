@@ -6,15 +6,14 @@
 
 ---
 
-## ▶ RESUME HERE (2026-08-11) — BP-2 INT-1/3/4/5 DEPLOYED & LIVE (INT-2 deferred)
+## ▶ RESUME HERE (2026-08-11) — BP-2 INT-1/3/5 CONFIRMED LIVE; INT-4 waiting on Google credentials only (INT-2 deferred)
 
 Create-RFQ wizard shipped, then **BP-2's four approved integrations were built and deployed** (commit
-`c88abcc`, migrations `0010`–`0012` on cloud): **INT-1 real document storage** (fully live — Identity/
-Financials/Portfolio forms upload real files to a private `onboarding-docs` Storage bucket, RLS mirrors the
-existing table ACL), **INT-5 CI cloud-deploy job** (needs repo secrets, see below), and **INT-3 email
-delivery** + **INT-4 Google OAuth** — both fully coded, migrated, and verified (DB logic + browser), but each
-stops at an external-credential boundary only the account owner can cross. **INT-2 (OTP/KYC) deferred** per
-plan — the only integration needing a licensed provider.
+`c88abcc`, migrations `0010`–`0012` on cloud): **INT-1 real document storage**, **INT-5 CI cloud-deploy job**,
+and **INT-3 email delivery** are all now **confirmed live with real end-to-end verification** (not just
+"deployed" — actually exercised and proven working). Only **INT-4 Google OAuth** still waits on an external
+credential only the account owner can supply. **INT-2 (OTP/KYC) deferred** per plan — the only integration
+needing a licensed provider.
 
 **What's live vs. what needs one more step from you:**
 - ✅ **INT-1 document storage** — fully live, no further action.
@@ -23,14 +22,24 @@ plan — the only integration needing a licensed provider.
   both the "Link the cloud project" and "Push migrations to cloud" steps succeeded
   ([run 31516737140](https://github.com/Rectifier09/SourceSutra/actions/runs/31516737140)). Every future push
   to `main` touching `supabase/**` now auto-runs `supabase db push` against prod.
-- ✅ **INT-3 email delivery — Edge Function deployed (2026-08-11).** Migration `0011`
-  (`notifications.sent_at`, `get_org_member_emails` RPC) is live on cloud, and
-  `supabase/functions/send-notification-emails` is now deployed to `wtbfwejothkzldfebjbm`. `RESEND_API_KEY`
-  is not yet set, so it safely responds `{sent:0, skipped:"RESEND_API_KEY not set"}` if invoked — nothing
-  breaks. To fully activate: create a Resend account + API key, then
-  `supabase secrets set RESEND_API_KEY=<key>` (optionally `NOTIFICATIONS_FROM_ADDRESS`), and schedule the
-  function (Supabase Dashboard → Edge Functions → send-notification-emails → Cron) since no scheduler is
-  wired up yet.
+- ✅ **INT-3 email delivery — CONFIRMED LIVE (2026-08-11).** User set `RESEND_API_KEY` +
+  `NOTIFICATIONS_FROM_ADDRESS` (sandbox sender `onboarding@resend.dev`, since `sourcesutra.app` isn't a
+  verified Resend domain). Verified with a real send: inserted a scratch org + auth user (email
+  `prashantpps09@gmail.com`) + an unsent notification directly on prod, temporarily scoped the function's
+  query to that one org (reverted immediately after), invoked it, got `{"sent":1,"failed":0}`, confirmed
+  `sent_at` was set, and the email actually arrived. Scratch org/user/notification all deleted afterward —
+  nothing left on prod. **Security fix found along the way:** the function was reachable with *no*
+  authentication at all (omitting a `[functions.*]` entry in `config.toml` does NOT default to
+  `verify_jwt=true` the way the docs imply) — fixed by pinning `verify_jwt = true` explicitly (commit
+  `e5c33d9`); confirmed an unauthenticated call now gets a `401`.
+  - ⚠️ **Known limitation, not yet fixed:** permanently-undeliverable notifications (wrong sandbox recipient,
+    or an org with no real login member) never get `sent_at` set, so they get re-selected by every future
+    batch run forever — with ~50+ such rows already in prod (stale seed/demo backlog), a real BATCH_SIZE=50
+    run can get stuck never reaching genuinely new notifications. Not urgent (harmless until Cron is wired
+    up), but worth a real fix (e.g. a `failed_attempts`/`skip` marker) before relying on this for real users.
+  - **Still needed to actually run automatically:** schedule it — Supabase Dashboard → Edge Functions →
+    send-notification-emails → Cron (no scheduler wired up yet, so nothing sends until either that or a
+    manual authenticated invoke happens).
 - ⏳ **INT-4 Google OAuth** — migration `0012` (`finish_oauth_signup`) is live on cloud; the real
   "Continue with Google" button, `/auth/callback`, and `/onboarding/finish` are live in prod and correctly
   reach Supabase's GoTrue — verified end-to-end on the local DB (role-switch, buyer-stays-buyer upsert, the
@@ -46,7 +55,7 @@ DEPLOYED & LIVE** (pushed `78194d3`; migration `0009` applied to cloud; verified
 renders and a completed supplier shows the rich VendorProfile view), and the **Create-RFQ multi-step wizard**
 was pushed as `643690f` (live before this session's BP-2 work began).
 
-**Git:** `main` pushed through `6774893`. Migrations `0001`–`0012` are on **both local and cloud**. Everything
+**Git:** `main` pushed through `e5c33d9`. Migrations `0001`–`0012` are on **both local and cloud**. Everything
 is live at https://source-sutra-prod.vercel.app.
 
 **What the onboarding rebuild added** (all browser-verified locally; full detail + phase log in
@@ -98,10 +107,12 @@ the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `front
 §"Create-RFQ wizard".
 
 **NEXT STEPS to resume (nothing blocking):**
-1. Get a Resend API key + `supabase secrets set RESEND_API_KEY=<key>` (function already deployed) + schedule
-   it via Supabase Dashboard → Edge Functions → Cron, to make INT-3 send real email.
+1. Schedule `send-notification-emails` via Supabase Dashboard → Edge Functions → Cron so INT-3 actually runs
+   automatically (it's proven to work when invoked, it's just not on a schedule yet).
 2. Add Google OAuth Client ID/Secret in the Supabase dashboard to make INT-4's real Google button work.
-3. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
+3. Worth fixing sometime: the stale-backlog issue noted under INT-3 above (permanently-failing notifications
+   never get marked and block the batch window).
+4. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
    console (FE-5).
 
 ---
