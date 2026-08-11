@@ -6,11 +6,12 @@
 
 ---
 
-## ▶ RESUME HERE (2026-08-11) — onboarding rebuild DEPLOYED & LIVE
+## ▶ RESUME HERE (2026-08-11) — onboarding rebuild DEPLOYED & LIVE; Create-RFQ wizard built locally
 
-The full app **reskin is COMPLETE and LIVE**, and the **onboarding-rebuild track is now DEPLOYED & LIVE**
-too (pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register` renders and
-a completed supplier shows the rich VendorProfile view).
+The full app **reskin is COMPLETE and LIVE**, the **onboarding-rebuild track is DEPLOYED & LIVE**
+(pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register` renders and
+a completed supplier shows the rich VendorProfile view), and the **Create-RFQ multi-step wizard is now built
+and verified locally** (not yet pushed — see the dedicated section below).
 
 **Git:** `main` pushed through `78194d3`. Migration `0009` is on **both local and cloud**. Everything is live at
 https://source-sutra-prod.vercel.app.
@@ -48,11 +49,26 @@ supplier shows up live in the buyer's Discover Suppliers directory with Identity
 path. (Hit one unrelated dev-server hiccup — a stale `next dev` process throwing on Next's internal
 `jest-worker` — fixed by restarting `npm run dev`; not a code issue.)
 
-**NEXT STEPS to resume (optional polish, nothing blocking):**
-1. Deferred: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
+**DONE (2026-08-11, Create-RFQ wizard, local only — not pushed):** Rebuilt `/buyer/rfqs/new` as the
+prototype's true 5-step wizard (`CustomerCreateRFQ.dc.html`) — Product & requirements → Quantity/pricing/
+samples → Compliance & preferences → Logistics & documents → Review & publish — with step dots, sticky nav,
+jump-to-step Edit links, and a publish confirmation screen. New `web/app/buyer/_components/CreateRfqWizard.tsx`
++ `saveRfqDraft`/`publishRfqWizard` server actions; deleted the old single-page `CreateRfqForm`. No new
+migration — every field maps onto existing `0003` `rfqs` columns or the `spec` jsonb catch-all. **Found +
+fixed a real local-DB bug along the way:** `insert().select()` on `rfqs` was failing RLS because
+`INSERT...RETURNING` needs the new row to pass the `can_view_rfq` SELECT policy, whose internal re-query
+doesn't reliably see the not-yet-committed row on this Postgres instance — fixed by generating the id
+client-side and skipping `.select()` (would have equally broken the old form, just never re-exercised).
+Walked the full wizard start-to-publish in-browser locally, verified the resulting RFQ persists correctly and
+the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `frontend-redesign.md`
+§"Create-RFQ wizard".
 
-**Deferred (unchanged):** dark mode; Create-RFQ multi-step wizard; extracting shared UI primitives; BP-2 real
-integrations (INT-1…5) + reviewer console (FE-5).
+**NEXT STEPS to resume (optional polish, nothing blocking):**
+1. Push the Create-RFQ wizard to cloud (`git push`) once you're ready to ship it.
+2. Deferred: dark mode; extract shared UI primitives; BP-2 integrations.
+
+**Deferred (unchanged):** dark mode; extracting shared UI primitives; BP-2 real integrations (INT-1…5) +
+reviewer console (FE-5).
 
 ---
 

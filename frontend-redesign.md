@@ -4,11 +4,11 @@
 > files / Claude Design project "Demo flows and design system"). Companion to [`buildplan.md`](./buildplan.md)
 > and [`RESUME.md`](./RESUME.md). Started 2026-08-10.
 
-> **▶ RESUME POINT (2026-08-11):** the reskin is **done & LIVE**, and the **onboarding rebuild** (public signup
-> + rich vendor onboarding) is now **DEPLOYED & LIVE** too — pushed `78194d3`, migration `0009` on cloud,
-> verified on prod. Jump to the [`## Onboarding rebuild`](#onboarding-rebuild-new-track-started-2026-08-11)
-> section for the phase log. Optional next: a full submit-to-completion walk-through; backfill seeded suppliers'
-> new `0009` fields.
+> **▶ RESUME POINT (2026-08-11):** the reskin is **done & LIVE**, the **onboarding rebuild** (public signup +
+> rich vendor onboarding) is **DEPLOYED & LIVE** — pushed `78194d3`, migration `0009` on cloud, backfilled,
+> fully walked end-to-end — and the **Create-RFQ multi-step wizard** is now **built & browser-verified locally**
+> (not yet pushed). Jump to [`## Onboarding rebuild`](#onboarding-rebuild-new-track-started-2026-08-11) or
+> [`## Create-RFQ wizard`](#create-rfq-wizard-built-2026-08-11) for the details.
 
 ## The core insight
 **The engine is right; the skin is wrong.** Auth, RLS reads, RPCs, routing, and the live Supabase/Vercel
@@ -173,8 +173,6 @@ Remaining polish / deferred (not blocking):
 - **Dark mode** — intentionally deferred; `globals.css` commits to a single light look for now.
 - **Entry intro/register** (`ScreenIntro`, `CustomerRegister`) — these are for a future PUBLIC-SIGNUP flow;
   BP-1 has no public signup (persona login is the entry), so they're out of scope until signup lands.
-- **Create-RFQ multi-step wizard** (`CustomerCreateRFQ.dc.html`) — current form is single-page & functional;
-  the wizard is a feature-sized rebuild, do it if/when desired.
 - **Shared primitives** — extract Button/Card/Chip/Monogram/Tab/section-label into `web/app/_components/ui/`
   as a refactor (the patterns now repeat across many files).
 
@@ -232,6 +230,60 @@ vendor-profile view).
 
 Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
 while verifying Phase C).
+
+---
+
+## Create-RFQ wizard (BUILT, 2026-08-11) — `CustomerCreateRFQ.dc.html` rebuild
+
+Rebuilt the single-page `/buyer/rfqs/new` form as the prototype's true 5-step wizard: **Product & requirements
+→ Quantity, pricing & samples → Compliance & preferences → Logistics & documents → Review & publish**, with a
+step-dot progress bar, sticky Cancel/Back/Save-draft/Next-or-Publish nav, jump-to-step "Edit" links from the
+review screen, and a publish confirmation screen (all matching the prototype).
+
+**Files:** `web/app/buyer/_components/CreateRfqWizard.tsx` (new, one client component, local `useState` wizard
+— NOT a `?section=` per-page pattern like supplier onboarding, since this is one continuous linear flow, not
+independently-saved sections); `web/app/buyer/rfqs/new/page.tsx` (fetches `v_supplier_directory` for the
+invite picker + reads `?invite=<orgId>` to prefill the invite-only path from a supplier's profile page —
+`SupplierProfileView`'s "Create RFQ" button now passes it); deleted the old `CreateRfqForm.tsx` + `createRfq`
+action (fully superseded).
+
+**Schema mapping — no new migration.** Every field maps onto real `rfqs` columns from migration `0003`
+(`contract_type`, `quantity`/`unit`, `who_can_respond`, `preferred_location`, `min_years_experience`,
+`required_certs` jsonb, `customization_needs` text[], `pricing_approach`/`target_price`/`currency`,
+`sample_*`, `bid_start`/`bid_end`); fields with no dedicated column (product category, manufacturing
+arrangement, primary material/GSM, size/colour lists, quantity breakdown rows, delivery address parts,
+shipping method/incoterm/payment terms, packaging notes, documents) go into the `spec` jsonb catch-all column
+— exactly its stated purpose since `0003`. **Adapted, not 1:1:** the prototype's "who can respond" has 3 radio
+options (all/matching/invite) PLUS a separate "verified only" checkbox (6 combinations); the DB's
+`who_can_respond` enum only has 3 values (`open`/`verified_only`/`invite`) with no backing "auto-match"
+concept, so the wizard maps directly to those 3 — dropped the redundant checkbox and the fictional "matching"
+option, since neither has real logic behind it.
+
+**Server actions** (`web/app/buyer/actions.ts`): `saveRfqDraft(id, payload)` — insert (first save) or update
+(subsequent saves, RLS: only while `status='draft'`) the one draft row across the whole wizard session;
+`publishRfqWizard(id, inviteOrgIds)` — calls `invite_supplier` RPC per selected supplier then `publish_rfq`
+RPC (both pre-existing `0003` RPCs, untouched). `match_count` RPC (pre-existing) now also used in the wizard
+for the live "matching suppliers" advisory count, replacing the prototype's hardcoded `14` in the review step.
+
+**Bug found + fixed (local dev DB only):** `INSERT ... RETURNING` on `rfqs` was failing RLS
+("new row violates row-level security policy") even though `WITH CHECK` passes — root-caused via direct psql
+reproduction (properly wrapped in an explicit transaction — an earlier naive test using `set_config(...,
+true)` outside a transaction gave a false negative from GUC reset between statements). A bare `INSERT` with no
+`RETURNING` succeeds; `INSERT ... RETURNING` additionally requires the new row to pass the `rfqs_read` SELECT
+policy (`can_view_rfq`), and that function's internal re-query of `rfqs` doesn't reliably see the
+not-yet-committed row within the same command on this local Postgres instance. This would have equally broken
+the old `createRfq` action's `.insert().select("id").single()` pattern — it just was never re-tested since
+BP-1. **Fix (scoped to the new action only, no schema/policy change):** generate the row's UUID client-side
+(`crypto.randomUUID()`) and insert without `.select()`, sidestepping the RETURNING/SELECT-policy path
+entirely. Worth re-testing whether this also affects other `.insert().select()` call sites if similar reports
+come up.
+
+**Verified in-browser (local):** filled all 5 steps (customization chips, size/colour tag inputs, quantity
+breakdown table with running total, pricing-approach reveal, sample yes/no gate, full cert taxonomy w/
+must-have toggles, live `match_count`, invite-supplier search+picker, delivery/shipping/documents, step-jump
+Edit links preserving state) → published → redirected through the confirmation screen → verified the resulting
+`active` RFQ on `/buyer/rfqs/[id]` with all fields persisted correctly and the pre-existing invite/quote UI
+still working. `tsc` clean. Test RFQs cleaned up from the DB after verification. **Not yet pushed to cloud.**
 
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓

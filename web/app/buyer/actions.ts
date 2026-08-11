@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,37 +8,97 @@ function str(v: FormDataEntryValue | null): string | null {
   const s = (v ?? "").toString().trim();
   return s === "" ? null : s;
 }
-function num(v: FormDataEntryValue | null): number | null {
-  const s = str(v);
-  return s === null ? null : Number(s);
-}
 
-// Create a draft RFQ (RLS allows a buyer to insert their own draft).
-export async function createRfq(formData: FormData) {
+// ============================================================================
+// Create-RFQ wizard (5 steps, CustomerCreateRFQ.dc.html) — one structured save
+// per step/draft-save, mapped onto the real rfqs columns from migration 0003.
+// Fields with no dedicated column (product category, manufacturing arrangement,
+// size/colour lists, delivery address parts, shipping/incoterm/payment prefs,
+// documents, etc.) go into `spec` jsonb — its stated purpose since 0003:
+// "catch-all for descriptive wizard fields not otherwise structured".
+// ============================================================================
+
+export type RfqDraftPayload = {
+  title: string;
+  contractType: string;
+  quantity: string;
+  unit: string;
+  whoCanRespond: "open" | "verified_only" | "invite";
+  preferredLocation: string;
+  minYearsExperience: string;
+  requiredCerts: { category: string; name: string; priority: "must" | "nice" }[];
+  customizationNeeds: string[];
+  pricingApproach: string;
+  targetPrice: string;
+  currency: string;
+  sampleRequired: boolean;
+  sampleType: string;
+  sampleCount: string;
+  sampleDeadline: string;
+  sampleShipPaidBy: string;
+  bidStart: string;
+  bidEnd: string;
+  deliveryDate: string;
+  spec: Record<string, unknown>;
+};
+
+// Insert (id === null) or update (RLS: only while status='draft') the wizard's
+// draft RFQ row. Called on every "Save as draft" and on each step's "Next".
+export async function saveRfqDraft(id: string | null, p: RfqDraftPayload): Promise<{ id: string }> {
   const supabase = await createClient();
   const { data: me } = await supabase.from("v_me").select("org_id, role").maybeSingle();
   if (!me || me.role !== "buyer") throw new Error("Not a buyer");
 
-  const { data, error } = await supabase
-    .from("rfqs")
-    .insert({
-      buyer_org_id: me.org_id,
-      status: "draft",
-      title: str(formData.get("title")) ?? "Untitled RFQ",
-      who_can_respond: str(formData.get("who_can_respond")) ?? "open",
-      quantity: num(formData.get("quantity")),
-      unit: str(formData.get("unit")),
-      contract_type: str(formData.get("contract_type")),
-      preferred_location: str(formData.get("preferred_location")),
-      min_years_experience: num(formData.get("min_years_experience")),
-      bid_start: str(formData.get("bid_start")),
-      bid_end: str(formData.get("bid_end")),
-      delivery_date: str(formData.get("delivery_date")),
-    })
-    .select("id")
-    .single();
+  const row = {
+    title: p.title.trim() || "Untitled RFQ",
+    contract_type: p.contractType || null,
+    quantity: p.quantity ? Number(p.quantity) : null,
+    unit: p.unit || null,
+    who_can_respond: p.whoCanRespond,
+    preferred_location: p.preferredLocation || null,
+    min_years_experience: p.minYearsExperience ? Number(p.minYearsExperience) : null,
+    required_certs: p.requiredCerts,
+    customization_needs: p.customizationNeeds,
+    pricing_approach: p.pricingApproach || null,
+    target_price: p.targetPrice ? Number(p.targetPrice) : null,
+    currency: p.currency || "INR",
+    sample_required: p.sampleRequired,
+    sample_type: p.sampleRequired ? p.sampleType || null : null,
+    sample_count: p.sampleRequired && p.sampleCount ? Number(p.sampleCount) : null,
+    sample_deadline: p.sampleRequired ? p.sampleDeadline || null : null,
+    sample_ship_paid_by: p.sampleRequired ? p.sampleShipPaidBy || null : null,
+    bid_start: p.bidStart || null,
+    bid_end: p.bidEnd || null,
+    delivery_date: p.deliveryDate || null,
+    spec: p.spec,
+  };
+
+  if (id) {
+    const { error } = await supabase.from("rfqs").update(row).eq("id", id);
+    if (error) throw new Error(error.message);
+    return { id };
+  }
+  // Generate the id client-side and skip .select() on insert: INSERT...RETURNING requires
+  // the new row to pass the rfqs_read SELECT policy (can_view_rfq), whose internal re-query
+  // of rfqs doesn't reliably see the not-yet-committed row within the same command.
+  const newId = randomUUID();
+  const { error } = await supabase.from("rfqs").insert({ ...row, id: newId, buyer_org_id: me.org_id, status: "draft" });
   if (error) throw new Error(error.message);
-  redirect(`/buyer/rfqs/${data.id}`);
+  return { id: newId };
+}
+
+// Step 5 "Publish": invite anyone picked (invite-only audience) then publish
+// (draft -> active; V6/V7 bid-window/delivery-date checks enforced in the DB).
+export async function publishRfqWizard(id: string, inviteOrgIds: string[]) {
+  const supabase = await createClient();
+  for (const orgId of inviteOrgIds) {
+    const { error } = await supabase.rpc("invite_supplier", { p_rfq_id: id, p_supplier_org: orgId });
+    if (error) throw new Error(error.message);
+  }
+  const { error } = await supabase.rpc("publish_rfq", { p_rfq_id: id });
+  if (error) throw new Error(error.message);
+  revalidatePath(`/buyer/rfqs/${id}`);
+  revalidatePath("/buyer");
 }
 
 // draft -> active (V6/V7 enforced in the DB function).

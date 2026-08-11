@@ -99,7 +99,7 @@ export function SupplierProfileView({ data }: { data: ProfileData }) {
             </div>
           </div>
           <Link
-            href="/buyer/rfqs/new"
+            href={`/buyer/rfqs/new?invite=${p.orgId}`}
             className="flex-shrink-0 whitespace-nowrap rounded-lg bg-primary px-5 py-3 text-[13.5px] font-semibold text-cream hover:opacity-90"
           >
             Create RFQ
