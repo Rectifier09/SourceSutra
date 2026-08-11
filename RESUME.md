@@ -6,14 +6,14 @@
 
 ---
 
-## ▶ RESUME HERE (2026-08-11) — BP-2 INT-1/3/5 CONFIRMED LIVE; INT-4 waiting on Google credentials only (INT-2 deferred)
+## ▶ RESUME HERE (2026-08-11) — BP-2 COMPLETE: all four integrations (INT-1/3/4/5) CONFIRMED LIVE
 
-Create-RFQ wizard shipped, then **BP-2's four approved integrations were built and deployed** (commit
-`c88abcc`, migrations `0010`–`0012` on cloud): **INT-1 real document storage**, **INT-5 CI cloud-deploy job**,
-and **INT-3 email delivery** are all now **confirmed live with real end-to-end verification** (not just
-"deployed" — actually exercised and proven working). Only **INT-4 Google OAuth** still waits on an external
-credential only the account owner can supply. **INT-2 (OTP/KYC) deferred** per plan — the only integration
-needing a licensed provider.
+Create-RFQ wizard shipped, then **BP-2's four approved integrations were built, deployed, and individually
+verified end-to-end** (commit `c88abcc` + follow-ups, migrations `0010`–`0012` on cloud): **INT-1 real
+document storage**, **INT-5 CI cloud-deploy job**, **INT-3 email delivery**, and **INT-4 Google OAuth** —
+every one actually exercised for real (not just "deployed"), see the per-item detail below. **INT-2 (OTP/KYC)
+deferred** per plan — the only integration needing a licensed provider — and the reviewer/ops console (FE-5)
+is the remaining unbuilt piece of the original plan.
 
 **What's live vs. what needs one more step from you:**
 - ✅ **INT-1 document storage** — fully live, no further action.
@@ -40,15 +40,18 @@ needing a licensed provider.
   - **Still needed to actually run automatically:** schedule it — Supabase Dashboard → Edge Functions →
     send-notification-emails → Cron (no scheduler wired up yet, so nothing sends until either that or a
     manual authenticated invoke happens).
-- ⏳ **INT-4 Google OAuth** — migration `0012` (`finish_oauth_signup`) is live on cloud; the real
-  "Continue with Google" button, `/auth/callback`, and `/onboarding/finish` are live in prod and correctly
-  reach Supabase's GoTrue — verified end-to-end on the local DB (role-switch, buyer-stays-buyer upsert, the
-  10-minute replay guard, and the auth guard all behave correctly) and in-browser on prod (clicking the
-  button reaches `.../auth/v1/authorize?provider=google&...` and fails with exactly
-  `"Unsupported provider: provider is not enabled"`). To go live: **Google Cloud Console** → create an OAuth
-  2.0 Client ID (Web application) → authorized redirect URI = `https://wtbfwejothkzldfebjbm.supabase.co/auth/v1/callback`
-  → then **Supabase Dashboard → Authentication → Providers → Google** → paste the Client ID + Secret → Save.
-  No code changes needed after that.
+- ✅ **INT-4 Google OAuth — CONFIRMED LIVE (2026-08-11).** User created a Google Cloud OAuth Client ID (Web
+  application, redirect URI `https://wtbfwejothkzldfebjbm.supabase.co/auth/v1/callback`) and enabled it in
+  **Supabase Dashboard → Authentication → Providers → Google**. Verified for real in the browser on prod:
+  clicked "Continue with Google" on `/register?role=supplier` and landed on the actual
+  `accounts.google.com` sign-in page, with a real `client_id`, `redirect_uri` correctly pointing at
+  Supabase's callback, and `redirect_to` correctly carrying `role=supplier` through to
+  `/auth/callback`. Did not complete an actual Google sign-in (no Google account credentials were used or
+  should be) — reaching the real consent screen is definitive proof the whole chain (button →
+  `signInWithOAuth` → GoTrue → Google) is wired correctly. `finish_oauth_signup` (migration `0012`) was
+  already verified separately via psql (role-switch, buyer-stays-buyer upsert, 10-minute replay guard, auth
+  guard). **All four planned BP-2 integrations (INT-1/3/4/5) are now fully live and verified.** Only INT-3's
+  Cron schedule and its stale-backlog cleanup remain as small follow-ups (see above); nothing is blocking.
 
 Earlier in this track: the full app **reskin is COMPLETE and LIVE**, the **onboarding-rebuild track is
 DEPLOYED & LIVE** (pushed `78194d3`; migration `0009` applied to cloud; verified on prod — public `/register`
@@ -109,10 +112,9 @@ the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `front
 **NEXT STEPS to resume (nothing blocking):**
 1. Schedule `send-notification-emails` via Supabase Dashboard → Edge Functions → Cron so INT-3 actually runs
    automatically (it's proven to work when invoked, it's just not on a schedule yet).
-2. Add Google OAuth Client ID/Secret in the Supabase dashboard to make INT-4's real Google button work.
-3. Worth fixing sometime: the stale-backlog issue noted under INT-3 above (permanently-failing notifications
+2. Worth fixing sometime: the stale-backlog issue noted under INT-3 above (permanently-failing notifications
    never get marked and block the batch window).
-4. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
+3. Deferred: dark mode; extract shared UI primitives; INT-2 (OTP/KYC — needs a licensed provider); reviewer/ops
    console (FE-5).
 
 ---
@@ -125,10 +127,10 @@ the pre-existing invite/quote UI still works. `tsc` clean. Full detail in `front
 frontend FE-0→FE-4 on Vercel, backed by Supabase cloud `wtbfwejothkzldfebjbm` (ap-south-1). Verified live for
 both personas.
 
-> ⚡ **ACTIVE TRACK = BP-2 real integrations** (see the ▶ RESUME HERE block at the top). The frontend redesign
-> and onboarding rebuild are **complete and live**; INT-1/INT-3/INT-4/INT-5 are built, migrated, and deployed
-> (INT-3/INT-4 need external credentials to fully activate — see above). Plan + full phase log in
-> **[`frontend-redesign.md`](./frontend-redesign.md)**. Deferred: **INT-2** (OTP/KYC) + reviewer console (FE-5).
+> ⚡ **BP-2 real integrations are DONE** (see the ▶ RESUME HERE block at the top). The frontend redesign,
+> onboarding rebuild, and INT-1/INT-3/INT-4/INT-5 are all **complete, live, and individually verified**.
+> Plan + full phase log in **[`frontend-redesign.md`](./frontend-redesign.md)**. Deferred: **INT-2** (OTP/KYC)
+> + reviewer console (FE-5) — those are what's left before a true BP-3.
 
 **Cloud coordinates:** Supabase project `wtbfwejothkzldfebjbm` "SourceSutra-Prod" (ap-south-1); an older unused
 `igtgcccaqcocmkvwdgre` (ap-northeast-1) also exists — ignore it. Vercel project root = `web/`, env
@@ -147,8 +149,8 @@ was applied via the dashboard SQL Editor (`db push` does not run seeds on remote
 | 7 · FE-4 notifications & profiles (+ migration `0007`) | ✅ verified + DB-asserted |
 | 8 · Deploy (Supabase cloud + Vercel + CI) | ✅ **LIVE** |
 
-**BP-1 done. BP-2 INT-1/3/4/5 done** (INT-3/INT-4 pending external credentials — see the ▶ RESUME HERE block).
-Remaining: INT-2 (OTP/KYC — needs a licensed provider) + the reviewer console (FE-5).
+**BP-1 done. BP-2 INT-1/3/4/5 done and confirmed live** (see the ▶ RESUME HERE block for how each was
+verified). Remaining: INT-2 (OTP/KYC — needs a licensed provider) + the reviewer console (FE-5).
 
 **FE-4 adds:** shared `/inbox` (notifications + mark-read) & an unread bell in the (now async) `Header`;
 `/buyer/suppliers` discover + `/buyer/suppliers/[orgId]` public profile (badges + portfolio, **never**
