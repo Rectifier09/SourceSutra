@@ -147,13 +147,20 @@ Backend `0001`–`0007` + the live deploy (https://source-sutra-prod.vercel.app)
   reskin. Add it when reskinning entry/auth (R5) or sooner if wanted.
 
 ### NEXT (in order)
-1. **Cloud seed** (user): run `0008_seed_cloud.sql` in the SQL Editor so the live directory shows all 12.
-2. **R3 finish buyer**: reskin `web/app/buyer/profile/page.tsx` + the Create-RFQ wizard (`buyer/rfqs/new`) +
-   RFQ detail (`buyer/rfqs/[id]`) to the design system (refs `CustomerProfile.dc.html`, `CustomerCreateRFQ.dc.html`).
-3. **R4 supplier**: reskin the supplier bodies (dashboard/onboarding, discover, quote, quotations, profile)
-   — the shell is already branded; only the page bodies remain old-skin.
-4. **R5**: inbox, entry (intro/register), persona toggle, responsive/dark-mode pass. Extract shared primitives
+1. ~~Cloud seed~~ **DONE** — applied to prod via `npx supabase db query --linked -f supabase/snippets/0008_seed_cloud.sql`
+   (the CLI CAN seed a remote DB via the Management API; `db push` only does migrations). Shell also LIVE
+   (commit `1adfb3b`). Live directory shows 13 (12 prototype + Tiruppur Threads, verified on prod via demo).
+2. ~~R3 buyer~~ **DONE**: buyer profile (`buyer/profile` + client `BuyerProfileForm`, tag input), Create-RFQ
+   form (`buyer/rfqs/new` + `_components/CreateRfqForm`, kept single-page — the prototype wizard is a bigger
+   feature, deferred), buyer RFQ detail (`buyer/rfqs/[id]`, publish/invite/triage/reject/award preserved).
+3. ~~R4 supplier~~ **DONE**: onboarding dashboard (`supplier/page.tsx` + `OtpChannel`), discover
+   (`supplier/discover` + client `RfqDiscoverClient` filters), RFQ detail + quote form (`supplier/rfqs/[id]`),
+   quotations (`supplier/quotes`), invitations (`supplier/invitations`), supplier profile (`supplier/profile`).
+   All server actions preserved; `tsc` clean; onboarding dashboard + buyer profile browser-verified.
+4. **R5 (next)**: inbox (`/inbox`), entry screens (intro/register), the **persona toggle** (needs a
+   sign-in-as-counterpart action), responsive + dark-mode pass. Extract shared primitives
    (Button/Card/Chip/Monogram/Tab) into `web/app/_components/ui/` as they recur.
+   Also consider rebuilding Create-RFQ as the multi-step wizard (`CustomerCreateRFQ.dc.html`).
 
 ### Asset map so far (`uploads/` → `web/public/img/`, renamed)
 - `ChatGPT ...09_45_20 PM-d4fa2418.png` → `hero-bg.png` (landing fixed bg) ✓

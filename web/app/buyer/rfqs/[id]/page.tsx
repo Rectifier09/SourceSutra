@@ -6,20 +6,21 @@ import { Header } from "@/app/_components/Header";
 import { publishRfq, triageQuote, awardQuote, rejectQuote, inviteSupplier } from "@/app/buyer/actions";
 
 const RSTATUS: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  awarded: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  foreclosed: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  lapsed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  draft: "bg-panel text-muted",
+  active: "bg-sagebg text-sage",
+  awarded: "bg-lav1 text-primary",
+  foreclosed: "bg-panel2 text-amber",
+  lapsed: "bg-[#F7ECE8] text-terra",
 };
 const QSTATUS: Record<string, string> = {
-  submitted: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  under_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  shortlisted: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-  awarded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  not_selected: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  closed: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+  submitted: "bg-panel text-muted",
+  under_review: "bg-panel2 text-amber",
+  shortlisted: "bg-lav1 text-primary",
+  awarded: "bg-sagebg text-sage",
+  not_selected: "bg-[#F7ECE8] text-terra",
+  closed: "bg-panel text-muted",
 };
+const sectionHead = "text-[12px] font-semibold uppercase tracking-[0.02em] text-primary2";
 
 export default async function RfqDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,37 +54,39 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <Link href="/buyer" className="text-sm text-black/50 hover:underline dark:text-white/50">
+      <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+        <Link href="/buyer" className="text-[14px] text-primary underline">
           ← My RFQs
         </Link>
 
-        <div className="mt-2 flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">{rfq.title}</h2>
-          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${RSTATUS[rfq.status] ?? ""}`}>
+        <div className="mt-3 flex items-start justify-between gap-4">
+          <h1 className="font-display text-[28px] font-medium text-ink">{rfq.title}</h1>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold capitalize ${RSTATUS[rfq.status] ?? "bg-panel text-muted"}`}
+          >
             {rfq.status}
           </span>
         </div>
-        <div className="mt-2 text-sm text-black/60 dark:text-white/60">
+        <div className="mt-2 text-[13.5px] text-muted">
           {rfq.quantity ? `${rfq.quantity} ${rfq.unit ?? ""} · ` : ""}
           {rfq.contract_type ? `${rfq.contract_type} · ` : ""}
           {datesReady ? `bids ${rfq.bid_start} → ${rfq.bid_end} · delivery ${rfq.delivery_date}` : "no bid window yet"}
         </div>
 
         {rfq.status === "draft" && (
-          <div className="mt-6 rounded-xl border border-black/10 p-5 dark:border-white/10">
+          <div className="mt-6 rounded-[14px] border border-line bg-cream p-5">
             {datesReady ? (
               <form action={publishRfq}>
                 <input type="hidden" name="rfq_id" value={rfq.id} />
-                <p className="text-sm text-black/60 dark:text-white/60">
+                <p className="text-[13.5px] text-muted">
                   This RFQ is a draft. Publishing fans it out to eligible suppliers.
                 </p>
-                <button className="mt-3 rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85">
+                <button className="mt-3 rounded-lg bg-primary px-4 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90">
                   Publish RFQ
                 </button>
               </form>
             ) : (
-              <p className="text-sm text-amber-600 dark:text-amber-400">
+              <p className="text-[13.5px] text-amber">
                 This draft needs a bid window + delivery date before it can be published. (Editing a draft&apos;s
                 dates isn&apos;t in BP-1 yet — create a new RFQ with dates.)
               </p>
@@ -92,16 +95,14 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
         )}
 
         {rfq.status === "active" && (
-          <section className="mt-8 rounded-xl border border-black/10 p-5 dark:border-white/10">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-              Invite suppliers
-            </h3>
+          <section className="mt-8 rounded-[14px] border border-line bg-cream p-5">
+            <h2 className={sectionHead}>Invite suppliers</h2>
             {(invites ?? []).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {(invites ?? []).map((i: any) => {
                   const o = Array.isArray(i.orgs) ? i.orgs[0] : i.orgs;
                   return (
-                    <span key={i.supplier_org_id} className="rounded-full bg-black/5 px-2.5 py-1 text-xs dark:bg-white/10">
+                    <span key={i.supplier_org_id} className="rounded-full bg-lav1 px-2.5 py-1 text-[12px] text-primary">
                       {o?.name ?? "Supplier"} · {i.status}
                     </span>
                   );
@@ -111,44 +112,44 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
             {invitable.length > 0 ? (
               <form action={inviteSupplier} className="mt-3 flex flex-wrap items-center gap-2">
                 <input type="hidden" name="rfq_id" value={rfq.id} />
-                <select name="supplier_org" className="rounded-md border border-black/15 px-2 py-1.5 text-sm dark:border-white/20 dark:bg-transparent">
+                <select name="supplier_org" className="rounded-lg border border-line bg-white px-2.5 py-2 text-[13.5px]">
                   {invitable.map((s: any) => (
                     <option key={s.org_id} value={s.org_id}>
                       {s.name}
                     </option>
                   ))}
                 </select>
-                <button className="rounded-md border border-black/15 px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
+                <button className="rounded-lg border border-line px-3.5 py-2 text-[13px] font-medium text-primary hover:bg-panel">
                   Invite
                 </button>
               </form>
             ) : (
-              <p className="mt-3 text-sm text-black/45 dark:text-white/45">All verified suppliers invited.</p>
+              <p className="mt-3 text-[13.5px] text-muted">All verified suppliers invited.</p>
             )}
           </section>
         )}
 
         {rfq.status !== "draft" && (
           <section className="mt-8">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-              Applications ({quotes?.length ?? 0})
-            </h3>
-            <div className="mt-3 space-y-3">
+            <h2 className={sectionHead}>Applications ({quotes?.length ?? 0})</h2>
+            <div className="mt-3 flex flex-col gap-3">
               {(quotes ?? []).map((q: any) => {
                 const org = Array.isArray(q.orgs) ? q.orgs[0] : q.orgs;
                 const terminal = ["awarded", "not_selected", "closed"].includes(q.status);
                 return (
-                  <div key={q.id} className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+                  <div key={q.id} className="rounded-[12px] border border-line bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-medium">{org?.name ?? "Supplier"}</div>
-                        <div className="text-xs text-black/50 dark:text-white/50">{org?.location ?? ""}</div>
+                        <div className="text-[15px] font-semibold text-ink">{org?.name ?? "Supplier"}</div>
+                        <div className="text-[12px] text-muted">{org?.location ?? ""}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-semibold tabular-nums">
+                        <div className="text-[18px] font-semibold tabular-nums text-ink">
                           {q.currency ?? "INR"} {q.unit_price}
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${QSTATUS[q.status] ?? ""}`}>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize ${QSTATUS[q.status] ?? "bg-panel text-muted"}`}
+                        >
                           {q.status.replace("_", " ")}
                         </span>
                       </div>
@@ -163,7 +164,7 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
                               <input type="hidden" name="quote_id" value={q.id} />
                               <input type="hidden" name="rfq_id" value={rfq.id} />
                               <input type="hidden" name="status" value={s} />
-                              <button className="rounded-md border border-black/15 px-2.5 py-1 text-xs capitalize hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10">
+                              <button className="rounded-lg border border-line px-2.5 py-1.5 text-[12px] capitalize text-ink hover:bg-panel">
                                 {s.replace("_", " ")}
                               </button>
                             </form>
@@ -172,14 +173,14 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
                           <form action={rejectQuote}>
                             <input type="hidden" name="quote_id" value={q.id} />
                             <input type="hidden" name="rfq_id" value={rfq.id} />
-                            <button className="rounded-md border border-red-300 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10">
+                            <button className="rounded-lg border border-line px-2.5 py-1.5 text-[12px] text-terra hover:bg-panel">
                               Reject
                             </button>
                           </form>
                           <form action={awardQuote}>
                             <input type="hidden" name="quote_id" value={q.id} />
                             <input type="hidden" name="rfq_id" value={rfq.id} />
-                            <button className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700">
+                            <button className="rounded-lg bg-sage px-2.5 py-1.5 text-[12px] font-semibold text-white hover:opacity-90">
                               Award (final)
                             </button>
                           </form>
@@ -190,7 +191,7 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
                 );
               })}
               {(!quotes || quotes.length === 0) && (
-                <div className="rounded-xl border border-dashed border-black/15 px-5 py-8 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
+                <div className="rounded-[12px] border border-dashed border-line px-5 py-8 text-center text-[14px] text-muted">
                   No applications yet.
                 </div>
               )}

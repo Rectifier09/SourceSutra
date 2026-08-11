@@ -5,13 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 
 const QUOTE_PILL: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
-  submitted: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  under_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  shortlisted: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-  awarded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  not_selected: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  closed: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+  draft: "bg-panel text-muted",
+  submitted: "bg-panel2 text-amber",
+  under_review: "bg-panel2 text-amber",
+  shortlisted: "bg-lav1 text-primary",
+  awarded: "bg-sagebg text-sage",
+  not_selected: "bg-[#F7ECE8] text-terra",
+  closed: "bg-panel text-muted",
 };
 
 export default async function MyQuotes() {
@@ -30,29 +30,29 @@ export default async function MyQuotes() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <h2 className="text-xl font-semibold tracking-tight">My Quotes</h2>
+      <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8">
+        <h1 className="mb-4 font-display text-[26px] font-medium text-ink">Quotations</h1>
 
-        <div className="mt-6 space-y-3">
+        <div className="flex flex-col gap-3">
           {(quotes ?? []).map((q: any) => {
             const rfq = Array.isArray(q.rfqs) ? q.rfqs[0] : q.rfqs;
             return (
               <Link
                 key={q.id}
                 href={`/supplier/rfqs/${q.rfq_id}`}
-                className="flex items-center justify-between gap-4 rounded-xl border border-black/10 p-4 hover:bg-black/[0.02] dark:border-white/10 dark:hover:bg-white/[0.03]"
+                className="flex items-center justify-between gap-4 rounded-[12px] border border-line bg-white p-5 transition-colors hover:border-lav3"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-medium">{rfq?.title ?? "RFQ"}</div>
-                  <div className="mt-0.5 text-xs text-black/50 dark:text-white/50 capitalize">
-                    RFQ {rfq?.status ?? ""}
-                  </div>
+                  <div className="truncate text-[15px] font-semibold text-ink">{rfq?.title ?? "RFQ"}</div>
+                  <div className="mt-0.5 text-[12.5px] capitalize text-primary2">RFQ {rfq?.status ?? ""}</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <div className="text-right font-semibold tabular-nums">
+                  <div className="text-right text-[15px] font-semibold tabular-nums text-ink">
                     {q.currency ?? "INR"} {q.unit_price ?? "—"}
                   </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${QUOTE_PILL[q.status] ?? ""}`}>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold capitalize ${QUOTE_PILL[q.status] ?? "bg-panel text-muted"}`}
+                  >
                     {q.status.replace("_", " ")}
                   </span>
                 </div>
@@ -60,9 +60,9 @@ export default async function MyQuotes() {
             );
           })}
           {(!quotes || quotes.length === 0) && (
-            <div className="rounded-xl border border-dashed border-black/15 px-5 py-10 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
+            <div className="rounded-[12px] border border-dashed border-line px-5 py-12 text-center text-[14px] text-muted">
               No quotes yet.{" "}
-              <Link href="/supplier/discover" className="font-medium underline">
+              <Link href="/supplier/discover" className="font-semibold text-primary underline">
                 Discover RFQs
               </Link>
             </div>

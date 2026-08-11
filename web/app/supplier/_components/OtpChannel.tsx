@@ -30,18 +30,16 @@ export function OtpChannel({
   }, [sent, seconds]);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-black/10 px-3 py-2.5 text-sm dark:border-white/10">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-white px-3 py-2.5 text-[14px]">
       <div>
-        <div className="font-medium">{label}</div>
-        <div className="text-xs text-black/50 dark:text-white/50">
+        <div className="font-semibold text-ink">{label}</div>
+        <div className="text-[12px] text-muted">
           {verified ? `Verified${last4 ? ` · Aadhaar ••••${last4}` : ""}` : hint}
         </div>
       </div>
 
       {verified ? (
-        <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-          ✓ Verified
-        </span>
+        <span className="rounded-full bg-sagebg px-2.5 py-0.5 text-[11.5px] font-semibold text-sage">✓ Verified</span>
       ) : !sent ? (
         <button
           type="button"
@@ -49,38 +47,32 @@ export function OtpChannel({
             setSent(true);
             setSeconds(30);
           }}
-          className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] font-medium text-primary hover:bg-panel"
         >
           Send code
         </button>
       ) : (
         <form action={verifyIdentityChannel} className="flex items-center gap-2">
           <input type="hidden" name="channel" value={channel} />
-          {channel === "aadhaar" && (
-            <input type="hidden" name="last4" value={(aadhaar || "0000").slice(-4)} />
-          )}
-          <span className="rounded bg-black/5 px-2 py-1 font-mono text-xs tabular-nums dark:bg-white/10">
-            code {code}
-          </span>
+          {channel === "aadhaar" && <input type="hidden" name="last4" value={(aadhaar || "0000").slice(-4)} />}
+          <span className="rounded bg-panel px-2 py-1 font-mono text-[12px] tabular-nums text-muted">code {code}</span>
           {channel === "aadhaar" && (
             <input
               value={aadhaar}
               onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, "").slice(0, 12))}
               placeholder="Aadhaar no."
               inputMode="numeric"
-              className="w-28 rounded-md border border-black/15 px-2 py-1 text-xs dark:border-white/20 dark:bg-transparent"
+              className="w-28 rounded-lg border border-line bg-white px-2 py-1 text-[12px]"
             />
           )}
           <input
             defaultValue={code}
-            className="w-20 rounded-md border border-black/15 px-2 py-1 font-mono text-xs tabular-nums dark:border-white/20 dark:bg-transparent"
+            className="w-20 rounded-lg border border-line bg-white px-2 py-1 font-mono text-[12px] tabular-nums"
           />
-          <button className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85">
+          <button className="rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-cream hover:opacity-90">
             Verify
           </button>
-          {seconds > 0 && (
-            <span className="text-xs tabular-nums text-black/40 dark:text-white/40">{seconds}s</span>
-          )}
+          {seconds > 0 && <span className="text-[12px] tabular-nums text-muted">{seconds}s</span>}
         </form>
       )}
     </div>

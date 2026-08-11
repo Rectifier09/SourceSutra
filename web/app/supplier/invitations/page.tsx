@@ -6,9 +6,9 @@ import { Header } from "@/app/_components/Header";
 import { respondInvitation } from "@/app/supplier/actions";
 
 const INV_PILL: Record<string, string> = {
-  invited: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  responded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  declined: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  invited: "bg-panel2 text-amber",
+  responded: "bg-sagebg text-sage",
+  declined: "bg-[#F7ECE8] text-terra",
 };
 
 export default async function Invitations() {
@@ -25,24 +25,24 @@ export default async function Invitations() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <h2 className="text-xl font-semibold tracking-tight">Invitations</h2>
-        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          RFQs a buyer invited you to quote on directly.
-        </p>
+      <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8">
+        <h1 className="font-display text-[26px] font-medium text-ink">Invitations</h1>
+        <p className="mb-5 mt-1 text-[13.5px] text-muted">RFQs a buyer invited you to quote on directly.</p>
 
-        <div className="mt-6 space-y-3">
+        <div className="flex flex-col gap-3">
           {(invites ?? []).map((i: any) => (
-            <div key={i.rfq_id} className="rounded-xl border border-black/10 p-4 dark:border-white/10">
+            <div key={i.rfq_id} className="rounded-[12px] border border-line bg-white p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-medium">{i.title}</div>
-                  <div className="mt-0.5 text-xs text-black/50 dark:text-white/50">
+                  <div className="text-[15px] font-semibold text-ink">{i.title}</div>
+                  <div className="mt-0.5 text-[12.5px] capitalize text-primary2">
                     RFQ {i.rfq_status}
                     {i.bid_end ? ` · bids close ${i.bid_end}` : ""}
                   </div>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${INV_PILL[i.invitation_status] ?? ""}`}>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold capitalize ${INV_PILL[i.invitation_status] ?? "bg-panel text-muted"}`}
+                >
                   {i.invitation_status}
                 </span>
               </div>
@@ -53,14 +53,14 @@ export default async function Invitations() {
                     <form action={respondInvitation}>
                       <input type="hidden" name="rfq_id" value={i.rfq_id} />
                       <input type="hidden" name="accept" value="1" />
-                      <button className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                      <button className="rounded-lg bg-sage px-3.5 py-2 text-[12.5px] font-semibold text-white hover:opacity-90">
                         Accept
                       </button>
                     </form>
                     <form action={respondInvitation}>
                       <input type="hidden" name="rfq_id" value={i.rfq_id} />
                       <input type="hidden" name="accept" value="0" />
-                      <button className="rounded-md border border-red-300 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-500/10">
+                      <button className="rounded-lg border border-line px-3.5 py-2 text-[12.5px] font-medium text-terra hover:bg-panel">
                         Decline
                       </button>
                     </form>
@@ -70,9 +70,9 @@ export default async function Invitations() {
                   i.rfq_status === "active" && (
                     <Link
                       href={`/supplier/rfqs/${i.rfq_id}`}
-                      className="rounded-md border border-black/15 px-3 py-1.5 text-xs font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+                      className="rounded-lg border border-line px-3.5 py-2 text-[12.5px] font-medium text-primary hover:bg-panel"
                     >
-                      View & quote →
+                      View &amp; quote →
                     </Link>
                   )
                 )}
@@ -80,7 +80,7 @@ export default async function Invitations() {
             </div>
           ))}
           {(!invites || invites.length === 0) && (
-            <div className="rounded-xl border border-dashed border-black/15 px-5 py-10 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
+            <div className="rounded-[12px] border border-dashed border-line px-5 py-12 text-center text-[14px] text-muted">
               No invitations yet.
             </div>
           )}

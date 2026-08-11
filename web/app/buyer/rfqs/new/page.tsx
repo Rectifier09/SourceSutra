@@ -12,17 +12,13 @@ export default async function NewRfq() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
-        <Link href="/buyer" className="text-sm text-black/50 hover:underline dark:text-white/50">
+      <main className="mx-auto w-full max-w-[860px] flex-1 px-6 pb-20 pt-8">
+        <Link href="/buyer" className="text-[14px] text-primary underline">
           ← My RFQs
         </Link>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight">New RFQ</h2>
-        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          Create a draft, then publish it to eligible suppliers.
-        </p>
-        <div className="mt-6">
-          <CreateRfqForm />
-        </div>
+        <h1 className="mt-3 font-display text-[28px] font-medium text-ink">New RFQ</h1>
+        <p className="mb-6 mt-1 text-[14px] text-muted">Create a draft, then publish it to eligible suppliers.</p>
+        <CreateRfqForm />
       </main>
     </>
   );

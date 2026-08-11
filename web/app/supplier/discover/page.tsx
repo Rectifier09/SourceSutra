@@ -3,16 +3,7 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
-
-const QUOTE_PILL: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
-  submitted: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  under_review: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  shortlisted: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-  awarded: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  not_selected: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  closed: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
-};
+import { RfqDiscoverClient, type RfqRow } from "./_components/RfqDiscoverClient";
 
 export default async function Discover() {
   const me = await getMe();
@@ -38,68 +29,45 @@ export default async function Discover() {
   (myQuotes ?? []).forEach((q: any) => (quoteOf[q.rfq_id] = q));
   const verified = overall?.overall_status === "Onboarding Completed";
 
+  const rows: RfqRow[] = (rfqs ?? []).map((r: any) => {
+    const buyer = Array.isArray(r.orgs) ? r.orgs[0] : r.orgs;
+    return {
+      id: r.id,
+      title: r.title,
+      quantity: r.quantity,
+      unit: r.unit,
+      contract_type: r.contract_type,
+      preferred_location: r.preferred_location,
+      bid_end: r.bid_end,
+      delivery_date: r.delivery_date,
+      who_can_respond: r.who_can_respond,
+      buyerName: buyer?.name ?? null,
+      myStatus: quoteOf[r.id]?.status ?? null,
+    };
+  });
+
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <h2 className="text-xl font-semibold tracking-tight">Discover RFQs</h2>
-        <p className="mt-1 text-sm text-black/60 dark:text-white/60">
-          Open buying requests you&apos;re eligible to quote on.
-        </p>
+      <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8">
+        <h1 className="mb-4 font-display text-[26px] font-medium text-ink">Discover RFQs</h1>
 
         {!verified && (
-          <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-900/20 dark:text-amber-300">
+          <div className="mb-5 rounded-[12px] border border-line2 bg-panel2 p-4 text-[13.5px] text-ink2">
             Finish onboarding to become discoverable and quote on RFQs.{" "}
-            <Link href="/supplier" className="font-medium underline">
+            <Link href="/supplier" className="font-semibold text-primary underline">
               Go to onboarding
             </Link>
           </div>
         )}
 
-        <div className="mt-6 space-y-3">
-          {(rfqs ?? []).map((r: any) => {
-            const buyer = Array.isArray(r.orgs) ? r.orgs[0] : r.orgs;
-            const mine = quoteOf[r.id];
-            return (
-              <Link
-                key={r.id}
-                href={`/supplier/rfqs/${r.id}`}
-                className="block rounded-xl border border-black/10 p-4 hover:bg-black/[0.02] dark:border-white/10 dark:hover:bg-white/[0.03]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium">{r.title}</div>
-                    <div className="mt-0.5 text-xs text-black/50 dark:text-white/50">
-                      {buyer?.name ?? "Buyer"}
-                      {r.preferred_location ? ` · ${r.preferred_location}` : ""}
-                      {r.who_can_respond === "invite" ? " · invite-only" : ""}
-                    </div>
-                  </div>
-                  {mine ? (
-                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${QUOTE_PILL[mine.status] ?? ""}`}>
-                      {mine.status.replace("_", " ")}
-                    </span>
-                  ) : (
-                    <span className="shrink-0 rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-medium text-black/60 dark:bg-white/10 dark:text-white/60">
-                      Not quoted
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2 text-sm text-black/60 dark:text-white/60">
-                  {r.quantity ? `${r.quantity} ${r.unit ?? ""} · ` : ""}
-                  {r.contract_type ? `${r.contract_type} · ` : ""}
-                  {r.bid_end ? `bids close ${r.bid_end}` : ""}
-                  {r.delivery_date ? ` · delivery ${r.delivery_date}` : ""}
-                </div>
-              </Link>
-            );
-          })}
-          {(!rfqs || rfqs.length === 0) && (
-            <div className="rounded-xl border border-dashed border-black/15 px-5 py-10 text-center text-sm text-black/50 dark:border-white/15 dark:text-white/50">
-              No open RFQs you&apos;re eligible for right now.
-            </div>
-          )}
-        </div>
+        {rows.length > 0 ? (
+          <RfqDiscoverClient rfqs={rows} />
+        ) : (
+          <div className="rounded-[12px] border border-dashed border-line px-5 py-12 text-center text-[14px] text-muted">
+            No open RFQs you&apos;re eligible for right now.
+          </div>
+        )}
       </main>
     </>
   );
