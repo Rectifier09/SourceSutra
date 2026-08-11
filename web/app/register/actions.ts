@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { DEMO_PASSWORD } from "@/lib/demo";
 
 function str(v: FormDataEntryValue | null): string {
   return (v ?? "").toString().trim();
@@ -14,13 +13,15 @@ function str(v: FormDataEntryValue | null): string {
 // membership, and role-specific rows (supplier: profile + 3 onboarding sections;
 // buyer: buyer_account). Email confirmations are OFF (local + cloud) → the session is
 // established immediately, so we can redirect straight into the app.
+//
+// Google signup is a separate path — see RegisterForm's "Continue with Google"
+// (supabase.auth.signInWithOAuth) → /auth/callback → /onboarding/finish, which
+// completes provisioning via the finish_oauth_signup RPC (migration 0012) since
+// OAuth never reaches this action at all.
 export async function signUp(formData: FormData) {
   const email = str(formData.get("email"));
   const role = str(formData.get("role")) === "supplier" ? "supplier" : "buyer";
-  const viaGoogle = str(formData.get("via_google")) === "1";
-  // Google mock has no password field — use the shared demo password so the account
-  // stays re-loginable (the "Google auth" is for-show; no real OAuth).
-  const password = viaGoogle ? DEMO_PASSWORD : str(formData.get("password"));
+  const password = str(formData.get("password"));
 
   const full_name = `${str(formData.get("first_name"))} ${str(formData.get("last_name"))}`.trim();
   const company = str(formData.get("company"));

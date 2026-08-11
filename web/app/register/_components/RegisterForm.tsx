@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { signUp } from "@/app/register/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const COUNTRIES = ["India", "United States", "United Kingdom", "United Arab Emirates", "Bangladesh", "Sri Lanka", "Other"];
-const GOOGLE_ACCOUNTS = ["priya.founder@gmail.com", "textile.works@gmail.com"];
 
 const labelText = "text-[13px] font-semibold text-muted";
 const req = <span className="text-terra">*</span>;
@@ -28,8 +28,8 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier" }) {
   const [role, setRole] = useState<"buyer" | "supplier">(initialRole);
   const [country, setCountry] = useState("India");
-  const [viaGoogle, setViaGoogle] = useState(false);
-  const [googleOpen, setGoogleOpen] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -42,7 +42,7 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
 
-  const pwMismatch = !viaGoogle && !!password && !!confirm && password !== confirm;
+  const pwMismatch = !!password && !!confirm && password !== confirm;
   const isSupplier = role === "supplier";
 
   const requiredFilled = useMemo(
@@ -57,9 +57,11 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
         areaCode &&
         phone &&
         consent &&
-        (viaGoogle || (password && confirm && password === confirm))
+        password &&
+        confirm &&
+        password === confirm
       ),
-    [country, email, firstName, lastName, company, tags, areaCode, phone, consent, viaGoogle, password, confirm],
+    [country, email, firstName, lastName, company, tags, areaCode, phone, consent, password, confirm],
   );
 
   const addTag = () => {
@@ -71,21 +73,25 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
     setTags((t) => [...t, v]);
     setDraft("");
   };
-  const pickGoogle = (acct: string) => {
-    // for-show Google: make the address unique per run so the real signup can't collide
-    const uniq = acct.replace("@", `+${Math.random().toString(36).slice(2, 6)}@`);
-    setEmail(uniq);
-    setViaGoogle(true);
-    setPassword("");
-    setConfirm("");
-    setGoogleOpen(false);
+  const continueWithGoogle = async () => {
+    setGoogleError(null);
+    setGoogleLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback?role=${role}` },
+    });
+    // On success the browser navigates to Google — nothing left to do here.
+    if (error) {
+      setGoogleError(error.message);
+      setGoogleLoading(false);
+    }
   };
 
   return (
     <form action={signUp} className="flex flex-col gap-3.5">
       {/* hidden fields the server action reads */}
       <input type="hidden" name="role" value={role} />
-      <input type="hidden" name="via_google" value={viaGoogle ? "1" : "0"} />
       <input type="hidden" name="products_sourced" value={tags.join(", ")} />
 
       <h1 className="font-display text-[32px] font-medium text-ink">Create your account</h1>
@@ -109,11 +115,13 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
 
       <button
         type="button"
-        onClick={() => setGoogleOpen(true)}
-        className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-line bg-white px-4 py-3 text-[14.5px] font-semibold text-ink hover:bg-panel"
+        onClick={continueWithGoogle}
+        disabled={googleLoading}
+        className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-line bg-white px-4 py-3 text-[14.5px] font-semibold text-ink hover:bg-panel disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span className="font-display text-[16px] text-primary">G</span> Continue with Google
+        <span className="font-display text-[16px] text-primary">G</span> {googleLoading ? "Redirecting…" : "Continue with Google"}
       </button>
+      {googleError && <div className="-mt-1 text-[12px] text-terra">{googleError}</div>}
 
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-line" />
@@ -149,32 +157,27 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
           name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          readOnly={viaGoogle}
           placeholder="you@company.com"
-          className={`${input} ${viaGoogle ? "bg-panel" : ""}`}
+          className={input}
         />
       </label>
 
-      {!viaGoogle && (
-        <>
-          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5">
-              <span className={labelText}>Create password {req}</span>
-              <input type="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className={labelText}>Confirm password {req}</span>
-              <input
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className={`rounded-lg border bg-white px-3 py-2.5 text-[14.5px] text-ink ${pwMismatch ? "border-terra" : "border-line"}`}
-              />
-            </label>
-          </div>
-          {pwMismatch && <div className="-mt-1 text-[12px] text-terra">Passwords don&apos;t match.</div>}
-        </>
-      )}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className={labelText}>Create password {req}</span>
+          <input type="password" name="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className={labelText}>Confirm password {req}</span>
+          <input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className={`rounded-lg border bg-white px-3 py-2.5 text-[14.5px] text-ink ${pwMismatch ? "border-terra" : "border-line"}`}
+          />
+        </label>
+      </div>
+      {pwMismatch && <div className="-mt-1 text-[12px] text-terra">Passwords don&apos;t match.</div>}
 
       <div className="mt-0.5 text-[11.5px] font-semibold uppercase tracking-[0.03em] text-primary2">Business information</div>
 
@@ -252,41 +255,6 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
           Sign in
         </Link>
       </p>
-
-      {/* Mock Google account chooser (for-show; no real OAuth) */}
-      {googleOpen && (
-        <div
-          onClick={() => setGoogleOpen(false)}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-5"
-          style={{ background: "rgba(32,32,43,0.6)" }}
-        >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[380px] overflow-hidden rounded-[14px] bg-white">
-            <div className="border-b border-line px-6 py-5">
-              <div className="font-display text-[18px] font-medium text-ink">Sign in with Google</div>
-              <div className="mt-1 text-[12.5px] text-muted">Choose an account to continue to SourceSutra</div>
-            </div>
-            <div className="flex flex-col">
-              {GOOGLE_ACCOUNTS.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => pickGoogle(a)}
-                  className="flex items-center gap-3 border-b border-line px-6 py-3.5 text-left hover:bg-panel"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-lav1 font-display text-[14px] font-semibold text-primary">
-                    {a[0].toUpperCase()}
-                  </span>
-                  <span className="text-[14px] text-ink">{a}</span>
-                </button>
-              ))}
-              <button type="button" onClick={() => setGoogleOpen(false)} className="px-6 py-3.5 text-left text-[13px] text-muted hover:bg-panel">
-                Use another account
-              </button>
-            </div>
-            <div className="px-6 py-3 text-[11px] text-muted">Demo only — no real Google sign-in is performed.</div>
-          </div>
-        </div>
-      )}
     </form>
   );
 }

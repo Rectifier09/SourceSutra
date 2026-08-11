@@ -109,7 +109,7 @@ export type IdentityPayload = {
   yearsInBusiness: string;
   natureOfBusiness: string;
   directors: { name: string; contact: string; email: string; aadhaarVerified: boolean; aadhaarLast4: string }[];
-  docs: { type: "GST" | "PAN" | "MSME" | "CIN"; number: string; uploaded: boolean }[];
+  docs: { type: "GST" | "PAN" | "MSME" | "CIN"; number: string; uploaded: boolean; storagePath?: string }[];
 };
 
 export async function saveIdentity(p: IdentityPayload) {
@@ -157,7 +157,7 @@ export async function saveIdentity(p: IdentityPayload) {
   await supabase.from("documents").delete().eq("org_id", org_id).eq("section_kind", "identity").in("doc_type", ["GST", "PAN", "MSME", "CIN"]);
   const docs = (p.docs ?? [])
     .filter((d) => d.number?.trim() || d.uploaded)
-    .map((d) => ({ org_id, section_kind: "identity", doc_type: d.type, doc_number: d.number || null, status: "uploaded" }));
+    .map((d) => ({ org_id, section_kind: "identity", doc_type: d.type, doc_number: d.number || null, status: "uploaded", storage_path: d.storagePath || null }));
   if (docs.length) {
     const { error } = await supabase.from("documents").insert(docs);
     if (error) throw new Error(error.message);
@@ -174,11 +174,11 @@ export type FinancialsPayload = {
   accountNumber: string;
   billing: Record<string, string>;
   legal: Record<string, string>;
-  mgt7: { year: string; uploaded: boolean }[];
-  signedForm: boolean;
-  rpt: boolean;
-  taxDoc: boolean;
-  otherDocs: { fileName: string }[];
+  mgt7: { year: string; uploaded: boolean; storagePath?: string }[];
+  signedForm: { uploaded: boolean; storagePath?: string };
+  rpt: { uploaded: boolean; storagePath?: string };
+  taxDoc: { uploaded: boolean; storagePath?: string };
+  otherDocs: { fileName: string; storagePath?: string }[];
 };
 
 export async function saveFinancials(p: FinancialsPayload) {
@@ -205,13 +205,13 @@ export async function saveFinancials(p: FinancialsPayload) {
   await supabase.from("documents").delete().eq("org_id", org_id).eq("section_kind", "financials");
   const rows: any[] = [];
   (p.mgt7 ?? []).forEach((m) => {
-    if (m.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "MGT7", fy: m.year, status: "uploaded" });
+    if (m.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "MGT7", fy: m.year, status: "uploaded", storage_path: m.storagePath || null });
   });
-  if (p.signedForm) rows.push({ org_id, section_kind: "financials", doc_type: "SignedForm", status: "uploaded" });
-  if (p.rpt) rows.push({ org_id, section_kind: "financials", doc_type: "RPT", status: "uploaded" });
-  if (p.taxDoc) rows.push({ org_id, section_kind: "financials", doc_type: "TaxDoc", status: "uploaded" });
+  if (p.signedForm?.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "SignedForm", status: "uploaded", storage_path: p.signedForm.storagePath || null });
+  if (p.rpt?.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "RPT", status: "uploaded", storage_path: p.rpt.storagePath || null });
+  if (p.taxDoc?.uploaded) rows.push({ org_id, section_kind: "financials", doc_type: "TaxDoc", status: "uploaded", storage_path: p.taxDoc.storagePath || null });
   (p.otherDocs ?? []).forEach((o, i) =>
-    rows.push({ org_id, section_kind: "financials", doc_type: "OtherFin", fy: `other-${i}`, status: "uploaded" }),
+    rows.push({ org_id, section_kind: "financials", doc_type: "OtherFin", fy: `other-${i}`, status: "uploaded", storage_path: o.storagePath || null }),
   );
   if (rows.length) {
     const { error } = await supabase.from("documents").insert(rows);
@@ -223,13 +223,14 @@ export async function saveFinancials(p: FinancialsPayload) {
 export type PortfolioPayload = {
   mission: string;
   logoUploaded: boolean;
+  logoPath?: string;
   production: Record<string, string>;
   tradeTerms: Record<string, string>;
   capabilities: string[];
   products: { name: string; category: string; material: string; moq: string; priceRange: string }[];
-  facilityPhotos: number;
+  facilityPhotos: { fileName: string; storagePath?: string }[];
   workHistory: { clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string }[];
-  catalogue: { fileName: string }[];
+  catalogue: { fileName: string; storagePath?: string }[];
   tags: string[];
   certs: {
     category: string;
@@ -265,12 +266,12 @@ export async function savePortfolio(p: PortfolioPayload) {
     .from("supplier_profiles")
     .update({
       mission: p.mission || null,
-      logo_path: p.logoUploaded ? "uploaded" : null,
+      logo_path: p.logoUploaded ? p.logoPath || "uploaded" : null,
       production: p.production ?? {},
       trade_terms: p.tradeTerms ?? {},
       customization_capabilities: p.capabilities ?? [],
       products: p.products ?? [],
-      facility_photos: Array.from({ length: Math.max(0, p.facilityPhotos || 0) }, () => ({})),
+      facility_photos: (p.facilityPhotos ?? []).map((ph) => ({ fileName: ph.fileName, path: ph.storagePath || null })),
       // map the form's work-history shape to the 0008 shape the buyer profile reads
       work_history: (p.workHistory ?? []).map((w) => ({
         client: w.clientName,
@@ -280,7 +281,7 @@ export async function savePortfolio(p: PortfolioPayload) {
         end: w.endYear,
         desc: w.description,
       })),
-      catalogue: p.catalogue ?? [],
+      catalogue: (p.catalogue ?? []).map((c) => ({ fileName: c.fileName, path: c.storagePath || null })),
       tags: p.tags ?? [],
     })
     .eq("org_id", org_id);

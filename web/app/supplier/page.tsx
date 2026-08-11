@@ -18,6 +18,13 @@ const CARD_BADGE: Record<string, { label: string; cls: string }> = {
   verified: { label: "Verified", cls: "bg-sagebg text-sage" },
 };
 
+// documents/certifications don't persist the original filename, only the storage path
+// ("{org_id}/{section}/{label}-{timestamp}.{ext}") — derive a readable label from it.
+function basename(path: string | null | undefined): string | undefined {
+  if (!path) return undefined;
+  return path.split("/").pop();
+}
+
 const OVERALL_STYLE: Record<string, { bg: string; border: string; fg: string; desc: string }> = {
   "To be Started": { bg: "bg-panel", border: "border-line", fg: "text-ink", desc: "Start with Identity — Financials unlocks once it's submitted. Portfolio can be built any time." },
   Draft: { bg: "bg-panel", border: "border-line", fg: "text-ink", desc: "Your sections are in draft. Submit each for verification when ready." },
@@ -65,6 +72,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
       <>
         <Header me={me} />
         <IdentityForm
+          orgId={me.org_id}
           initial={{
             company: org?.name ?? "",
             contactName: p.contact_name ?? "",
@@ -93,7 +101,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
           }))}
           docs={["GST", "PAN", "MSME", "CIN"].map((t) => {
             const d = docList.find((x) => x.doc_type === t);
-            return { type: t as "GST", number: d?.doc_number ?? "", uploaded: !!d };
+            return { type: t as "GST", number: d?.doc_number ?? "", uploaded: !!d, storagePath: d?.storage_path ?? undefined, fileName: basename(d?.storage_path) };
           })}
         />
       </>
@@ -106,6 +114,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
       <>
         <Header me={me} />
         <FinancialsForm
+          orgId={me.org_id}
           initial={{
             bankCountry: f.bank_country ?? "India",
             bankName: f.bank_name ?? "",
@@ -116,16 +125,25 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
             billing: f.billing ?? {},
             legal: f.legal ?? {},
           }}
-          mgt7={["2023-24", "2022-23", "2021-22"].map((y) => ({
-            year: y,
-            uploaded: docList.some((d) => d.doc_type === "MGT7" && d.fy === y),
-          }))}
+          mgt7={["2023-24", "2022-23", "2021-22"].map((y) => {
+            const d = docList.find((x) => x.doc_type === "MGT7" && x.fy === y);
+            return { year: y, uploaded: !!d, storagePath: d?.storage_path ?? undefined, fileName: basename(d?.storage_path) };
+          })}
           singleDocs={{
-            signedForm: docList.some((d) => d.doc_type === "SignedForm"),
-            rpt: docList.some((d) => d.doc_type === "RPT"),
-            taxDoc: docList.some((d) => d.doc_type === "TaxDoc"),
+            signedForm: (() => {
+              const d = docList.find((x) => x.doc_type === "SignedForm");
+              return { uploaded: !!d, storagePath: d?.storage_path ?? undefined, fileName: basename(d?.storage_path) };
+            })(),
+            rpt: (() => {
+              const d = docList.find((x) => x.doc_type === "RPT");
+              return { uploaded: !!d, storagePath: d?.storage_path ?? undefined, fileName: basename(d?.storage_path) };
+            })(),
+            taxDoc: (() => {
+              const d = docList.find((x) => x.doc_type === "TaxDoc");
+              return { uploaded: !!d, storagePath: d?.storage_path ?? undefined, fileName: basename(d?.storage_path) };
+            })(),
           }}
-          otherDocs={docList.filter((d) => d.doc_type === "OtherFin").map((_, i) => ({ fileName: `document-${i + 1}.pdf` }))}
+          otherDocs={docList.filter((d) => d.doc_type === "OtherFin").map((d) => ({ fileName: basename(d.storage_path) ?? "document.pdf", storagePath: d.storage_path ?? undefined }))}
         />
       </>
     );
@@ -136,9 +154,11 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
       <>
         <Header me={me} />
         <PortfolioForm
+          orgId={me.org_id}
           initial={{
             mission: p.mission ?? "",
             logoUploaded: !!p.logo_path,
+            logoPath: p.logo_path ?? undefined,
             production: p.production ?? {},
             tradeTerms: p.trade_terms ?? {},
             capabilities: p.customization_capabilities ?? [],
@@ -149,7 +169,10 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
               moq: pr.moq ?? "",
               priceRange: pr.priceRange ?? "",
             })),
-            facilityPhotos: ((p.facility_photos ?? []) as unknown[]).length,
+            facilityPhotos: ((p.facility_photos ?? []) as any[]).map((ph: any, i: number) => ({
+              fileName: ph.fileName ?? `facility-${i + 1}.jpg`,
+              storagePath: ph.path ?? undefined,
+            })),
             workHistory: (p.work_history ?? []).map((w: any) => ({
               clientName: w.client ?? "",
               role: w.role ?? "Sub-Contractor",
@@ -158,7 +181,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
               endYear: w.end ?? "",
               description: w.desc ?? "",
             })),
-            catalogue: (p.catalogue ?? []).map((c: any) => ({ fileName: c.fileName ?? "image.jpg" })),
+            catalogue: (p.catalogue ?? []).map((c: any) => ({ fileName: c.fileName ?? "image.jpg", storagePath: c.path ?? undefined })),
             tags: p.tags ?? [],
           }}
           certs={(certs ?? []).map((c: any) => ({

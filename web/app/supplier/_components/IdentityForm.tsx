@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveIdentity, verifyChannel, submitOnboardingSection } from "@/app/supplier/actions";
+import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
 
 const DESIGNATIONS = ["Managing Partner", "Director", "Owner", "Proprietor", "CEO", "Operations Head", "Export Manager", "Founder", "Other"];
 const LANGUAGES = ["English", "Hindi", "Tamil", "Punjabi", "Gujarati", "Bengali", "Telugu", "Marathi"];
@@ -16,14 +17,16 @@ const req = <span className="text-terra">*</span>;
 const rand4 = () => String(Math.floor(1000 + Math.random() * 9000));
 
 type Director = { name: string; contact: string; email: string; aadhaarVerified: boolean; aadhaarLast4: string };
-type Doc = { type: "GST" | "PAN" | "MSME" | "CIN"; number: string; uploaded: boolean };
+type Doc = { type: "GST" | "PAN" | "MSME" | "CIN"; number: string; uploaded: boolean; storagePath?: string; fileName?: string };
 
 export function IdentityForm({
+  orgId,
   initial,
   verified,
   directors: initialDirectors,
   docs: initialDocs,
 }: {
+  orgId: string;
   initial: {
     company: string; contactName: string; designation: string; email: string; emailLanguage: string;
     phone: string; altContact: string; website: string; established: string; yearsInBusiness: string; natureOfBusiness: string;
@@ -46,6 +49,17 @@ export function IdentityForm({
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const setDoc = (i: number, patch: Partial<Doc>) => setDocs((d) => d.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+
+  const uploadDocFile = (i: number, file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "identity", docs[i].type, file);
+      setDoc(i, { uploaded: true, storagePath: path, fileName: file.name });
+    });
+  const removeDocFile = (i: number) => {
+    const path = docs[i].storagePath;
+    setDoc(i, { uploaded: false, storagePath: undefined, fileName: undefined });
+    void removeOnboardingFile(path);
+  };
 
   const confirm = (ch: "email" | "phone" | "aadhaar") => {
     const last4 = ch === "aadhaar" ? rand4() : undefined;
@@ -233,11 +247,23 @@ export function IdentityForm({
               <input value={d.number} onChange={(e) => setDoc(i, { number: e.target.value })} placeholder="Enter number" className="mb-2.5 w-full rounded-md border border-line px-3 py-2.5 text-[14px]" />
               {d.uploaded ? (
                 <div className="flex items-center justify-between gap-2.5 rounded-lg border border-line bg-panel px-3.5 py-2.5">
-                  <span className="text-[13px] text-ink">📄 {d.type.toLowerCase()}-certificate.pdf</span>
-                  <button onClick={() => setDoc(i, { uploaded: false })} className="text-[12.5px] text-terra">Remove</button>
+                  <span className="text-[13px] text-ink">📄 {d.fileName ?? `${d.type.toLowerCase()}-certificate.pdf`}</span>
+                  <button onClick={() => removeDocFile(i)} className="text-[12.5px] text-terra">Remove</button>
                 </div>
               ) : (
-                <button onClick={() => setDoc(i, { uploaded: true })} className="w-full rounded-lg border border-dashed border-lav3 bg-panel px-3.5 py-2.5 text-[13px] text-primary hover:bg-lav1">Upload document</button>
+                <label className="block w-full cursor-pointer rounded-lg border border-dashed border-lav3 bg-panel px-3.5 py-2.5 text-center text-[13px] text-primary hover:bg-lav1">
+                  {pending ? "Uploading…" : "Upload document"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={pending}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadDocFile(i, file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               )}
             </div>
           ))}

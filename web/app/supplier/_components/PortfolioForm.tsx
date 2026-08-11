@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { savePortfolio, submitOnboardingSection } from "@/app/supplier/actions";
+import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
 
 const CAPABILITIES = ["Fabric", "Colour", "GSM", "Fit", "Labels", "Hangtags", "Hardware", "Packaging", "Pattern", "Embroidery", "Printing"];
 const CERT_CATEGORIES = ["Quality Management", "Environmental Management", "Health & Safety", "Social Compliance", "Sustainable & Organic Textiles", "Recycled Materials", "Chemical & Product Safety", "Responsible Materials", "Indian Regulatory & Legal Compliance", "Buyer / Brand Audits", "Other"];
@@ -21,6 +22,7 @@ const req = <span className="text-terra">*</span>;
 
 type Product = { name: string; category: string; material: string; moq: string; priceRange: string };
 type Work = { clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string };
+type MediaItem = { fileName: string; storagePath?: string };
 type Cert = {
   category: string; name: string; number: string; issuingBody: string; scope: string; facility: string;
   issueDate: string; expiryDate: string; doesNotExpire: boolean; lastAuditDate: string; nextAuditDate: string;
@@ -29,19 +31,21 @@ type Cert = {
 const emptyCert = (): Cert => ({ category: "", name: "", number: "", issuingBody: "", scope: "", facility: "", issueDate: "", expiryDate: "", doesNotExpire: false, lastAuditDate: "", nextAuditDate: "", verificationUrl: "", buyerName: "", auditType: "", auditDate: "", outcome: "" });
 
 export function PortfolioForm({
+  orgId,
   initial,
   certs: initialCerts,
 }: {
+  orgId: string;
   initial: {
-    mission: string; logoUploaded: boolean; production: Record<string, string>; tradeTerms: Record<string, string>;
-    capabilities: string[]; products: Product[]; facilityPhotos: number; workHistory: Work[]; catalogue: { fileName: string }[]; tags: string[];
+    mission: string; logoUploaded: boolean; logoPath?: string; production: Record<string, string>; tradeTerms: Record<string, string>;
+    capabilities: string[]; products: Product[]; facilityPhotos: MediaItem[]; workHistory: Work[]; catalogue: MediaItem[]; tags: string[];
   };
   certs: Cert[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mission, setMission] = useState(initial.mission);
-  const [logo, setLogo] = useState(initial.logoUploaded);
+  const [logo, setLogo] = useState<{ uploaded: boolean; storagePath?: string }>({ uploaded: initial.logoUploaded, storagePath: initial.logoPath });
   const [prod, setProd] = useState<Record<string, string>>(initial.production ?? {});
   const [trade, setTrade] = useState<Record<string, string>>(initial.tradeTerms ?? {});
   const [caps, setCaps] = useState<string[]>(initial.capabilities ?? []);
@@ -49,10 +53,10 @@ export function PortfolioForm({
   const [openP, setOpenP] = useState<number | null>(null);
   const [certs, setCerts] = useState<Cert[]>(initialCerts ?? []);
   const [openC, setOpenC] = useState<number | null>(null);
-  const [photos, setPhotos] = useState(initial.facilityPhotos ?? 0);
+  const [photos, setPhotos] = useState<MediaItem[]>(initial.facilityPhotos ?? []);
   const [work, setWork] = useState<Work[]>(initial.workHistory ?? []);
   const [openW, setOpenW] = useState<number | null>(null);
-  const [cat, setCat] = useState<{ fileName: string }[]>(initial.catalogue ?? []);
+  const [cat, setCat] = useState<MediaItem[]>(initial.catalogue ?? []);
   const [tags, setTags] = useState<string[]>(initial.tags ?? []);
   const [tagDraft, setTagDraft] = useState("");
 
@@ -61,11 +65,39 @@ export function PortfolioForm({
   const setC = (i: number, patch: Partial<Cert>) => setCerts((x) => x.map((y, j) => (j === i ? { ...y, ...patch } : y)));
   const addTag = (v: string) => { const t = v.trim(); if (t && !tags.includes(t)) setTags((x) => [...x, t]); setTagDraft(""); };
 
+  const uploadLogo = (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "portfolio", "logo", file);
+      setLogo({ uploaded: true, storagePath: path });
+    });
+  const removeLogo = () => {
+    void removeOnboardingFile(logo.storagePath);
+    setLogo({ uploaded: false });
+  };
+  const uploadPhoto = (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "portfolio", `facility-${photos.length + 1}`, file);
+      setPhotos((p) => [...p, { fileName: file.name, storagePath: path }]);
+    });
+  const removePhoto = (i: number) => {
+    void removeOnboardingFile(photos[i].storagePath);
+    setPhotos((p) => p.filter((_, j) => j !== i));
+  };
+  const uploadCatalogueImg = (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "portfolio", `catalogue-${cat.length + 1}`, file);
+      setCat((c) => [...c, { fileName: file.name, storagePath: path }]);
+    });
+  const removeCatalogueImg = (i: number) => {
+    void removeOnboardingFile(cat[i].storagePath);
+    setCat((c) => c.filter((_, j) => j !== i));
+  };
+
   const payload = () => ({
-    mission, logoUploaded: logo, production: prod, tradeTerms: trade, capabilities: caps,
+    mission, logoUploaded: logo.uploaded, logoPath: logo.storagePath, production: prod, tradeTerms: trade, capabilities: caps,
     products, facilityPhotos: photos, workHistory: work, catalogue: cat, tags, certs,
   });
-  const canSubmit = !!(mission.trim() && logo && products.some((p) => p.name.trim()));
+  const canSubmit = !!(mission.trim() && logo.uploaded && products.some((p) => p.name.trim()));
 
   const save = () => start(async () => { await savePortfolio(payload()); });
   const submit = () => start(async () => { await savePortfolio(payload()); await submitOnboardingSection("portfolio"); router.push("/supplier"); });
@@ -78,15 +110,28 @@ export function PortfolioForm({
     </div>
   );
 
-  const Tiles = ({ items, onAdd, onRemove, addLabel, withName }: { items: any[]; onAdd: () => void; onRemove: (i: number) => void; addLabel: string; withName?: boolean }) => (
+  const Tiles = ({ items, onAddFile, onRemove, addLabel, withName }: { items: MediaItem[]; onAddFile: (file: File) => void; onRemove: (i: number) => void; addLabel: string; withName?: boolean }) => (
     <div className="flex flex-wrap gap-3.5">
       {items.map((it, i) => (
         <div key={i} className="relative h-[140px] w-[140px] overflow-hidden rounded-[10px] border border-line" style={{ background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>
-          {withName && <div className="absolute bottom-0 w-full bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{it.fileName}</div>}
+          {withName && <div className="absolute bottom-0 w-full truncate bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{it.fileName}</div>}
           <button onClick={() => onRemove(i)} className="absolute right-1 top-1 flex h-[22px] w-[22px] items-center justify-center rounded-md text-[13px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
         </div>
       ))}
-      <button onClick={onAdd} className="h-[140px] w-[140px] rounded-[10px] border border-dashed border-lav3 bg-panel text-[13px] text-primary hover:bg-lav1">{addLabel}</button>
+      <label className="flex h-[140px] w-[140px] cursor-pointer items-center justify-center rounded-[10px] border border-dashed border-lav3 bg-panel text-center text-[13px] text-primary hover:bg-lav1">
+        {pending ? "Uploading…" : addLabel}
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={pending}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onAddFile(file);
+            e.target.value = "";
+          }}
+        />
+      </label>
     </div>
   );
 
@@ -109,13 +154,26 @@ export function PortfolioForm({
           <div>
             <div className="mb-2 text-[13px] font-semibold text-muted">Company logo {req}</div>
             <div className="relative h-24 w-24 overflow-hidden rounded-[14px] border border-line">
-              {logo ? (
+              {logo.uploaded ? (
                 <>
                   <div className="flex h-full w-full items-center justify-center font-display text-[13px] text-primary" style={{ background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>Logo</div>
-                  <button onClick={() => setLogo(false)} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-md text-[12px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
+                  <button onClick={removeLogo} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-md text-[12px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
                 </>
               ) : (
-                <button onClick={() => setLogo(true)} className="h-full w-full border border-dashed border-lav3 bg-panel text-[11.5px] text-primary">Upload logo</button>
+                <label className="flex h-full w-full cursor-pointer items-center justify-center border border-dashed border-lav3 bg-panel text-center text-[11.5px] text-primary">
+                  {pending ? "Uploading…" : "Upload logo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={pending}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadLogo(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               )}
             </div>
           </div>
@@ -268,7 +326,7 @@ export function PortfolioForm({
       <div className={`${cardCls} mb-5`}>
         <h2 className="mb-1 font-display text-[18px] font-medium text-ink">Facility gallery</h2>
         <p className="mb-4 text-[13px] text-muted">Photos of your factory floor, machines, and workspaces.</p>
-        <Tiles items={Array.from({ length: photos })} onAdd={() => setPhotos((n) => n + 1)} onRemove={() => setPhotos((n) => Math.max(0, n - 1))} addLabel="+ Add photo" />
+        <Tiles items={photos} onAddFile={uploadPhoto} onRemove={removePhoto} addLabel="+ Add photo" />
       </div>
 
       {/* Work history (accordion) */}
@@ -312,7 +370,7 @@ export function PortfolioForm({
       <div className={`${cardCls} mb-5`}>
         <h2 className="mb-1 font-display text-[18px] font-medium text-ink">Catalogue</h2>
         <p className="mb-4 text-[13px] text-muted">Your visual proof — fabrics, finished articles, line sheet.</p>
-        <Tiles items={cat} withName onAdd={() => setCat((c) => [...c, { fileName: `image-${c.length + 1}.jpg` }])} onRemove={(i) => setCat((c) => c.filter((_, j) => j !== i))} addLabel="+ Add image" />
+        <Tiles items={cat} withName onAddFile={uploadCatalogueImg} onRemove={removeCatalogueImg} addLabel="+ Add image" />
       </div>
 
       {/* Search tags */}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveFinancials, submitOnboardingSection } from "@/app/supplier/actions";
+import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
 
 const ROUTING_TYPES = ["IFSC", "SWIFT", "Routing Number", "IBAN", "Other"];
 const labelCls = "text-[13px] font-semibold text-muted";
@@ -12,7 +13,9 @@ const cardCls = "rounded-[14px] border border-line bg-cream p-6";
 const req = <span className="text-terra">*</span>;
 
 type Addr = Record<string, string>;
-type Mgt = { year: string; uploaded: boolean };
+type Mgt = { year: string; uploaded: boolean; storagePath?: string; fileName?: string };
+type SingleDoc = { uploaded: boolean; storagePath?: string; fileName?: string };
+type OtherDoc = { fileName: string; storagePath?: string };
 
 function AddressGrid({ v, on, tax }: { v: Addr; on: (k: string, val: string) => void; tax?: boolean }) {
   const cell = "rounded-lg border border-line bg-white px-3 py-2.5 text-[14px]";
@@ -32,15 +35,17 @@ function AddressGrid({ v, on, tax }: { v: Addr; on: (k: string, val: string) => 
 }
 
 export function FinancialsForm({
+  orgId,
   initial,
   mgt7: initialMgt,
   singleDocs,
   otherDocs: initialOther,
 }: {
+  orgId: string;
   initial: { bankCountry: string; bankName: string; beneficiaryName: string; routingType: string; routingCode: string; accountNumber: string; billing: Addr; legal: Addr };
   mgt7: Mgt[];
-  singleDocs: { signedForm: boolean; rpt: boolean; taxDoc: boolean };
-  otherDocs: { fileName: string }[];
+  singleDocs: { signedForm: SingleDoc; rpt: SingleDoc; taxDoc: SingleDoc };
+  otherDocs: OtherDoc[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -48,14 +53,39 @@ export function FinancialsForm({
   const [confirmAcct, setConfirmAcct] = useState(initial.accountNumber);
   const [billing, setBilling] = useState<Addr>(initial.billing ?? {});
   const [legal, setLegal] = useState<Addr>(initial.legal ?? {});
-  const [taxDoc, setTaxDoc] = useState(singleDocs.taxDoc);
+  const [taxDoc, setTaxDoc] = useState<SingleDoc>(singleDocs.taxDoc);
   const [mgt7, setMgt7] = useState<Mgt[]>(initialMgt);
-  const [signedForm, setSignedForm] = useState(singleDocs.signedForm);
-  const [rpt, setRpt] = useState(singleDocs.rpt);
-  const [other, setOther] = useState<{ fileName: string }[]>(initialOther);
+  const [signedForm, setSignedForm] = useState<SingleDoc>(singleDocs.signedForm);
+  const [rpt, setRpt] = useState<SingleDoc>(singleDocs.rpt);
+  const [other, setOther] = useState<OtherDoc[]>(initialOther);
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const acctMismatch = !!f.accountNumber && !!confirmAcct && f.accountNumber !== confirmAcct;
+
+  const uploadSingle = (label: string, setter: (v: SingleDoc) => void) => (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "financials", label, file);
+      setter({ uploaded: true, storagePath: path, fileName: file.name });
+    });
+  const removeSingle = (current: SingleDoc, setter: (v: SingleDoc) => void) => () => {
+    setter({ uploaded: false });
+    void removeOnboardingFile(current.storagePath);
+  };
+  const uploadMgt = (i: number, year: string) => (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "financials", `mgt7-${year}`, file);
+      setMgt7((x) => x.map((y, j) => (j === i ? { ...y, uploaded: true, storagePath: path, fileName: file.name } : y)));
+    });
+  const removeMgt = (i: number) => {
+    const path = mgt7[i].storagePath;
+    setMgt7((x) => x.map((y, j) => (j === i ? { ...y, uploaded: false, storagePath: undefined, fileName: undefined } : y)));
+    void removeOnboardingFile(path);
+  };
+  const uploadOther = (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "financials", "other", file);
+      setOther((o) => [...o, { fileName: file.name, storagePath: path }]);
+    });
 
   const payload = () => ({
     bankCountry: f.bankCountry, bankName: f.bankName, beneficiaryName: f.beneficiaryName,
@@ -76,13 +106,25 @@ export function FinancialsForm({
     </div>
   );
 
-  const UploadRow = ({ label, on, uploaded, off }: { label: string; on: () => void; uploaded: boolean; off: () => void }) => (
+  const UploadRow = ({ label, doc, onFile, onRemove }: { label: string; doc: SingleDoc; onFile: (file: File) => void; onRemove: () => void }) => (
     <div className="rounded-lg border border-line bg-white p-3.5">
       <div className="mb-2 text-[13px] font-semibold text-muted">{label}</div>
-      {uploaded ? (
-        <div className="flex items-center gap-2.5 text-[12.5px] text-ink">📄 uploaded.pdf <button onClick={off} className="text-terra">Remove</button></div>
+      {doc.uploaded ? (
+        <div className="flex items-center gap-2.5 text-[12.5px] text-ink">📄 {doc.fileName ?? "uploaded.pdf"} <button onClick={onRemove} className="text-terra">Remove</button></div>
       ) : (
-        <button onClick={on} className="rounded-[7px] border border-dashed border-lav3 bg-panel px-3.5 py-2 text-[12.5px] text-primary hover:bg-lav1">Upload</button>
+        <label className="inline-block cursor-pointer rounded-[7px] border border-dashed border-lav3 bg-panel px-3.5 py-2 text-[12.5px] text-primary hover:bg-lav1">
+          {pending ? "Uploading…" : "Upload"}
+          <input
+            type="file"
+            className="hidden"
+            disabled={pending}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onFile(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
       )}
     </div>
   );
@@ -153,7 +195,7 @@ export function FinancialsForm({
         <h2 className="mb-4 font-display text-[18px] font-medium text-ink">Legal entity address</h2>
         <AddressGrid v={legal} on={(k, val) => setLegal((l) => ({ ...l, [k]: val }))} tax />
         <div className="mt-4">
-          <UploadRow label="Tax documents" uploaded={taxDoc} on={() => setTaxDoc(true)} off={() => setTaxDoc(false)} />
+          <UploadRow label="Tax documents" doc={taxDoc} onFile={uploadSingle("tax-doc", setTaxDoc)} onRemove={removeSingle(taxDoc, setTaxDoc)} />
         </div>
       </div>
 
@@ -167,30 +209,62 @@ export function FinancialsForm({
               <span className="min-w-[110px] text-[13px] font-semibold text-ink">{m.year}</span>
               {m.uploaded ? (
                 <>
-                  <span className="text-[12.5px] text-ink">📄 mgt7-{m.year}.pdf</span>
-                  <button onClick={() => setMgt7((x) => x.map((y, j) => (j === i ? { ...y, uploaded: false } : y)))} className="text-[12px] text-terra">Remove</button>
+                  <span className="text-[12.5px] text-ink">📄 {m.fileName ?? `mgt7-${m.year}.pdf`}</span>
+                  <button onClick={() => removeMgt(i)} className="text-[12px] text-terra">Remove</button>
                 </>
               ) : (
-                <button onClick={() => setMgt7((x) => x.map((y, j) => (j === i ? { ...y, uploaded: true } : y)))} className="rounded-[7px] border border-dashed border-lav3 bg-panel px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">Upload</button>
+                <label className="cursor-pointer rounded-[7px] border border-dashed border-lav3 bg-panel px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">
+                  {pending ? "Uploading…" : "Upload"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={pending}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadMgt(i, m.year)(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               )}
             </div>
           ))}
         </div>
 
         <div className="mb-4 flex flex-col gap-3">
-          <UploadRow label="Signed copy of the company form" uploaded={signedForm} on={() => setSignedForm(true)} off={() => setSignedForm(false)} />
-          <UploadRow label="Declaration of related-party transactions (RPT)" uploaded={rpt} on={() => setRpt(true)} off={() => setRpt(false)} />
+          <UploadRow label="Signed copy of the company form" doc={signedForm} onFile={uploadSingle("signed-form", setSignedForm)} onRemove={removeSingle(signedForm, setSignedForm)} />
+          <UploadRow label="Declaration of related-party transactions (RPT)" doc={rpt} onFile={uploadSingle("rpt", setRpt)} onRemove={removeSingle(rpt, setRpt)} />
         </div>
 
         <div className="flex items-center justify-between">
           <span className="text-[13px] font-semibold text-muted">Other supporting documents</span>
-          <button onClick={() => setOther((o) => [...o, { fileName: `document-${o.length + 1}.pdf` }])} className="rounded-[7px] border border-primary px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">+ Add document</button>
+          <label className="cursor-pointer rounded-[7px] border border-primary px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">
+            {pending ? "Uploading…" : "+ Add document"}
+            <input
+              type="file"
+              className="hidden"
+              disabled={pending}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadOther(file);
+                e.target.value = "";
+              }}
+            />
+          </label>
         </div>
         <div className="mt-2.5 flex flex-col gap-2.5">
           {other.map((o, i) => (
             <div key={i} className="flex items-center gap-3 rounded-lg border border-line bg-white px-3.5 py-2.5 text-[12.5px] text-ink">
               📄 {o.fileName}
-              <button onClick={() => setOther((x) => x.filter((_, j) => j !== i))} className="ml-auto text-terra">Remove</button>
+              <button
+                onClick={() => {
+                  setOther((x) => x.filter((_, j) => j !== i));
+                  void removeOnboardingFile(o.storagePath);
+                }}
+                className="ml-auto text-terra"
+              >
+                Remove
+              </button>
             </div>
           ))}
         </div>
