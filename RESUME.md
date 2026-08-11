@@ -2,7 +2,54 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-11 (post-INT-4 UX fix, commit `7035c31`).**
+> **Last updated 2026-08-11 (six-bug fix batch, commit `c8a649d`).**
+
+---
+
+## ▶ LATEST — six user-reported bugs fixed, verified, and deployed (2026-08-11)
+
+Plan file: `C:\Users\Prashant P Singh\.claude\plans\staged-floating-crystal.md` has full investigation detail
+per issue. Commits `130ffff` → `c8a649d`, migration `0014` on cloud.
+
+1. **Google signup was permanently unrecoverable past 10 minutes** — `finish_oauth_signup`'s guard was based
+   on org creation time, which never resets on retry. Confirmed on prod: a real Google account
+   (`prashantpps09@gmail.com`) got stuck as an unfinished default buyer org. Replaced with
+   `profiles.oauth_pending` (migration `0014`) — stronger security property (can never replay after a real
+   finish) with no artificial deadline. `/auth/callback` now reads this flag directly instead of guessing from
+   `auth.users` timestamps. The stuck prod account was backfilled and can now complete signup normally.
+2. **Editing an already-onboarded supplier's section always errored on Submit** — `submit_section` only
+   accepted `not_started/draft/remediation` as a starting state, but the existing reopen triggers correctly
+   flip an edited verified section to `submitted_pending` (or leave it at `verified` for a Portfolio edit
+   touching no certs) *before* submit runs. Widened the accepted states (same migration `0014`); validation
+   checks (GST/PAN, 3yr MGT-7, OTP) still run unconditionally.
+3. **New-onboarding animation "not playing"** — likely mostly a downstream symptom of #1 (misrouting could
+   skip `/onboarding/finish` → `/supplier/welcome` entirely). Also added a `prefers-reduced-motion` check to
+   `Intro.tsx`, which had none despite `globals.css` forcing near-zero transition durations under that OS
+   setting — now jumps to the final state per the documented spec instead of silently not animating.
+4. **Background images washed out** — homepage and supplier-onboarding-banner gradients were 72–92% opacity
+   cream, nearly hiding the art. Reduced both to ~20–32%; visually confirmed in-browser, text stays legible.
+5. **Buyer couldn't resume a draft RFQ** — clicking a draft only ever showed a static summary + a "Publish"
+   button gated on dates already being set. `CreateRfqWizard` only ever supported create-new. Added
+   `existingRfqId`/`initialState` props + an inverse DB-row-to-wizard-state mapping
+   (`web/app/buyer/_components/rfqWizardState.ts` — **must stay a plain module, not `"use client"`**, since a
+   Server Component calling a client-file export throws a real runtime 500, which is exactly what happened on
+   first test). `web/app/buyer/rfqs/[id]/page.tsx` now renders the wizard directly for `draft`-status RFQs.
+6. **RFQ detail pages hid most of what the wizard collects** — neither buyer nor supplier detail page ever
+   rendered `rfq.spec` (product category, material, delivery address, shipping/incoterm/payment terms, etc.)
+   or several structured columns (certs, customization needs, sample fields, pricing approach). New shared
+   `web/app/_components/RfqDetails.tsx`, used by both pages.
+
+**Verified for real, not just reviewed:** migration `0014` tested via psql (both fixes, including simulating a
+2-day-old org to prove the old time guard is truly gone, and confirming replay is still correctly rejected
+after a real finish); full draft-save → resume → prefill-confirm → re-save-in-place → publish walkthrough in
+the browser; buyer and supplier detail views checked against both the freshly-published rich RFQ and older
+sparse seed data (graceful `—` fallbacks). 136 pgTAP pass, `tsc` clean, prod confirmed live after each push.
+
+⚠️ **Browser-automation gotcha hit repeatedly this session** — see [[browser-automation-gotchas]] memory:
+`read_page`/`computer` click coordinates drifted from the true DOM layout unpredictably; `javascript_tool` with
+the native `HTMLInputElement`/`HTMLSelectElement` value setter + `dispatchEvent` was the reliable fallback.
+Also: CSS attribute selectors like `input[type=text]` only match an *explicit* HTML attribute — an input with
+no `type=` at all (defaulting to text) won't match; filter by the `.type` property instead.
 
 ---
 
