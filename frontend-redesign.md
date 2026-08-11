@@ -217,8 +217,12 @@ vendor-profile view).
 - **DEPLOYED & LIVE** (2026-08-11, pushed `78194d3`): `npx supabase db push` applied `0009` to cloud; `git push`
   shipped `web/`. Verified on prod — public `/register` renders + a completed supplier shows the rich
   VendorProfile view. Optional polish: a full submit-to-completion walk-through (Identity→Financials→Portfolio
-  →VendorProfile) wasn't exhaustively driven; seeded suppliers predate `0009` so their Identity/Financials
-  detail shows `—` until edited (could backfill via seed/SQL).
+  →VendorProfile) wasn't exhaustively driven.
+- **Backfill done** (2026-08-11): Suresh Anand / Meena Kaur (the two loginable, verified demo suppliers)
+  predated `0009` and showed `—` for Identity/Financials. Added a backfill block to `seed.sql` (contact,
+  designation, established date, nature of business, a director, GST/PAN doc numbers, bank + billing address,
+  cert audit dates/evidence) and applied the same SQL live via `supabase db query --linked -f`. Verified
+  in-browser both local and prod. Anitha Rao intentionally untouched (walk-through account).
 
 Reset the local test account by `supabase db reset` (a demo signup `newvendor.demo@example.com` was created
 while verifying Phase C).

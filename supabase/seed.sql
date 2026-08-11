@@ -349,3 +349,58 @@ begin
   (s10,'standard','Quality Management','ISO 9001','SGS','SGS-QMS-2024-3387','Yarn spinning and greige fabric quality management.','2024-06-01','2027-05-31',false,'verified',null,null,null,null,null,null);
 end $$;
 reset sourcesutra.reviewer;
+
+-- ============================================================================
+-- Migration 0009 backfill: Suresh Anand (Anand Knitfab) and Meena Kaur
+-- (Ludhiana Woolworks) predate the rich Identity/Financials columns, so their
+-- VendorProfile showed "—" for contact/designation/established/bank/billing.
+-- Only these two loginable, VERIFIED suppliers get backfilled — Anitha Rao
+-- stays empty on purpose (she's the un-onboarded walk-through account), and
+-- the 10 directory-only suppliers have no login to ever see owner-only
+-- Identity/Financials detail anyway. Reviewer hatch on so the directors/
+-- financials insert doesn't re-open the already-verified sections.
+-- ============================================================================
+set session sourcesutra.reviewer = 'on';
+do $$
+declare a uuid := (select id from orgs where name = 'Anand Knitfab');
+        b uuid := (select id from orgs where name = 'Ludhiana Woolworks');
+begin
+  update supplier_profiles set
+    contact_name = 'Suresh Anand', designation = 'Managing Partner', email_language = 'English',
+    phone = '+91 98430 11234', alt_contact = '+91 98430 11235', website = 'https://anandknitfab.in',
+    established_date = '2014-04-01', nature_of_business = 'Knit fabric manufacturing & greige processing',
+    logo_path = 'uploaded'
+  where org_id = a;
+
+  update supplier_profiles set
+    contact_name = 'Harpreet Singh', designation = 'Operations Head', email_language = 'English',
+    phone = '+91 98140 55621', alt_contact = '+91 98140 55622', website = 'https://ludhianawoolworks.in',
+    established_date = '2014-06-15', nature_of_business = 'Woven fabric sourcing & garment CMT',
+    logo_path = 'uploaded'
+  where org_id = b;
+
+  insert into supplier_directors (org_id, name, contact, email, aadhaar_verified, aadhaar_last4) values
+    (a, 'Suresh Anand', '+91 98430 11234', 'suresh@anandknitfab.in', true, '1234'),
+    (b, 'Harpreet Singh', '+91 98140 55621', 'harpreet@ludhianawoolworks.in', true, '5678');
+
+  insert into supplier_financials (org_id, bank_country, bank_name, beneficiary_name, routing_type, routing_code, account_number, billing, legal) values
+    (a, 'India', 'HDFC Bank', 'Anand Knitfab', 'IFSC', 'HDFC0001234', '50100123456789',
+     '{"line1":"Plot 14, SIDCO Industrial Estate","line2":"Kappalur","landmark":"Near Tiruppur Bypass","city":"Tiruppur","state":"Tamil Nadu","pincode":"641687"}'::jsonb,
+     '{"line1":"Plot 14, SIDCO Industrial Estate","line2":"Kappalur","landmark":"Near Tiruppur Bypass","city":"Tiruppur","state":"Tamil Nadu","pincode":"641687","taxCode":"33AACCA1234B1Z5"}'::jsonb),
+    (b, 'India', 'Punjab National Bank', 'Ludhiana Woolworks', 'IFSC', 'PUNB0112300', '01730021456789',
+     '{"line1":"B-42, Focal Point Industrial Area","line2":"Phase VI","landmark":"Near Bus Stand","city":"Ludhiana","state":"Punjab","pincode":"141010"}'::jsonb,
+     '{"line1":"B-42, Focal Point Industrial Area","line2":"Phase VI","landmark":"Near Bus Stand","city":"Ludhiana","state":"Punjab","pincode":"141010","taxCode":"03AACCL5678C1Z9"}'::jsonb);
+
+  update documents set doc_number = '33AACCA1234B1Z5' where org_id = a and doc_type = 'GST';
+  update documents set doc_number = 'AACCA1234B'      where org_id = a and doc_type = 'PAN';
+  update documents set doc_number = '03AACCL5678C1Z9' where org_id = b and doc_type = 'GST';
+  update documents set doc_number = 'AACCL5678C'      where org_id = b and doc_type = 'PAN';
+
+  update certifications set last_audit_date = '2025-03-01', next_audit_date = '2026-03-01',
+    evidence = '[{"fileName":"iso9001-audit-report.pdf"}]'::jsonb
+  where org_id = a and name = 'ISO 9001';
+  update certifications set last_audit_date = '2026-03-12', next_audit_date = '2027-03-12',
+    evidence = '[{"fileName":"vardhman-quality-audit-2026.pdf"}]'::jsonb
+  where org_id = b and name = 'Quality audit';
+end $$;
+reset sourcesutra.reviewer;

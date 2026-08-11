@@ -30,13 +30,19 @@ https://source-sutra-prod.vercel.app.
 live (public `/register` + rich onboarding VendorProfile). `db query --linked -f` remains the way to run any
 remote SQL/seed.
 
+**DONE (2026-08-11, backfill):** Suresh Anand (Anand Knitfab) and Meena Kaur (Ludhiana Woolworks) — the two
+loginable, verified demo suppliers — backfilled with `0009` Identity/Financials detail (contact, designation,
+established date, nature of business, GST/PAN doc numbers, a director, bank + billing address, cert audit
+dates/evidence). Added to `seed.sql` (survives `db reset`) and applied live to cloud via
+`supabase db query --linked -f`. Verified in-browser on both local and prod — VendorProfile now shows real
+values instead of `—`. Anitha Rao (Tiruppur Threads) deliberately left un-onboarded (walk-through account);
+the other 10 directory-only suppliers have no login so their owner-only Identity/Financials are moot.
+
 **NEXT STEPS to resume (optional polish, nothing blocking):**
 1. **Full walk-through on prod/local** — drive ONE new account all the way: Identity submit → Financials →
    Portfolio submit → completed `VendorProfile`. Renders + a Portfolio save were verified; the end-to-end
    multi-section submit-to-done wasn't exhaustively driven.
-2. Seeded suppliers (Suresh etc.) predate `0009`, so their Identity/Financials detail shows `—` until edited —
-   optionally backfill via seed/SQL for a richer demo.
-3. Deferred still: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
+2. Deferred still: dark mode; Create-RFQ multi-step wizard; extract shared UI primitives; BP-2 integrations.
 
 **Deferred (unchanged):** dark mode; Create-RFQ multi-step wizard; extracting shared UI primitives; BP-2 real
 integrations (INT-1…5) + reviewer console (FE-5).
