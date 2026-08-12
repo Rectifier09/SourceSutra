@@ -6,7 +6,7 @@ import { Header } from "@/app/_components/Header";
 import { publishRfq, triageQuote, awardQuote, rejectQuote, inviteSupplier } from "@/app/buyer/actions";
 import { CreateRfqWizard } from "@/app/buyer/_components/CreateRfqWizard";
 import { mapRfqToWizardState } from "@/app/buyer/_components/rfqWizardState";
-import { RfqDetails } from "@/app/_components/RfqDetails";
+import { RfqDetails, Row } from "@/app/_components/RfqDetails";
 
 const RSTATUS: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -37,7 +37,9 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
 
   const { data: quotes } = await supabase
     .from("quotes")
-    .select("id, status, unit_price, currency, supplier_org_id, orgs(name, location)")
+    .select(
+      "id, status, unit_price, currency, supplier_org_id, quantity_fulfil, moq, bulk_lead_time, incoterm, payment_terms, notes, submitted_at, orgs(name, location)"
+    )
     .eq("rfq_id", id)
     .order("unit_price", { ascending: true });
 
@@ -141,22 +143,47 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
                 const terminal = ["awarded", "not_selected", "closed"].includes(q.status);
                 return (
                   <div key={q.id} className="rounded-[12px] border border-line bg-white p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[15px] font-semibold text-ink">{org?.name ?? "Supplier"}</div>
-                        <div className="text-[12px] text-muted">{org?.location ?? ""}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-[18px] font-semibold tabular-nums text-ink">
-                          {q.currency ?? "INR"} {q.unit_price}
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                        <div>
+                          <div className="text-[15px] font-semibold text-ink">{org?.name ?? "Supplier"}</div>
+                          <div className="text-[12px] text-muted">{org?.location ?? ""}</div>
                         </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize ${QSTATUS[q.status] ?? "bg-panel text-muted"}`}
-                        >
-                          {q.status.replace("_", " ")}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="text-[18px] font-semibold tabular-nums text-ink">
+                              {q.currency ?? "INR"} {q.unit_price}
+                            </div>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize ${QSTATUS[q.status] ?? "bg-panel text-muted"}`}
+                            >
+                              {q.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <span className="text-[12px] text-primary group-open:hidden">View details</span>
+                          <span className="hidden text-[12px] text-primary group-open:inline">Hide details</span>
+                        </div>
+                      </summary>
+
+                      <div className="mt-4 border-t border-line pt-4">
+                        <Row
+                          items={[
+                            ["Quantity supplier can fulfil", q.quantity_fulfil ? `${q.quantity_fulfil} ${rfq.unit ?? ""}` : "—"],
+                            ["MOQ", q.moq ?? "—"],
+                            ["Bulk lead time", q.bulk_lead_time ?? "—"],
+                            ["Incoterm", q.incoterm ?? "—"],
+                            ["Payment terms", q.payment_terms ?? "—"],
+                            ["Submitted", q.submitted_at ? new Date(q.submitted_at).toLocaleDateString() : "—"],
+                          ]}
+                        />
+                        {!!q.notes && (
+                          <div className="mt-3">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Notes</div>
+                            <p className="mt-0.5 text-[13.5px] text-ink">{q.notes}</p>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    </details>
 
                     {rfq.status === "active" && !terminal && (
                       <div className="mt-3 flex flex-wrap items-center gap-2">

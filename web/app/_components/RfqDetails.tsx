@@ -24,7 +24,7 @@ function fmtDocs(v: unknown): string {
   return v.map((d: { fileName?: string; docType?: string }) => `${d.fileName ?? "file"} (${d.docType ?? "?"})`).join(", ");
 }
 
-function Row({ items }: { items: [string, string][] }) {
+export function Row({ items }: { items: [string, string][] }) {
   return (
     <dl className={dl}>
       {items.map(([k, v]) => (
