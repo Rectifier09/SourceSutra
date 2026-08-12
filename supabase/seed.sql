@@ -532,3 +532,25 @@ begin
     (panipat_t,  'standard', 'Responsible Materials', 'FSC', 'Control Union', 'FSC-CU-2025-6610', 'Hangtags and packaging cartons sourced from FSC-certified paper.', '2025-01-15', '2028-01-14', false, 'verified');
 end $$;
 reset sourcesutra.reviewer;
+
+-- ============================================================================
+-- Migration 0015 backfill: SignUp/ProfileCreated only fire going forward, from
+-- provision_account() — the 10 directory-only supplier orgs above are plain
+-- `insert into orgs`, never provisioned through that trigger (no login), so
+-- they'd otherwise show a permanent "Sign up: 0" on the /admin funnel despite
+-- being real seeded suppliers. Backfill one SignUp (+ ProfileCreated for
+-- buyers) per org that doesn't already have one, backdated to the org's own
+-- created_at so a future signups-over-time view isn't skewed to "now". Guarded
+-- by NOT EXISTS so this is safe to re-run and doesn't double up the events
+-- already emitted live by provision_account for the loginable demo accounts.
+-- ============================================================================
+insert into domain_events (type, org_id, payload, created_at)
+select 'SignUp', o.id, jsonb_build_object('kind', o.kind), o.created_at
+from orgs o
+where not exists (select 1 from domain_events de where de.type = 'SignUp' and de.org_id = o.id);
+
+insert into domain_events (type, org_id, payload, created_at)
+select 'ProfileCreated', o.id, '{}'::jsonb, o.created_at
+from orgs o
+where o.kind = 'buyer'
+  and not exists (select 1 from domain_events de where de.type = 'ProfileCreated' and de.org_id = o.id);
