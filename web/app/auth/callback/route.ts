@@ -14,10 +14,20 @@ import { createClient } from "@/lib/supabase/server";
 // which could misroute a user straight to their dashboard (skipping
 // /onboarding/finish entirely) on any retry — profiles.oauth_pending is a
 // single, unambiguous source of truth instead.
+//
+// role arrives via a cookie (RegisterForm), not a redirectTo query string —
+// Supabase's redirect-URL allow-list match requires redirectTo to exactly
+// equal an allow-listed entry; appending ?role=... made it stop matching, and
+// Supabase's failure mode is to silently redirect to the first allow-listed
+// URL instead of erroring, dropping the user on the homepage with an
+// unconsumed auth code (confirmed by driving a real Google sign-in and
+// tracing the network — the browser landed on "/?code=..." with the code
+// never exchanged). A cookie survives the Google round-trip without being
+// part of the redirect URL Supabase validates.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const role = searchParams.get("role") === "supplier" ? "supplier" : "buyer";
+  const role = request.cookies.get("oauth_role")?.value === "supplier" ? "supplier" : "buyer";
   const oauthError = searchParams.get("error_description") || searchParams.get("error");
 
   if (oauthError) {
@@ -35,9 +45,11 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase.from("profiles").select("role, oauth_pending").eq("id", data.user.id).maybeSingle();
 
-  if (!profile || profile.oauth_pending) {
-    return NextResponse.redirect(`${origin}/onboarding/finish?role=${role}`);
-  }
-
-  return NextResponse.redirect(`${origin}${profile.role === "supplier" ? "/supplier" : "/buyer"}`);
+  const response = NextResponse.redirect(
+    !profile || profile.oauth_pending
+      ? `${origin}/onboarding/finish?role=${role}`
+      : `${origin}${profile.role === "supplier" ? "/supplier" : "/buyer"}`,
+  );
+  response.cookies.delete("oauth_role");
+  return response;
 }

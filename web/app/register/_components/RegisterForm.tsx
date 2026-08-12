@@ -76,10 +76,19 @@ export function RegisterForm({ initialRole }: { initialRole: "buyer" | "supplier
   const continueWithGoogle = async () => {
     setGoogleError(null);
     setGoogleLoading(true);
+    // Supabase's redirect-URL allow-list match failed whenever redirectTo carried a
+    // query string (?role=...) — it doesn't match the allow-listed bare path, and
+    // Supabase silently falls back to the first configured URL instead of erroring,
+    // dropping the user on the homepage with an unconsumed auth code. redirectTo
+    // must be the exact allow-listed URL with nothing appended; carry role via a
+    // short-lived cookie instead, read by /auth/callback (a plain server route, so
+    // cookies work — sessionStorage would not, since that's browser-only state a
+    // server route can't see).
+    document.cookie = `oauth_role=${role}; path=/; max-age=600; SameSite=Lax`;
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?role=${role}` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     // On success the browser navigates to Google — nothing left to do here.
     if (error) {
