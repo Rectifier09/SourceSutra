@@ -94,7 +94,11 @@ export default async function AdminEventsPage() {
 
       <div className="mt-8 flex flex-col gap-8">
         {FUNNEL.map((section) => {
-          const first = countMap.get(key(section.rows[0].type, section.rows[0].kind)) ?? 0;
+          // Anchor % to the first row that actually has data, not always rows[0] —
+          // e.g. "Sign up" reads 0 for accounts that predate this migration, which
+          // would otherwise blank out every %-of-first-step cell in the funnel.
+          const counts = section.rows.map((r) => countMap.get(key(r.type, r.kind)) ?? 0);
+          const anchor = counts.find((c) => c > 0) ?? 0;
           return (
             <div key={section.persona} className="rounded-[14px] border border-line bg-cream p-6">
               <h2 className="font-display text-[18px] font-medium text-ink">{section.persona}</h2>
@@ -103,13 +107,13 @@ export default async function AdminEventsPage() {
                   <tr className="border-b border-line text-left text-[11px] font-semibold uppercase tracking-wide text-muted">
                     <th className="py-2 pr-4">Event</th>
                     <th className="py-2 pr-4 text-right">Count</th>
-                    <th className="py-2 text-right">% of first step</th>
+                    <th className="py-2 text-right">% of first tracked step</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {section.rows.map((r) => {
-                    const count = countMap.get(key(r.type, r.kind)) ?? 0;
-                    const pct = first > 0 ? Math.round((count / first) * 1000) / 10 : null;
+                  {section.rows.map((r, i) => {
+                    const count = counts[i];
+                    const pct = anchor > 0 ? Math.round((count / anchor) * 1000) / 10 : null;
                     return (
                       <tr key={r.label} className="border-b border-line/60 last:border-0">
                         <td className="py-2 pr-4 text-ink">{r.label}</td>
