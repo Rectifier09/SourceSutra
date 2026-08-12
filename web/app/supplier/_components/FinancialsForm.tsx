@@ -17,19 +17,19 @@ type Mgt = { year: string; uploaded: boolean; storagePath?: string; fileName?: s
 type SingleDoc = { uploaded: boolean; storagePath?: string; fileName?: string };
 type OtherDoc = { fileName: string; storagePath?: string };
 
-function AddressGrid({ v, on, tax }: { v: Addr; on: (k: string, val: string) => void; tax?: boolean }) {
-  const cell = "rounded-lg border border-line bg-white px-3 py-2.5 text-[14px]";
+function AddressGrid({ v, on, tax, disabled }: { v: Addr; on: (k: string, val: string) => void; tax?: boolean; disabled?: boolean }) {
+  const cell = `rounded-lg border border-line bg-white px-3 py-2.5 text-[14px] ${disabled ? "cursor-not-allowed opacity-60" : ""}`;
   return (
     <div className="flex flex-col gap-3">
-      <input value={v.line1 ?? ""} onChange={(e) => on("line1", e.target.value)} placeholder="Address line 1 *" className={cell} />
-      <input value={v.line2 ?? ""} onChange={(e) => on("line2", e.target.value)} placeholder="Address line 2" className={cell} />
+      <input disabled={disabled} value={v.line1 ?? ""} onChange={(e) => on("line1", e.target.value)} placeholder="Address line 1 *" className={cell} />
+      <input disabled={disabled} value={v.line2 ?? ""} onChange={(e) => on("line2", e.target.value)} placeholder="Address line 2" className={cell} />
       <div className="flex flex-wrap gap-3">
-        <input value={v.landmark ?? ""} onChange={(e) => on("landmark", e.target.value)} placeholder="Landmark" className={`${cell} flex-1`} style={{ minWidth: 160 }} />
-        <input value={v.city ?? ""} onChange={(e) => on("city", e.target.value)} placeholder="City *" className={`${cell} flex-1`} style={{ minWidth: 120 }} />
-        <input value={v.state ?? ""} onChange={(e) => on("state", e.target.value)} placeholder="State *" className={`${cell} flex-1`} style={{ minWidth: 120 }} />
-        <input value={v.pincode ?? ""} onChange={(e) => on("pincode", e.target.value)} placeholder="Pincode *" className={`${cell} flex-1`} style={{ minWidth: 90 }} />
+        <input disabled={disabled} value={v.landmark ?? ""} onChange={(e) => on("landmark", e.target.value)} placeholder="Landmark" className={`${cell} flex-1`} style={{ minWidth: 160 }} />
+        <input disabled={disabled} value={v.city ?? ""} onChange={(e) => on("city", e.target.value)} placeholder="City *" className={`${cell} flex-1`} style={{ minWidth: 120 }} />
+        <input disabled={disabled} value={v.state ?? ""} onChange={(e) => on("state", e.target.value)} placeholder="State *" className={`${cell} flex-1`} style={{ minWidth: 120 }} />
+        <input disabled={disabled} value={v.pincode ?? ""} onChange={(e) => on("pincode", e.target.value)} placeholder="Pincode *" className={`${cell} flex-1`} style={{ minWidth: 90 }} />
       </div>
-      {tax && <input value={v.taxCode ?? ""} onChange={(e) => on("taxCode", e.target.value)} placeholder="Tax code" className={cell} />}
+      {tax && <input disabled={disabled} value={v.taxCode ?? ""} onChange={(e) => on("taxCode", e.target.value)} placeholder="Tax code" className={cell} />}
     </div>
   );
 }
@@ -53,6 +53,19 @@ export function FinancialsForm({
   const [confirmAcct, setConfirmAcct] = useState(initial.accountNumber);
   const [billing, setBilling] = useState<Addr>(initial.billing ?? {});
   const [legal, setLegal] = useState<Addr>(initial.legal ?? {});
+  const [billingSameAsLegal, setBillingSameAsLegal] = useState(false);
+
+  const setLegalField = (k: string, val: string) => {
+    setLegal((l) => {
+      const next = { ...l, [k]: val };
+      if (billingSameAsLegal) setBilling(next);
+      return next;
+    });
+  };
+  const toggleBillingSameAsLegal = (checked: boolean) => {
+    setBillingSameAsLegal(checked);
+    if (checked) setBilling(legal);
+  };
   const [taxDoc, setTaxDoc] = useState<SingleDoc>(singleDocs.taxDoc);
   const [mgt7, setMgt7] = useState<Mgt[]>(initialMgt);
   const [signedForm, setSignedForm] = useState<SingleDoc>(singleDocs.signedForm);
@@ -93,7 +106,7 @@ export function FinancialsForm({
     billing, legal, mgt7, signedForm, rpt, taxDoc, otherDocs: other,
   });
 
-  const canSubmit = !!(f.bankName && f.beneficiaryName && f.routingCode && f.accountNumber && !acctMismatch) && mgt7.filter((m) => m.uploaded).length >= 3;
+  const canSubmit = !!(f.bankName && f.beneficiaryName && f.routingCode && f.accountNumber && !acctMismatch);
 
   const save = () => start(async () => { await saveFinancials(payload()); });
   const submit = () => start(async () => { await saveFinancials(payload()); await submitOnboardingSection("financials"); router.push("/supplier"); });
@@ -187,13 +200,17 @@ export function FinancialsForm({
       {/* Billing address */}
       <div className={`${cardCls} mb-5`}>
         <h2 className="mb-4 font-display text-[18px] font-medium text-ink">Billing address</h2>
-        <AddressGrid v={billing} on={(k, val) => setBilling((b) => ({ ...b, [k]: val }))} />
+        <AddressGrid v={billing} on={(k, val) => setBilling((b) => ({ ...b, [k]: val }))} disabled={billingSameAsLegal} />
       </div>
 
       {/* Legal entity address */}
       <div className={`${cardCls} mb-5`}>
         <h2 className="mb-4 font-display text-[18px] font-medium text-ink">Legal entity address</h2>
-        <AddressGrid v={legal} on={(k, val) => setLegal((l) => ({ ...l, [k]: val }))} tax />
+        <label className="mb-3.5 flex items-center gap-2 text-[13px] text-muted">
+          <input type="checkbox" checked={billingSameAsLegal} onChange={(e) => toggleBillingSameAsLegal(e.target.checked)} />
+          Billing address same as legal entity address
+        </label>
+        <AddressGrid v={legal} on={setLegalField} tax />
         <div className="mt-4">
           <UploadRow label="Tax documents" doc={taxDoc} onFile={uploadSingle("tax-doc", setTaxDoc)} onRemove={removeSingle(taxDoc, setTaxDoc)} />
         </div>
@@ -202,7 +219,7 @@ export function FinancialsForm({
       {/* Company documents */}
       <div className={`${cardCls} mb-5`}>
         <h2 className="mb-1 font-display text-[18px] font-medium text-ink">Company documents</h2>
-        <div className="mb-3 text-[13px] font-semibold text-muted">Form MGT-7 with challan — last three financial years {req}</div>
+        <div className="mb-3 text-[13px] font-semibold text-muted">Form MGT-7 with challan — last three financial years <span className="font-normal text-muted">(optional)</span></div>
         <div className="mb-5 flex flex-col gap-2.5">
           {mgt7.map((m, i) => (
             <div key={m.year} className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-3.5 py-2.5">

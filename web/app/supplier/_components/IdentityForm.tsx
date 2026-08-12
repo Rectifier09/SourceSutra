@@ -46,6 +46,10 @@ export function IdentityForm({
   const [aadhaarV, setAadhaarV] = useState(verified.aadhaar);
   const [aLast4, setALast4] = useState(verified.aadhaarLast4);
   const [stage, setStage] = useState<{ email: boolean; phone: boolean; aadhaar: boolean }>({ email: false, phone: false, aadhaar: false });
+  // Aadhaar numbers are only ever used locally to request/confirm the OTP — never
+  // sent to payload()/saved, matching "never the Aadhaar number itself" below.
+  const [aadhaarNum, setAadhaarNum] = useState("");
+  const [dirAadhaarNum, setDirAadhaarNum] = useState<Record<number, string>>({});
 
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const setDoc = (i: number, patch: Partial<Doc>) => setDocs((d) => d.map((x, j) => (j === i ? { ...x, ...patch } : x)));
@@ -143,7 +147,10 @@ export function IdentityForm({
                 <button onClick={() => confirm("aadhaar")} className="rounded-md bg-primary px-3.5 py-2 text-[13px] text-cream hover:opacity-90">Confirm</button>
               </div>
             ) : (
-              <button onClick={() => setStage((s) => ({ ...s, aadhaar: true }))} className="rounded-[7px] border border-primary bg-white px-4 py-2 text-[13.5px] text-primary hover:bg-lav1">Verify via Aadhaar OTP</button>
+              <div className="flex flex-wrap items-center gap-2">
+                <input value={aadhaarNum} onChange={(e) => setAadhaarNum(e.target.value)} placeholder="Aadhaar number" maxLength={12} className="w-[170px] rounded-md border border-line bg-white px-2.5 py-2 text-[13.5px]" />
+                <button onClick={() => setStage((s) => ({ ...s, aadhaar: true }))} className="rounded-[7px] border border-primary bg-white px-4 py-2 text-[13.5px] text-primary hover:bg-lav1">Verify via Aadhaar OTP</button>
+              </div>
             )}
             <div className="mt-2 text-[11.5px] text-muted">Only the verification result is kept — never the Aadhaar number or a copy of the card.</div>
           </div>
@@ -212,7 +219,16 @@ export function IdentityForm({
               {d.aadhaarVerified ? (
                 <div className="text-[12.5px] font-semibold text-sage">✓ Verified via Aadhaar OTP — XXXX-XXXX-{d.aadhaarLast4 || "••••"}</div>
               ) : (
-                <button onClick={() => setDirs((x) => x.map((y, j) => (j === i ? { ...y, aadhaarVerified: true, aadhaarLast4: rand4() } : y)))} className="rounded-md border border-primary bg-white px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">Verify via Aadhaar OTP</button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={dirAadhaarNum[i] ?? ""}
+                    onChange={(e) => setDirAadhaarNum((m) => ({ ...m, [i]: e.target.value }))}
+                    placeholder="Aadhaar number"
+                    maxLength={12}
+                    className="w-[160px] rounded-md border border-line px-3 py-1.5 text-[12.5px]"
+                  />
+                  <button onClick={() => setDirs((x) => x.map((y, j) => (j === i ? { ...y, aadhaarVerified: true, aadhaarLast4: rand4() } : y)))} className="rounded-md border border-primary bg-white px-3 py-1.5 text-[12.5px] text-primary hover:bg-lav1">Verify via Aadhaar OTP</button>
+                </div>
               )}
             </div>
           ))}

@@ -306,6 +306,7 @@ export function CreateRfqWizard({
   };
 
   const requiredDone = [step1Valid, step2Valid, step3Valid, step4Valid].filter(Boolean).length;
+  const currentStepValid = [step1Valid, step2Valid, step3Valid, step4Valid][step - 1] ?? true;
 
   const filteredSuppliers = useMemo(() => {
     const q = supplierSearch.trim().toLowerCase();
@@ -361,13 +362,17 @@ export function CreateRfqWizard({
           Save as draft
         </button>
         {step < 5 ? (
-          <button
-            type="button"
-            onClick={() => setStep((x) => x + 1)}
-            className="rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90"
-          >
-            Next
-          </button>
+          <div className="flex flex-col items-end gap-1.5">
+            {!currentStepValid && <span className="text-[12px] text-terra">Fill in the required fields to continue.</span>}
+            <button
+              type="button"
+              onClick={() => setStep((x) => x + 1)}
+              disabled={!currentStepValid}
+              className="rounded-lg bg-primary px-5 py-2.5 text-[13.5px] font-semibold text-cream hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         ) : (
           <button
             type="button"

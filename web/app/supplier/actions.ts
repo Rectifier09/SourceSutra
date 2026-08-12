@@ -229,7 +229,10 @@ export type PortfolioPayload = {
   capabilities: string[];
   products: { name: string; category: string; material: string; moq: string; priceRange: string }[];
   facilityPhotos: { fileName: string; storagePath?: string }[];
-  workHistory: { clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string }[];
+  workHistory: {
+    clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string;
+    website?: string; evidenceStoragePath?: string; evidenceFileName?: string;
+  }[];
   catalogue: { fileName: string; storagePath?: string }[];
   tags: string[];
   certs: {
@@ -249,6 +252,7 @@ export type PortfolioPayload = {
     auditType: string;
     auditDate: string;
     outcome: string;
+    docStoragePath?: string;
   }[];
 };
 
@@ -280,6 +284,9 @@ export async function savePortfolio(p: PortfolioPayload) {
         start: w.startYear,
         end: w.endYear,
         desc: w.description,
+        website: w.website || null,
+        evidencePath: w.evidenceStoragePath || null,
+        evidenceFileName: w.evidenceFileName || null,
       })),
       catalogue: (p.catalogue ?? []).map((c) => ({ fileName: c.fileName, path: c.storagePath || null })),
       tags: p.tags ?? [],
@@ -314,6 +321,7 @@ export async function savePortfolio(p: PortfolioPayload) {
         audit_type: isAudit ? c.auditType || null : null,
         audit_date: isAudit ? c.auditDate || null : null,
         audit_outcome: isAudit ? OUTCOME_MAP[c.outcome] ?? "pending" : null,
+        storage_path: c.docStoragePath || null,
       };
     });
   if (certs.length) {

@@ -8,6 +8,7 @@ import { FinancialsForm } from "./_components/FinancialsForm";
 import { PortfolioForm } from "./_components/PortfolioForm";
 import { VendorProfile } from "./_components/VendorProfile";
 import { BasicsForm } from "./_components/BasicsForm";
+import { ONBOARDING_BUCKET } from "@/lib/upload";
 
 const BANNER = "linear-gradient(rgba(250,248,244,0.2),rgba(250,248,244,0.32)), url('/img/onboarding-banner.png')";
 
@@ -181,6 +182,9 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
               startYear: w.start ?? "",
               endYear: w.end ?? "",
               description: w.desc ?? "",
+              website: w.website ?? "",
+              evidenceStoragePath: w.evidencePath ?? undefined,
+              evidenceFileName: w.evidenceFileName ?? undefined,
             })),
             catalogue: (p.catalogue ?? []).map((c: any) => ({ fileName: c.fileName ?? "image.jpg", storagePath: c.path ?? undefined })),
             tags: p.tags ?? [],
@@ -211,6 +215,9 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
                     : c.audit_outcome
                       ? "Pending"
                       : "",
+            docUploaded: !!c.storage_path,
+            docStoragePath: c.storage_path ?? undefined,
+            docFileName: basename(c.storage_path),
           }))}
         />
       </>
@@ -234,6 +241,20 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
 
   // ── Completed → vendor profile view ─────────────────────────────────────
   if (completed) {
+    const catalogueItems: { fileName: string; path?: string }[] = (p.catalogue ?? []).map((c: any) => ({
+      fileName: c.fileName ?? "image",
+      path: c.path ?? undefined,
+    }));
+    const cataloguePaths = catalogueItems.map((c) => c.path).filter((path): path is string => !!path);
+    const { data: signedCatalogue } =
+      cataloguePaths.length > 0
+        ? await supabase.storage.from(ONBOARDING_BUCKET).createSignedUrls(cataloguePaths, 3600)
+        : { data: null };
+    const urlByPath: Record<string, string> = {};
+    (signedCatalogue ?? []).forEach((s: any) => {
+      if (s.signedUrl && s.path) urlByPath[s.path] = s.signedUrl;
+    });
+
     return (
       <>
         <Header me={me} />
@@ -250,7 +271,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
           bankName={financials?.bank_name ?? ""}
           accountMasked={financials?.account_number ? `••••${String(financials.account_number).slice(-4)}` : "—"}
           billingLocation={[financials?.billing?.city, financials?.billing?.state].filter(Boolean).join(", ") || "—"}
-          catalogue={(p.catalogue ?? []).map((c: any) => c.fileName ?? "image")}
+          catalogue={catalogueItems.map((c) => ({ fileName: c.fileName, url: c.path ? urlByPath[c.path] : undefined }))}
           workHistory={(p.work_history ?? []).map((w: any) => ({
             client: w.client ?? "",
             role: w.role ?? "",

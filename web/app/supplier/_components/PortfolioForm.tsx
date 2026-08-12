@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { savePortfolio, submitOnboardingSection } from "@/app/supplier/actions";
-import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
+import { uploadOnboardingFile, removeOnboardingFile, getOnboardingFileUrl } from "@/lib/upload";
 
 const CAPABILITIES = ["Fabric", "Colour", "GSM", "Fit", "Labels", "Hangtags", "Hardware", "Packaging", "Pattern", "Embroidery", "Printing"];
 const CERT_CATEGORIES = ["Quality Management", "Environmental Management", "Health & Safety", "Social Compliance", "Sustainable & Organic Textiles", "Recycled Materials", "Chemical & Product Safety", "Responsible Materials", "Indian Regulatory & Legal Compliance", "Buyer / Brand Audits", "Other"];
@@ -21,14 +21,25 @@ const cardCls = "rounded-[14px] border border-line bg-cream p-6";
 const req = <span className="text-terra">*</span>;
 
 type Product = { name: string; category: string; material: string; moq: string; priceRange: string };
-type Work = { clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string };
+type Work = {
+  clientName: string; role: string; frequency: string; startYear: string; endYear: string; description: string;
+  website?: string; evidenceStoragePath?: string; evidenceFileName?: string;
+};
 type MediaItem = { fileName: string; storagePath?: string };
 type Cert = {
   category: string; name: string; number: string; issuingBody: string; scope: string; facility: string;
   issueDate: string; expiryDate: string; doesNotExpire: boolean; lastAuditDate: string; nextAuditDate: string;
   verificationUrl: string; buyerName: string; auditType: string; auditDate: string; outcome: string;
+  docUploaded: boolean; docStoragePath?: string; docFileName?: string;
 };
-const emptyCert = (): Cert => ({ category: "", name: "", number: "", issuingBody: "", scope: "", facility: "", issueDate: "", expiryDate: "", doesNotExpire: false, lastAuditDate: "", nextAuditDate: "", verificationUrl: "", buyerName: "", auditType: "", auditDate: "", outcome: "" });
+function websiteHost(url: string): string {
+  try {
+    return new URL(url.includes("://") ? url : `https://${url}`).hostname;
+  } catch {
+    return url;
+  }
+}
+const emptyCert = (): Cert => ({ category: "", name: "", number: "", issuingBody: "", scope: "", facility: "", issueDate: "", expiryDate: "", doesNotExpire: false, lastAuditDate: "", nextAuditDate: "", verificationUrl: "", buyerName: "", auditType: "", auditDate: "", outcome: "", docUploaded: false });
 
 export function PortfolioForm({
   orgId,
@@ -59,6 +70,30 @@ export function PortfolioForm({
   const [cat, setCat] = useState<MediaItem[]>(initial.catalogue ?? []);
   const [tags, setTags] = useState<string[]>(initial.tags ?? []);
   const [tagDraft, setTagDraft] = useState("");
+  const [urlMap, setUrlMap] = useState<Record<string, string>>({});
+
+  // Bucket is private — every uploaded image needs a signed URL to actually render.
+  useEffect(() => {
+    const paths = [logo.storagePath, ...photos.map((p) => p.storagePath), ...cat.map((c) => c.storagePath)].filter(
+      (p): p is string => !!p,
+    );
+    const missing = paths.filter((p) => !(p in urlMap));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(missing.map(async (p) => [p, await getOnboardingFileUrl(p)] as const));
+      if (cancelled) return;
+      setUrlMap((m) => {
+        const next = { ...m };
+        for (const [p, url] of entries) if (url) next[p] = url;
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logo.storagePath, photos, cat]);
 
   const setPr = (i: number, k: keyof Product, v: string) => setProducts((x) => x.map((y, j) => (j === i ? { ...y, [k]: v } : y)));
   const setW = (i: number, k: keyof Work, v: string) => setWork((x) => x.map((y, j) => (j === i ? { ...y, [k]: v } : y)));
@@ -92,6 +127,27 @@ export function PortfolioForm({
     void removeOnboardingFile(cat[i].storagePath);
     setCat((c) => c.filter((_, j) => j !== i));
   };
+  const uploadCertDoc = (i: number) => (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "portfolio", `cert-${i + 1}`, file);
+      setC(i, { docUploaded: true, docStoragePath: path, docFileName: file.name });
+    });
+  const removeCertDoc = (i: number) => {
+    const path = certs[i].docStoragePath;
+    setC(i, { docUploaded: false, docStoragePath: undefined, docFileName: undefined });
+    void removeOnboardingFile(path);
+  };
+  const uploadWorkEvidence = (i: number) => (file: File) =>
+    start(async () => {
+      const path = await uploadOnboardingFile(orgId, "portfolio", `work-evidence-${i + 1}`, file);
+      setW(i, "evidenceStoragePath", path);
+      setW(i, "evidenceFileName", file.name);
+    });
+  const removeWorkEvidence = (i: number) => {
+    void removeOnboardingFile(work[i].evidenceStoragePath);
+    setW(i, "evidenceStoragePath", "");
+    setW(i, "evidenceFileName", "");
+  };
 
   const payload = () => ({
     mission, logoUploaded: logo.uploaded, logoPath: logo.storagePath, production: prod, tradeTerms: trade, capabilities: caps,
@@ -112,12 +168,16 @@ export function PortfolioForm({
 
   const Tiles = ({ items, onAddFile, onRemove, addLabel, withName }: { items: MediaItem[]; onAddFile: (file: File) => void; onRemove: (i: number) => void; addLabel: string; withName?: boolean }) => (
     <div className="flex flex-wrap gap-3.5">
-      {items.map((it, i) => (
-        <div key={i} className="relative h-[140px] w-[140px] overflow-hidden rounded-[10px] border border-line" style={{ background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>
-          {withName && <div className="absolute bottom-0 w-full truncate bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{it.fileName}</div>}
-          <button onClick={() => onRemove(i)} className="absolute right-1 top-1 flex h-[22px] w-[22px] items-center justify-center rounded-md text-[13px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
-        </div>
-      ))}
+      {items.map((it, i) => {
+        const url = it.storagePath ? urlMap[it.storagePath] : undefined;
+        return (
+          <div key={i} className="relative h-[140px] w-[140px] overflow-hidden rounded-[10px] border border-line" style={url ? undefined : { background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>
+            {url && <img src={url} alt={it.fileName} className="h-full w-full object-cover" />}
+            {withName && <div className="absolute bottom-0 w-full truncate bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{it.fileName}</div>}
+            <button onClick={() => onRemove(i)} className="absolute right-1 top-1 flex h-[22px] w-[22px] items-center justify-center rounded-md text-[13px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
+          </div>
+        );
+      })}
       <label className="flex h-[140px] w-[140px] cursor-pointer items-center justify-center rounded-[10px] border border-dashed border-lav3 bg-panel text-center text-[13px] text-primary hover:bg-lav1">
         {pending ? "Uploading…" : addLabel}
         <input
@@ -156,7 +216,11 @@ export function PortfolioForm({
             <div className="relative h-24 w-24 overflow-hidden rounded-[14px] border border-line">
               {logo.uploaded ? (
                 <>
-                  <div className="flex h-full w-full items-center justify-center font-display text-[13px] text-primary" style={{ background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>Logo</div>
+                  {logo.storagePath && urlMap[logo.storagePath] ? (
+                    <img src={urlMap[logo.storagePath]} alt="Company logo" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-display text-[13px] text-primary" style={{ background: "repeating-linear-gradient(135deg,#EDECF6,#EDECF6 8px,#E4E2F0 8px,#E4E2F0 16px)" }}>Logo</div>
+                  )}
                   <button onClick={removeLogo} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-md text-[12px] text-cream" style={{ background: "rgba(32,32,43,0.7)" }}>×</button>
                 </>
               ) : (
@@ -313,6 +377,29 @@ export function PortfolioForm({
                         <input value={ct.verificationUrl} onChange={(e) => setC(i, { verificationUrl: e.target.value })} placeholder="Verification URL (optional)" className={smallInput} />
                       </>
                     )}
+                    <div className="rounded-lg border border-line bg-panel p-3">
+                      <div className="mb-1.5 text-[12.5px] font-semibold text-muted">Certificate / licence document</div>
+                      {ct.docUploaded ? (
+                        <div className="flex items-center gap-2.5 text-[12.5px] text-ink">
+                          📄 {ct.docFileName ?? "document.pdf"}
+                          <button onClick={() => removeCertDoc(i)} className="text-terra">Remove</button>
+                        </div>
+                      ) : (
+                        <label className="inline-block cursor-pointer rounded-[7px] border border-dashed border-lav3 bg-white px-3 py-1.5 text-[12px] text-primary hover:bg-lav1">
+                          {pending ? "Uploading…" : "Upload document"}
+                          <input
+                            type="file"
+                            className="hidden"
+                            disabled={pending}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadCertDoc(i)(file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
                     <button onClick={() => setCerts((x) => x.filter((_, j) => j !== i))} className="self-start text-[12.5px] text-terra">Remove record</button>
                   </div>
                 )}
@@ -354,7 +441,40 @@ export function PortfolioForm({
                     <input value={w.startYear} onChange={(e) => setW(i, "startYear", e.target.value)} placeholder="Start year" className={`${smallInput} flex-1`} />
                     <input value={w.endYear} onChange={(e) => setW(i, "endYear", e.target.value)} placeholder="End year (or present)" className={`${smallInput} flex-1`} />
                   </div>
+                  <div className="flex items-center gap-2.5">
+                    {w.website && (
+                      <img
+                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(websiteHost(w.website))}&sz=64`}
+                        alt=""
+                        className="h-6 w-6 shrink-0 rounded"
+                      />
+                    )}
+                    <input value={w.website ?? ""} onChange={(e) => setW(i, "website", e.target.value)} placeholder="Client website (optional)" className={`${smallInput} flex-1`} />
+                  </div>
                   <textarea value={w.description} maxLength={1000} onChange={(e) => setW(i, "description", e.target.value)} placeholder="Provide details of the engagement" rows={3} className={`${smallInput} resize-y`} />
+                  <div className="rounded-lg border border-line bg-panel p-3">
+                    <div className="mb-1.5 text-[12.5px] font-semibold text-muted">Supporting evidence — PO, invoice, or any other proof of relationship</div>
+                    {w.evidenceStoragePath ? (
+                      <div className="flex items-center gap-2.5 text-[12.5px] text-ink">
+                        📄 {w.evidenceFileName ?? "evidence.pdf"}
+                        <button onClick={() => removeWorkEvidence(i)} className="text-terra">Remove</button>
+                      </div>
+                    ) : (
+                      <label className="inline-block cursor-pointer rounded-[7px] border border-dashed border-lav3 bg-white px-3 py-1.5 text-[12px] text-primary hover:bg-lav1">
+                        {pending ? "Uploading…" : "Upload evidence"}
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={pending}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadWorkEvidence(i)(file);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[11.5px] text-muted">{w.description.length}/1000</span>
                     <button onClick={() => setWork((x) => x.filter((_, j) => j !== i))} className="text-[12.5px] text-terra">Remove engagement</button>

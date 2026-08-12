@@ -31,7 +31,7 @@ export function VendorProfile({
   bankName: string;
   accountMasked: string;
   billingLocation: string;
-  catalogue: string[];
+  catalogue: { fileName: string; url?: string }[];
   workHistory: { client: string; role: string; start: string; end: string; desc: string }[];
   tags: string[];
 }) {
@@ -118,8 +118,9 @@ export function VendorProfile({
           <div className="flex flex-wrap gap-3.5">
             {catalogue.length === 0 && <p className="text-[13px] text-muted">No catalogue images yet.</p>}
             {catalogue.map((c, i) => (
-              <div key={i} className="flex h-[160px] w-[160px] items-end overflow-hidden rounded-[12px] border border-lav2" style={{ background: "repeating-linear-gradient(135deg,#FAF8F4,#FAF8F4 8px,#F2EEE6 8px,#F2EEE6 16px)" }}>
-                <div className="w-full bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{c}</div>
+              <div key={i} className="relative flex h-[160px] w-[160px] items-end overflow-hidden rounded-[12px] border border-lav2" style={c.url ? undefined : { background: "repeating-linear-gradient(135deg,#FAF8F4,#FAF8F4 8px,#F2EEE6 8px,#F2EEE6 16px)" }}>
+                {c.url && <img src={c.url} alt={c.fileName} className="absolute inset-0 h-full w-full object-cover" />}
+                <div className="relative w-full bg-primary/85 px-2 py-1.5 text-[11px] text-cream">{c.fileName}</div>
               </div>
             ))}
           </div>

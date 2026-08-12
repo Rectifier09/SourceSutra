@@ -26,3 +26,13 @@ export async function removeOnboardingFile(path: string | undefined | null) {
   const supabase = createClient();
   await supabase.storage.from(ONBOARDING_BUCKET).remove([path]);
 }
+
+// The bucket is private (migration 0010), so uploaded images need a signed URL
+// to actually render — a bare storage path is never fetchable directly.
+export async function getOnboardingFileUrl(path: string | undefined | null): Promise<string | null> {
+  if (!path) return null;
+  const supabase = createClient();
+  const { data, error } = await supabase.storage.from(ONBOARDING_BUCKET).createSignedUrl(path, 3600);
+  if (error) return null;
+  return data.signedUrl;
+}

@@ -13,13 +13,16 @@ function ago(iso: string): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export default async function Inbox() {
+export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
   const me = await getMe();
   if (!me) redirect("/login");
 
+  const { filter } = await searchParams;
+  const showUnreadOnly = filter === "unread";
+
   const supabase = await createClient();
   // in_app only — notify() also writes an 'email' row per event (BP-2 delivery).
-  const { data: notes } = await supabase
+  const { data: allNotes } = await supabase
     .from("notifications")
     .select("id, type, title, body, read_at, created_at, ref_rfq_id")
     .eq("channel", "in_app")
@@ -27,7 +30,11 @@ export default async function Inbox() {
     .limit(100);
 
   const rfqBase = me.role === "buyer" ? "/buyer/rfqs" : "/supplier/rfqs";
-  const hasUnread = (notes ?? []).some((n: any) => !n.read_at);
+  const hasUnread = (allNotes ?? []).some((n: any) => !n.read_at);
+  const notes = showUnreadOnly ? (allNotes ?? []).filter((n: any) => !n.read_at) : allNotes;
+
+  const tabCls = (active: boolean) =>
+    `rounded-full px-3.5 py-1.5 text-[13px] font-medium ${active ? "bg-primary text-cream" : "text-muted hover:bg-panel"}`;
 
   return (
     <>
@@ -40,6 +47,11 @@ export default async function Inbox() {
               <button className="text-[13px] text-primary hover:underline">Mark all read</button>
             </form>
           )}
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <Link href="/inbox" className={tabCls(!showUnreadOnly)}>All</Link>
+          <Link href="/inbox?filter=unread" className={tabCls(showUnreadOnly)}>Unread</Link>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
@@ -83,7 +95,7 @@ export default async function Inbox() {
           })}
           {(!notes || notes.length === 0) && (
             <div className="rounded-[12px] border border-dashed border-line px-5 py-12 text-center text-[14px] text-muted">
-              No notifications yet.
+              {showUnreadOnly ? "No unread notifications." : "No notifications yet."}
             </div>
           )}
         </div>
