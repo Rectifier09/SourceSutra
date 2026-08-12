@@ -2,35 +2,84 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-12 (supplier Dashboard/Profile merge + real OAuth root cause found, commit `3b50514`).**
+> **Last updated 2026-08-12 (Google OAuth debugging in progress, commit `2cc1ded`, NOT yet confirmed fixed).**
 
 ---
 
-## ▶ LATEST (2026-08-12)
+## ▶ RESUME HERE — Google OAuth: two real bugs found & fixed, one still unresolved
 
-**Google OAuth "redirected to landing page" — real root cause found, needs one dashboard setting from the
-user (in progress, not yet confirmed fixed).** Not a code bug: Supabase's **Authentication → URL
-Configuration → Redirect URLs** only had the bare Site URL (`https://source-sutra-prod.vercel.app/`) listed —
-`/auth/callback` was never added. Supabase silently ignores an unlisted `redirectTo` and falls back to the
-Site URL, so the user landed on the homepage with a session established but none of the provisioning-routing
-logic in `/auth/callback` ever ran (the browser never hit that route at all). This also fully explains the
-earlier "onboarding animation not playing" report — it was never reached either. **Told the user to add
-`https://source-sutra-prod.vercel.app/**` and `http://localhost:3000/**` to Redirect URLs** (wildcard, per
-Supabase's own hint text) — cannot do this myself, dashboard-only. Confirmed via direct testing (both local
-and prod, real fresh password-signup accounts) that the intro animation and routing work correctly once
-`/auth/callback` is actually reached — so this one setting should be the complete fix. **Resume point: confirm
-with the user whether adding the Redirect URLs fixed the real Google flow end-to-end.**
+**This is the #1 thing to pick back up.** The user needs to retry "Continue with Google" in their **own real
+browser** (not automation) and report exactly what happens. Do not assume it's fixed — the last known state is
+a real, reproduced, NOT-yet-passing error.
 
-**Supplier Dashboard + Profile merged into one screen (commit `3b50514`, DONE & verified).** User's explicit
-ask, confirmed via AskUserQuestion before implementing: merge only applies post-onboarding-completion (into
-the existing `VendorProfile` summary view); editing uses the same Edit-link-reveals-a-form pattern as
-Identity/Financials/Portfolio (not always-visible inline fields); the separate "Profile" nav tab is removed
-entirely, `Dashboard` renamed to `Profile`. New `web/app/supplier/_components/BasicsForm.tsx` +
-`?section=basics` on `/supplier`; `updateSupplierProfile` (`supplier/actions.ts`) now redirects back to
-`/supplier` instead of just revalidating in place; old `/supplier/profile` is now a bare redirect for stale
-links. Verified end-to-end locally: single "Profile" tab in nav, Company basics card renders above
-Identity/Financials/Portfolio with real seed data, edit → save → redirect → new value confirmed showing,
-old URL redirects correctly, no console errors. `tsc` clean, no DB changes needed for this one.
+**Bug 1 — Redirect URLs allow-list missing `/auth/callback` (FIXED, user's dashboard change).** Supabase
+silently falls back to the first allow-listed URL instead of erroring when `redirectTo` isn't allow-listed.
+User added `https://source-sutra-prod.vercel.app/auth/callback` and `http://localhost:3000/auth/callback`
+(exact paths, not wildcards) to **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**.
+Confirmed present via screenshot (Total URLs: 3).
+
+**Bug 2 — `redirectTo` carried a query string, breaking the allow-list's exact match (FIXED, commit
+`2cc1ded`, deployed).** Found by driving a real Google sign-in myself (with explicit user permission) and
+tracing network requests — not guessing. Even with Bug 1's URLs correctly listed, the app's `redirectTo` was
+`.../auth/callback?role=buyer`, which doesn't exactly match the allow-listed `.../auth/callback` (no query),
+so Supabase's fallback still fired — landed on the bare homepage (`/?code=...`) with an unconsumed auth code.
+**Fix:** `redirectTo` is now the bare exact URL with nothing appended; `role` now travels via a short-lived
+`oauth_role` cookie (set in `RegisterForm.tsx` right before the Google redirect, read + cleared in
+`web/app/auth/callback/route.ts`) instead of a query string — a server route can read cookies but not
+sessionStorage, so this is the only channel that survives the Google round-trip without touching the
+validated URL. **Verified this specific fix works**: re-traced network requests after deploying, and
+`/auth/callback?code=...` was correctly reached this time (progress — Bug 2 is real, is fixed, confirmed via
+network trace, not just theory).
+
+**Bug 3 — "PKCE code verifier not found in storage" (UNRESOLVED, unknown if real or a testing-tool
+artifact).** Immediately after `/auth/callback?code=...` was reached (network trace), the route's
+`exchangeCodeForSession(code)` call failed with exactly this Supabase error, redirecting to
+`/register?error=...`, which then showed a **stale leftover session** (an old logged-in account) rather than
+signing in the new Google identity — this is why the browser appeared to show an unrelated old account's
+dashboard. This is a well-known Supabase/Next.js gotcha usually caused by the code-verifier cookie not being
+readable server-side at exchange time. **Could not determine if this is a genuine app bug or an artifact of
+the Claude-in-Chrome automated browser** (which has shown other automation-specific quirks this session —
+click-coordinate drift, screenshot timeouts — see [[browser-automation-gotchas]]) **not preserving cookies
+identically to real user browsing across the cross-domain Google→Supabase→app redirect chain.**
+**Nothing further can be verified without the user testing in their own real browser** — that's the literal
+next action needed before any more code changes.
+
+**If the user reports the PKCE error still happens in their real browser** (confirming it's a genuine bug,
+not an automation artifact), likely next things to check, in order:
+1. Confirm `web/lib/supabase/client.ts`'s `createBrowserClient` and `web/lib/supabase/server.ts`'s
+   `createServerClient` are both from `@supabase/ssr` (they are, per earlier reads) and aren't somehow using
+   inconsistent cookie names/config between the two.
+2. Check whether the code-verifier cookie is actually being set at all right before the Google redirect —
+   inspect `document.cookie` (or Application → Cookies in DevTools) immediately after clicking "Continue with
+   Google," before Google's page loads.
+3. Consider whether Vercel's edge/serverless split, or a caching layer, could be serving `/auth/callback`
+   from a different origin/instance than where the cookie was set (unlikely for same-domain, but worth ruling
+   out) — or whether the cookie's `SameSite`/`Secure` attributes (set implicitly by `@supabase/ssr`) are
+   incompatible with this exact redirect chain in a way that differs from typical documented setups.
+4. Search Supabase GitHub issues / docs for "PKCE code verifier not found in storage" + Next.js App Router —
+   this is a documented recurring issue with several known causes/fixes in the community.
+
+**Test-account hygiene:** all scratch OAuth test accounts created while debugging this
+(`praveshdevi799@gmail.com`) have been fully deleted from prod. Two **real, user-owned** accounts remain in a
+genuinely half-finished state from earlier real testing — **do not delete these, they belong to the user**:
+`prashantpps09@gmail.com` and `prashant090693@gmail.com`, both `profiles.oauth_pending = true` (never
+completed `/onboarding/finish`). Once the PKCE issue is resolved, the user can retry Google sign-in with
+either of these and it should correctly resume at `/onboarding/finish`.
+
+---
+
+## Supplier Dashboard + Profile merged into one screen (2026-08-12, commit `3b50514`, DONE & verified)
+
+User's explicit ask, confirmed via AskUserQuestion before implementing: merge only applies
+post-onboarding-completion (into the existing `VendorProfile` summary view); editing uses the same
+Edit-link-reveals-a-form pattern as Identity/Financials/Portfolio (not always-visible inline fields); the
+separate "Profile" nav tab is removed entirely, `Dashboard` renamed to `Profile`. New
+`web/app/supplier/_components/BasicsForm.tsx` + `?section=basics` on `/supplier`; `updateSupplierProfile`
+(`supplier/actions.ts`) now redirects back to `/supplier` instead of just revalidating in place; old
+`/supplier/profile` is now a bare redirect for stale links. Verified end-to-end locally: single "Profile" tab
+in nav, Company basics card renders above Identity/Financials/Portfolio with real seed data, edit → save →
+redirect → new value confirmed showing, old URL redirects correctly, no console errors. `tsc` clean, no DB
+changes needed for this one. **Nothing pending here — fully done.**
 
 ---
 
