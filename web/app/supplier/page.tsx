@@ -7,6 +7,7 @@ import { IdentityForm } from "./_components/IdentityForm";
 import { FinancialsForm } from "./_components/FinancialsForm";
 import { PortfolioForm } from "./_components/PortfolioForm";
 import { VendorProfile } from "./_components/VendorProfile";
+import { BasicsForm } from "./_components/BasicsForm";
 
 const BANNER = "linear-gradient(rgba(250,248,244,0.2),rgba(250,248,244,0.32)), url('/img/onboarding-banner.png')";
 
@@ -216,6 +217,21 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
     );
   }
 
+  if (section === "basics") {
+    return (
+      <>
+        <Header me={me} />
+        <BasicsForm
+          initial={{
+            mission: p.mission ?? "",
+            location: org?.location ?? "",
+            yearsInBusiness: p.years_in_business != null ? String(p.years_in_business) : "",
+          }}
+        />
+      </>
+    );
+  }
+
   // ── Completed → vendor profile view ─────────────────────────────────────
   if (completed) {
     return (
@@ -224,6 +240,8 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
         <VendorProfile
           company={org?.name ?? me.org_name}
           mission={p.mission ?? ""}
+          location={org?.location ?? ""}
+          yearsInBusiness={p.years_in_business != null ? String(p.years_in_business) : ""}
           contactName={p.contact_name ?? ""}
           designation={p.designation ?? ""}
           established={p.established_date ?? ""}

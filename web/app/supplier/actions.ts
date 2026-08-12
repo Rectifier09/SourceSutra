@@ -386,5 +386,6 @@ export async function updateSupplierProfile(formData: FormData) {
     .update({ mission: str(formData.get("mission")), years_in_business: num(formData.get("years_in_business")) })
     .eq("org_id", org_id);
   if (e2) throw new Error(e2.message);
-  revalidatePath("/supplier/profile");
+  revalidatePath("/supplier");
+  redirect("/supplier");
 }

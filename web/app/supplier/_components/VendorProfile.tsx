@@ -5,6 +5,8 @@ import Link from "next/link";
 export function VendorProfile({
   company,
   mission,
+  location,
+  yearsInBusiness,
   contactName,
   designation,
   established,
@@ -19,6 +21,8 @@ export function VendorProfile({
 }: {
   company: string;
   mission: string;
+  location: string;
+  yearsInBusiness: string;
   contactName: string;
   designation: string;
   established: string;
@@ -53,6 +57,18 @@ export function VendorProfile({
             <span className="rounded-full bg-sage px-2.5 py-1 text-[11px] font-semibold text-white">✓ Onboarding completed</span>
           </div>
           <p className="mt-1.5 text-[14.5px] text-muted">{mission}</p>
+        </div>
+      </div>
+
+      {/* Company basics — public profile fields (was the separate /supplier/profile page) */}
+      <div className={card}>
+        <div className="mb-3.5 flex items-center justify-between">
+          <h2 className="font-display text-[17px] font-medium text-ink">Company basics</h2>
+          <Link href="/supplier?section=basics" className={editBtn}>Edit</Link>
+        </div>
+        <div className="flex flex-wrap gap-7">
+          {stat("City / region", location)}
+          {stat("Years in business", yearsInBusiness)}
         </div>
       </div>
 

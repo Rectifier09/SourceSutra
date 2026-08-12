@@ -30,11 +30,10 @@ export async function Header({ me }: { me: Me }) {
           { href: "/buyer/profile", label: "Profile" },
         ]
       : [
-          { href: "/supplier", label: "Dashboard", exact: true },
+          { href: "/supplier", label: "Profile", exact: true },
           { href: "/supplier/discover", label: "Discover RFQs" },
           { href: "/supplier/invitations", label: "Invitations" },
           { href: "/supplier/quotes", label: "Quotations" },
-          { href: "/supplier/profile", label: "Profile" },
         ];
 
   const home = me.role === "buyer" ? "/buyer" : "/supplier";
