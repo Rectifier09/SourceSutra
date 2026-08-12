@@ -404,3 +404,131 @@ begin
   where org_id = b and name = 'Quality audit';
 end $$;
 reset sourcesutra.reviewer;
+
+-- ============================================================================
+-- Extra demo data (added on request): more RFQs/quotes/invitations/notifications
+-- across a range of statuses, plus one cert each for the "lite" (cert-less)
+-- suppliers, so Discover/Quotations/My RFQs/Inbox all look populated instead
+-- of near-empty. Reuses the same orgs seeded above; adds one extra buyer org
+-- (no login needed — RFQ display only needs the org row) for variety.
+-- ============================================================================
+
+insert into orgs (kind, name, location) values
+  ('buyer', 'Trendex Apparel Co.', 'Mumbai, Maharashtra')
+on conflict do nothing;
+
+do $$
+declare
+  vardhman uuid := (select id from orgs where kind = 'buyer' and name = 'Vardhman Textiles');
+  trendex  uuid := (select id from orgs where kind = 'buyer' and name = 'Trendex Apparel Co.');
+  anand    uuid := (select id from orgs where name = 'Anand Knitfab');
+  ludhiana uuid := (select id from orgs where name = 'Ludhiana Woolworks');
+  erode_tx uuid := (select id from orgs where name = 'Erode Textile Exports');
+  ludh_emb uuid := (select id from orgs where name = 'Ludhiana Embroidery House');
+  panipat  uuid := (select id from orgs where name = 'Panipat Home Textiles');
+  surat_sp uuid := (select id from orgs where name = 'Surat Screen Print Co.');
+  bhilwara_sw uuid := (select id from orgs where name = 'Bhilwara Suiting Weavers');
+  erode_sp uuid := (select id from orgs where name = 'Erode Spinning Mills');
+
+  rfq1 uuid := 'f1000000-0000-0000-0000-000000000001'; -- verified_only, active
+  rfq2 uuid := 'f1000000-0000-0000-0000-000000000002'; -- open, active
+  rfq3 uuid := 'f1000000-0000-0000-0000-000000000003'; -- foreclosed
+  rfq4 uuid := 'f1000000-0000-0000-0000-000000000004'; -- lapsed
+  rfq5 uuid := 'f1000000-0000-0000-0000-000000000005'; -- awarded
+  rfq6 uuid := 'f1000000-0000-0000-0000-000000000006'; -- invite, active
+
+  q3 uuid; q5a uuid; q5b uuid;
+begin
+  -- ── RFQ1: verified-only, active ────────────────────────────────────────
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq1, vardhman, 'Organic cotton baby onesies', 'active', '2026-08-13', '2026-08-28', '2026-10-05', 'verified_only', 8000, 'pcs', 'Full-package / white-label article');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq1, anand,    'submitted',    210, now()),
+    (rfq1, ludhiana, 'under_review', 225, now()),
+    (rfq1, erode_tx, 'shortlisted',  198, now());
+
+  -- ── RFQ2: open, active ──────────────────────────────────────────────────
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq2, trendex, 'Denim jackets, AW26 capsule', 'active', '2026-08-05', '2026-08-24', '2026-10-20', 'open', 3000, 'pcs', 'Cut-Make-Trim (CMT)');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq2, ludh_emb, 'submitted',    640, now()),
+    (rfq2, panipat,  'not_selected', 690, now());
+
+  -- ── RFQ3: foreclosed (insert active, take a live quote, then foreclose) ──
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq3, trendex, 'Screen-printed tees, bulk reorder', 'active', '2026-07-01', '2026-07-20', '2026-09-01', 'open', 15000, 'pcs', 'Printing (screen/digital)');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq3, surat_sp, 'submitted', 92, now())
+  returning id into q3;
+  update quotes set status = 'closed' where id = q3;
+  update rfqs set status = 'foreclosed', close_reason = 'Buyer sourced this run through an existing vendor.' where id = rfq3;
+
+  -- ── RFQ4: lapsed (insert active + live quote, then lapse) ───────────────
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq4, vardhman, 'Recycled poly fleece jackets', 'active', '2026-07-15', '2026-08-05', '2026-09-25', 'open', 6000, 'pcs', 'Cut-Make-Trim (CMT)');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq4, panipat, 'submitted', 410, now());
+  update rfqs set status = 'lapsed' where id = rfq4;
+
+  -- ── RFQ5: awarded (insert active + two live quotes, then award one) ─────
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq5, trendex, 'Wool-blend suiting fabric, FW26', 'active', '2026-07-10', '2026-07-30', '2026-09-15', 'open', 4000, 'm', 'Fabric supply');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq5, bhilwara_sw, 'submitted', 148, now()) returning id into q5a;
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq5, erode_sp,    'submitted', 162, now()) returning id into q5b;
+  update quotes set status = 'closed' where id = q5b;   -- losing sibling -> closed, matches award_quote()
+  update quotes set status = 'awarded' where id = q5a;
+  update rfqs set status = 'awarded', awarded_quote_id = q5a, awarded_at = now() where id = rfq5;
+  insert into awards (rfq_id, quote_id) values (rfq5, q5a);
+
+  -- ── RFQ6: invite-only, active ─────────────────────────────────────────
+  insert into rfqs (id, buyer_org_id, title, status, bid_start, bid_end, delivery_date, who_can_respond, quantity, unit, contract_type)
+  values (rfq6, vardhman, 'Chef whites & workwear uniforms', 'active', '2026-08-10', '2026-08-30', '2026-10-10', 'invite', 1200, 'pcs', 'Cut-Make-Trim (CMT)');
+  insert into invitations (rfq_id, supplier_org_id, status) values
+    (rfq6, ludhiana, 'responded'),
+    (rfq6, anand,    'invited');
+  insert into quotes (rfq_id, supplier_org_id, status, unit_price, submitted_at) values
+    (rfq6, ludhiana, 'submitted', 720, now());
+
+  -- ── Notifications for transitions the table triggers don't cover on their own:
+  --    RFQs above are inserted already-'active' (no draft->active UPDATE, so
+  --    trg_rfq_events never fires RfqPublished), and invitations are inserted
+  --    with status='responded' directly (trg_invitation_events always emits
+  --    SupplierInvited on insert, never InvitationResponded). Every other event
+  --    here (QuoteSubmitted, RfqForeclosed, RfqLapsed, QuoteAwarded/Closed) IS
+  --    already auto-generated by the ordinary triggers reacting to the
+  --    inserts/updates above — no manual duplicate needed.
+  insert into notifications (org_id, type, title, body, channel, ref_rfq_id, read_at, created_at) values
+    (anand,    'RfqPublished', 'New RFQ: Organic cotton baby onesies', 'A buyer published an RFQ you''re eligible to quote on.', 'in_app', rfq1, null, now() - interval '4 hours'),
+    (ludhiana, 'RfqPublished', 'New RFQ: Organic cotton baby onesies', 'A buyer published an RFQ you''re eligible to quote on.', 'in_app', rfq1, now() - interval '2 hours', now() - interval '4 hours'),
+    (vardhman, 'InvitationResponded', 'Invitation response', 'Ludhiana Woolworks responded to your invitation.', 'in_app', rfq6, now() - interval '30 minutes', now() - interval '1 day');
+
+  -- mark a couple of the auto-generated notifications read, for a natural mix
+  update notifications set read_at = now() - interval '3 hours'
+    where org_id = vardhman and ref_rfq_id = rfq1 and type = 'QuoteSubmitted'
+    and id = (select id from notifications where org_id = vardhman and ref_rfq_id = rfq1 and type = 'QuoteSubmitted' order by created_at limit 1);
+  update notifications set read_at = now() - interval '1 day'
+    where org_id = surat_sp and ref_rfq_id = rfq3 and type = 'RfqForeclosed';
+end $$;
+
+-- ── one certification each for the cert-less "lite" suppliers ─────────────
+set session sourcesutra.reviewer = 'on';
+do $$
+declare
+  bhilwara_p uuid := (select id from orgs where name = 'Bhilwara Processors');
+  surat_sm   uuid := (select id from orgs where name = 'Surat Silk Mills');
+  tirupur_t  uuid := (select id from orgs where name = 'Tirupur Trims & Accessories');
+  surat_sp   uuid := (select id from orgs where name = 'Surat Screen Print Co.');
+  bhilwara_sw uuid := (select id from orgs where name = 'Bhilwara Suiting Weavers');
+  panipat_t  uuid := (select id from orgs where name = 'Panipat Trims Co.');
+begin
+  insert into certifications (org_id, kind, category, name, issuer, number, scope, issue_date, expiry_date, does_not_expire, field_status) values
+    (bhilwara_p, 'standard', 'Environmental Management', 'ISO 14001', 'TÜV SÜD', 'TUV-EMS-2024-1187', 'Dyeing and processing effluent management, Bhilwara unit.', '2024-05-01', '2027-04-30', false, 'verified'),
+    (surat_sm,   'standard', 'Quality Management', 'ISO 9001', 'SGS', 'SGS-QMS-2024-7723', 'Art silk and synthetic saree weaving, main unit.', '2024-02-01', '2027-01-31', false, 'verified'),
+    (tirupur_t,  'regulatory', 'Indian Regulatory & Legal Compliance', 'Factory Licence', 'Tamil Nadu Directorate of Factories', 'TN-FL-2015-3392', 'Statutory factory operating licence.', '2015-03-01', null, true, 'verified'),
+    (surat_sp,   'standard', 'Chemical & Product Safety', 'OEKO-TEX Standard 100', 'OEKO-TEX', 'OTX-2025-4471', 'Printed synthetic yardage, all lines.', '2025-04-01', '2026-04-01', false, 'verified'),
+    (bhilwara_sw,'standard', 'Quality Management', 'ISO 9001', 'Bureau Veritas', 'BV-QMS-2023-2201', 'Wool-blend suiting fabric weaving, Bhilwara unit.', '2023-09-01', '2026-08-31', false, 'verified'),
+    (panipat_t,  'standard', 'Responsible Materials', 'FSC', 'Control Union', 'FSC-CU-2025-6610', 'Hangtags and packaging cartons sourced from FSC-certified paper.', '2025-01-15', '2028-01-14', false, 'verified');
+end $$;
+reset sourcesutra.reviewer;
