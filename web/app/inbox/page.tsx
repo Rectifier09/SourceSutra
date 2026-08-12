@@ -4,6 +4,7 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { markRead, markAllRead } from "@/app/inbox/actions";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 function ago(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -39,7 +40,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[720px] flex-1 px-6 pb-20 pt-8 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
         <div className="flex items-center justify-between">
           <h1 className="font-display text-[26px] font-medium text-ink">Notifications</h1>
           {hasUnread && (

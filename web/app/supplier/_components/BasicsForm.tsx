@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { updateSupplierProfile } from "../actions";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 const labelText = "text-[13px] font-semibold text-muted";
 const input = "rounded-lg border border-line bg-white px-3 py-2.5 text-[14.5px] text-ink placeholder:text-muted/60";
@@ -12,7 +13,7 @@ export function BasicsForm({
   initial: { mission: string; location: string; yearsInBusiness: string };
 }) {
   return (
-    <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+    <main className={`mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <Link href="/supplier" className="text-[14px] text-primary underline">
         ← Back to profile
       </Link>

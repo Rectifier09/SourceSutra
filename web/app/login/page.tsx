@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { DEMO_PERSONAS } from "@/lib/demo";
 import { signInAs } from "./actions";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 export default async function LoginPage() {
   const me = await getMe();
   if (me) redirect(me.role === "buyer" ? "/buyer" : "/supplier");
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-cream px-6 py-16">
+    <main className={`flex flex-1 items-center justify-center px-6 py-16 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="font-display text-[26px] font-semibold text-primary">

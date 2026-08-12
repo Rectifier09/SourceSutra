@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 export type Badge = { label: string; bg: string; fg: string };
 export type CertCard = {
@@ -75,7 +76,7 @@ export function SupplierProfileView({ data }: { data: ProfileData }) {
   const p = data;
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className={`min-h-screen ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <div className="mx-auto max-w-[1180px] px-6 pb-20 pt-10">
         <Link href="/buyer/suppliers" className="mb-6 inline-block text-[14px] text-primary underline">
           ← Back to discover suppliers

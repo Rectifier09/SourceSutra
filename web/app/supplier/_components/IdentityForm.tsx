@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveIdentity, verifyChannel, submitOnboardingSection } from "@/app/supplier/actions";
 import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 const DESIGNATIONS = ["Managing Partner", "Director", "Owner", "Proprietor", "CEO", "Operations Head", "Export Manager", "Founder", "Other"];
 const LANGUAGES = ["English", "Hindi", "Tamil", "Punjabi", "Gujarati", "Bengali", "Telugu", "Marathi"];
@@ -103,7 +104,7 @@ export function IdentityForm({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-6 pb-28 pt-6">
+    <main className={`mx-auto w-full max-w-[820px] px-6 pb-28 pt-6 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <Link href="/supplier" className="inline-block py-3 text-[14px] text-primary">← Back to overview</Link>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>

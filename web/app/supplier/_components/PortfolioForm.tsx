@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { savePortfolio, submitOnboardingSection } from "@/app/supplier/actions";
 import { uploadOnboardingFile, removeOnboardingFile, getOnboardingFileUrl } from "@/lib/upload";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 const CAPABILITIES = ["Fabric", "Colour", "GSM", "Fit", "Labels", "Hangtags", "Hardware", "Packaging", "Pattern", "Embroidery", "Printing"];
 const CERT_CATEGORIES = ["Quality Management", "Environmental Management", "Health & Safety", "Social Compliance", "Sustainable & Organic Textiles", "Recycled Materials", "Chemical & Product Safety", "Responsible Materials", "Indian Regulatory & Legal Compliance", "Buyer / Brand Audits", "Other"];
@@ -196,7 +197,7 @@ export function PortfolioForm({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-6 pb-28 pt-6">
+    <main className={`mx-auto w-full max-w-[820px] px-6 pb-28 pt-6 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <Link href="/supplier" className="inline-block py-3 text-[14px] text-primary">← Back to overview</Link>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>

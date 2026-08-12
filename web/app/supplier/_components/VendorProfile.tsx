@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 // The onboarding-completed vendor profile view (ports ScreenDashboard isVendorProfile).
 // A read-only summary of what the supplier submitted, with Edit links back into each section.
@@ -46,7 +47,7 @@ export function VendorProfile({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[1080px] px-6 pb-20 pt-8">
+    <main className={`mx-auto w-full max-w-[1080px] px-6 pb-20 pt-8 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="flex h-[76px] w-[76px] flex-shrink-0 items-center justify-center rounded-[16px] bg-lav1 font-display text-[22px] font-medium text-primary">
           {initials || "SS"}

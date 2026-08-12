@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { updateBuyerProfile } from "@/app/buyer/actions";
 import { BuyerProfileForm } from "./_components/BuyerProfileForm";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 export default async function BuyerProfile() {
   const me = await getMe();
@@ -20,7 +21,7 @@ export default async function BuyerProfile() {
   return (
     <>
       <Header me={me} />
-      <main className="flex flex-1 flex-col">
+      <main className={`flex flex-1 flex-col ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
         <BuyerProfileForm
           action={updateBuyerProfile}
           fullName={me.full_name ?? ""}

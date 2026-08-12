@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { saveFinancials, submitOnboardingSection } from "@/app/supplier/actions";
 import { uploadOnboardingFile, removeOnboardingFile } from "@/lib/upload";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 const ROUTING_TYPES = ["IFSC", "SWIFT", "Routing Number", "IBAN", "Other"];
 const labelCls = "text-[13px] font-semibold text-muted";
@@ -143,7 +144,7 @@ export function FinancialsForm({
   );
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-6 pb-28 pt-6">
+    <main className={`mx-auto w-full max-w-[820px] px-6 pb-28 pt-6 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <Link href="/supplier" className="inline-block py-3 text-[14px] text-primary">← Back to overview</Link>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>

@@ -10,7 +10,7 @@ import { VendorProfile } from "./_components/VendorProfile";
 import { BasicsForm } from "./_components/BasicsForm";
 import { ONBOARDING_BUCKET } from "@/lib/upload";
 
-const BANNER = "linear-gradient(rgba(250,248,244,0.2),rgba(250,248,244,0.32)), url('/img/onboarding-banner.png')";
+const BANNER = "url('/img/onboarding-banner.png')";
 
 const CARD_BADGE: Record<string, { label: string; cls: string }> = {
   not_started: { label: "Pending", cls: "bg-panel text-muted" },
@@ -297,7 +297,7 @@ export default async function SupplierHome({ searchParams }: { searchParams: Pro
   return (
     <>
       <Header me={me} />
-      <main className="min-h-[calc(100vh-70px)] bg-cover bg-fixed bg-top" style={{ backgroundImage: BANNER }}>
+      <main className="min-h-[calc(100vh-70px)] bg-cover bg-center bg-fixed" style={{ backgroundImage: BANNER }}>
         <div className="mx-auto w-full max-w-[1080px] px-6 pb-20 pt-8">
           <h1 className="font-display text-[26px] font-medium text-ink">Supplier onboarding</h1>
           <p className="mt-1 text-[14px] text-muted">Welcome, {me.full_name}.</p>

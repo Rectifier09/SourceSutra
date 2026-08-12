@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { FinishOAuthForm } from "./_components/FinishOAuthForm";
+import { APP_BG_CLASS, DEFAULT_BG } from "@/lib/appBackground";
 
 // Google's OIDC claims land in user_metadata — given_name/family_name are usually
 // present, but fall back to splitting full_name/name for providers that only send
@@ -35,7 +36,7 @@ export default async function FinishOAuthSignupPage({
   const { firstName, lastName } = splitName(meta);
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-cream px-6 py-16">
+    <main className={`flex flex-1 items-center justify-center px-6 py-16 ${APP_BG_CLASS}`} style={{ backgroundImage: DEFAULT_BG }}>
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="font-display text-[26px] font-semibold text-primary">SourceSutra</div>
