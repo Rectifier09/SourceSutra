@@ -7,6 +7,7 @@ import { publishRfq, triageQuote, awardQuote, rejectQuote, inviteSupplier } from
 import { CreateRfqWizard } from "@/app/buyer/_components/CreateRfqWizard";
 import { mapRfqToWizardState } from "@/app/buyer/_components/rfqWizardState";
 import { RfqDetails, Row } from "@/app/_components/RfqDetails";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 const RSTATUS: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -64,7 +65,7 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
     return (
       <>
         <Header me={me} />
-        <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+        <main className={`mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
           <Link href="/buyer" className="text-[14px] text-primary underline">
             ← My RFQs
           </Link>
@@ -79,7 +80,7 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <Link href="/buyer" className="text-[14px] text-primary underline">
           ← My RFQs
         </Link>

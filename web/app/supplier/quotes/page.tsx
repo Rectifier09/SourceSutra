@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 const QUOTE_PILL: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -30,7 +31,7 @@ export default async function MyQuotes() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <h1 className="mb-4 font-display text-[26px] font-medium text-ink">Quotations</h1>
 
         <div className="flex flex-col gap-3">

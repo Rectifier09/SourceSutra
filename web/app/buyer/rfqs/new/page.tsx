@@ -4,6 +4,7 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { CreateRfqWizard } from "@/app/buyer/_components/CreateRfqWizard";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 export default async function NewRfq({ searchParams }: { searchParams: Promise<{ invite?: string }> }) {
   const me = await getMe();
@@ -17,7 +18,7 @@ export default async function NewRfq({ searchParams }: { searchParams: Promise<{
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <Link href="/buyer" className="text-[14px] text-primary underline">
           ← My RFQs
         </Link>

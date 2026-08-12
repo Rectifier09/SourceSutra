@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { submitQuote } from "@/app/supplier/actions";
 import { RfqDetails } from "@/app/_components/RfqDetails";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 const QUOTE_PILL: Record<string, string> = {
   draft: "bg-panel text-muted",
@@ -48,7 +49,7 @@ export default async function SupplierRfqDetail({ params }: { params: Promise<{ 
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[900px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <Link href="/supplier/discover" className="text-[14px] text-primary underline">
           ← Discover
         </Link>

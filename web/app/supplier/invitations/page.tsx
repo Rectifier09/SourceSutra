@@ -4,6 +4,7 @@ import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
 import { respondInvitation } from "@/app/supplier/actions";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 const INV_PILL: Record<string, string> = {
   invited: "bg-panel2 text-amber",
@@ -25,7 +26,7 @@ export default async function Invitations() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8">
+      <main className={`mx-auto w-full max-w-[1080px] flex-1 px-6 pb-20 pt-8 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <h1 className="font-display text-[26px] font-medium text-ink">Invitations</h1>
         <p className="mb-5 mt-1 text-[13.5px] text-muted">RFQs a buyer invited you to quote on directly.</p>
 

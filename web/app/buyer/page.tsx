@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getMe } from "@/lib/me";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/app/_components/Header";
+import { RFQ_BANNER, rfqBannerClass } from "@/lib/rfqBackground";
 
 // RFQ status → badge colours, in the warm design-system palette.
 const STATUS_STYLES: Record<string, string> = {
@@ -29,7 +30,7 @@ export default async function BuyerHome() {
   return (
     <>
       <Header me={me} />
-      <main className="mx-auto w-full max-w-[1180px] flex-1 px-6 py-10">
+      <main className={`mx-auto w-full max-w-[1180px] flex-1 px-6 py-10 ${rfqBannerClass}`} style={{ backgroundImage: RFQ_BANNER }}>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-[28px] font-medium text-ink">My RFQs</h1>
