@@ -45,6 +45,14 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase.from("profiles").select("role, oauth_pending").eq("id", data.user.id).maybeSingle();
 
+  if (profile && !profile.oauth_pending) {
+    try {
+      await supabase.rpc("log_event", { p_type: "Login", p_payload: { kind: profile.role } });
+    } catch {
+      // best-effort
+    }
+  }
+
   const response = NextResponse.redirect(
     !profile || profile.oauth_pending
       ? `${origin}/onboarding/finish?role=${role}`

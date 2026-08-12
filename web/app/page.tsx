@@ -1,10 +1,21 @@
 import Link from "next/link";
 import { getMe } from "@/lib/me";
+import { createClient } from "@/lib/supabase/server";
 
 // The public homepage — the product's default screen. Ports the prototype's ScreenLanding.
 export default async function Home() {
   const me = await getMe();
   const dashHref = me ? (me.role === "buyer" ? "/buyer" : "/supplier") : null;
+
+  // Best-effort — a logging hiccup should never break the landing page. Awaited
+  // (not fire-and-forget) since a serverless response can end before a
+  // detached promise resolves.
+  const supabase = await createClient();
+  try {
+    await supabase.rpc("log_event", { p_type: "LandingPageView" });
+  } catch {
+    // ignore
+  }
 
   return (
     <div

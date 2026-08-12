@@ -170,6 +170,12 @@ export default async function SupplierProfile({ params }: { params: Promise<{ or
     .maybeSingle();
   if (!dir) redirect("/buyer/suppliers");
 
+  try {
+    await supabase.rpc("log_event", { p_type: "SupplierViewed" });
+  } catch {
+    // best-effort
+  }
+
   const [{ data: prof }, { data: certs }] = await Promise.all([
     supabase
       .from("supplier_profiles")

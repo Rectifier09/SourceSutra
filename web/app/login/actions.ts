@@ -17,6 +17,12 @@ export async function signInAs(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
+  try {
+    await supabase.rpc("log_event", { p_type: "Login", p_payload: { kind: persona.role } });
+  } catch {
+    // best-effort
+  }
+
   redirect(persona.role === "buyer" ? "/buyer" : "/supplier");
 }
 

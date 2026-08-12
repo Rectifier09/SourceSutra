@@ -44,6 +44,14 @@ export default async function RfqDetail({ params }: { params: Promise<{ id: stri
     .eq("rfq_id", id)
     .order("unit_price", { ascending: true });
 
+  if ((quotes ?? []).length > 0) {
+    try {
+      await supabase.rpc("log_event", { p_type: "RfqApplicationViewed" });
+    } catch {
+      // best-effort
+    }
+  }
+
   // Invite panel (active RFQs) needs org_id/name; the draft-resume wizard below
   // needs the full SupplierOption shape (same fields rfqs/new/page.tsx fetches).
   const [{ data: directory }, { data: invites }] = await Promise.all([

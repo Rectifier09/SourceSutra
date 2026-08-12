@@ -31,6 +31,12 @@ export default async function SupplierRfqDetail({ params }: { params: Promise<{ 
   const { data: rfq } = await supabase.from("rfqs").select("*").eq("id", id).maybeSingle();
   if (!rfq) redirect("/supplier/discover");
 
+  try {
+    await supabase.rpc("log_event", { p_type: "RfqViewed" });
+  } catch {
+    // best-effort
+  }
+
   const { data: buyer } = await supabase.from("orgs").select("name, location").eq("id", rfq.buyer_org_id).maybeSingle();
 
   // The supplier's current live quote (excludes terminal not_selected/closed) — prefill + status.

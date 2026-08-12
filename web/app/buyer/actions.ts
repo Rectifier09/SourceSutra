@@ -76,6 +76,13 @@ export async function saveRfqDraft(id: string | null, p: RfqDraftPayload): Promi
   if (id) {
     const { error } = await supabase.from("rfqs").update(row).eq("id", id);
     if (error) throw new Error(error.message);
+    // The update RLS policy only allows this while status='draft', so a
+    // successful update here always means the RFQ is still sitting in draft.
+    try {
+      await supabase.rpc("log_event", { p_type: "RfqInDraft" });
+    } catch {
+      // best-effort
+    }
     return { id };
   }
   // Generate the id client-side and skip .select() on insert: INSERT...RETURNING requires
@@ -84,6 +91,11 @@ export async function saveRfqDraft(id: string | null, p: RfqDraftPayload): Promi
   const newId = randomUUID();
   const { error } = await supabase.from("rfqs").insert({ ...row, id: newId, buyer_org_id: me.org_id, status: "draft" });
   if (error) throw new Error(error.message);
+  try {
+    await supabase.rpc("log_event", { p_type: "RfqCreated" });
+  } catch {
+    // best-effort
+  }
   return { id: newId };
 }
 
@@ -170,5 +182,10 @@ export async function updateBuyerProfile(formData: FormData) {
     .update({ phone: str(formData.get("phone")), products_sourced: productsArr })
     .eq("org_id", me.org_id);
   if (e2) throw new Error(e2.message);
+  try {
+    await supabase.rpc("log_event", { p_type: "ProfileUpdated" });
+  } catch {
+    // best-effort
+  }
   revalidatePath("/buyer/profile");
 }
