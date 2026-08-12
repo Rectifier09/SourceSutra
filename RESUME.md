@@ -2,7 +2,35 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-11 (six-bug fix batch, commit `c8a649d`).**
+> **Last updated 2026-08-12 (supplier Dashboard/Profile merge + real OAuth root cause found, commit `3b50514`).**
+
+---
+
+## ▶ LATEST (2026-08-12)
+
+**Google OAuth "redirected to landing page" — real root cause found, needs one dashboard setting from the
+user (in progress, not yet confirmed fixed).** Not a code bug: Supabase's **Authentication → URL
+Configuration → Redirect URLs** only had the bare Site URL (`https://source-sutra-prod.vercel.app/`) listed —
+`/auth/callback` was never added. Supabase silently ignores an unlisted `redirectTo` and falls back to the
+Site URL, so the user landed on the homepage with a session established but none of the provisioning-routing
+logic in `/auth/callback` ever ran (the browser never hit that route at all). This also fully explains the
+earlier "onboarding animation not playing" report — it was never reached either. **Told the user to add
+`https://source-sutra-prod.vercel.app/**` and `http://localhost:3000/**` to Redirect URLs** (wildcard, per
+Supabase's own hint text) — cannot do this myself, dashboard-only. Confirmed via direct testing (both local
+and prod, real fresh password-signup accounts) that the intro animation and routing work correctly once
+`/auth/callback` is actually reached — so this one setting should be the complete fix. **Resume point: confirm
+with the user whether adding the Redirect URLs fixed the real Google flow end-to-end.**
+
+**Supplier Dashboard + Profile merged into one screen (commit `3b50514`, DONE & verified).** User's explicit
+ask, confirmed via AskUserQuestion before implementing: merge only applies post-onboarding-completion (into
+the existing `VendorProfile` summary view); editing uses the same Edit-link-reveals-a-form pattern as
+Identity/Financials/Portfolio (not always-visible inline fields); the separate "Profile" nav tab is removed
+entirely, `Dashboard` renamed to `Profile`. New `web/app/supplier/_components/BasicsForm.tsx` +
+`?section=basics` on `/supplier`; `updateSupplierProfile` (`supplier/actions.ts`) now redirects back to
+`/supplier` instead of just revalidating in place; old `/supplier/profile` is now a bare redirect for stale
+links. Verified end-to-end locally: single "Profile" tab in nav, Company basics card renders above
+Identity/Financials/Portfolio with real seed data, edit → save → redirect → new value confirmed showing,
+old URL redirects correctly, no console errors. `tsc` clean, no DB changes needed for this one.
 
 ---
 
