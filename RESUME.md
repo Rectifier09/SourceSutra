@@ -2,15 +2,96 @@
 
 > One-page handoff to pick the build back up. Deeper detail: [`buildplan.md`](./buildplan.md) §8 (frontend +
 > deploy sequence), [`bizlogic.md`](./bizlogic.md) (rules), [`userjourney.md`](./userjourney.md) (screens).
-> **Last updated 2026-08-12 (Google OAuth debugging in progress, commit `2cc1ded`, NOT yet confirmed fixed).**
+> **Last updated 2026-08-13. Nothing blocking.** Google OAuth PKCE issue (below) has NOT recurred across
+> several real logins this session — treat as resolved unless it resurfaces. See "▶ 2026-08-13 session" below
+> for everything shipped today: onboarding polish batch, RFQ application detail view, app-wide background
+> consistency, and a full event-tracking `/admin` dashboard with real charts.
 
 ---
 
-## ▶ RESUME HERE — Google OAuth: two real bugs found & fixed, one still unresolved
+## ▶ 2026-08-13 session — onboarding polish, RFQ application detail, backgrounds, `/admin` event dashboard
 
-**This is the #1 thing to pick back up.** The user needs to retry "Continue with Google" in their **own real
-browser** (not automation) and report exactly what happens. Do not assume it's fixed — the last known state is
-a real, reproduced, NOT-yet-passing error.
+All of this is live on prod and individually verified (not just deployed) — see `product-build-plan.md` in
+auto-memory for the blow-by-blow; this is the condensed version.
+
+**1. Onboarding polish batch** (commits `b6ca3fb`, `c632f30`) — from a fresh live pass over the app:
+- Root-cause fix for "RFQs I create aren't visible to suppliers" / "Quotations page stays empty": the
+  Create-RFQ wizard's **Next button had no per-step validation gate** (only the final Publish button did), so
+  buyers could click through skipping required fields and get stuck at a silently-disabled Publish with no
+  explanation — RFQs never went `active`. Fixed in `CreateRfqWizard.tsx`; confirmed via live prod data (two
+  real stuck `draft` RFQs had later-step fields filled but step-1 required fields empty).
+- Identity: Aadhaar number input (company + per-director), **local state only, never persisted** — matches
+  the existing "only the verification result is kept" privacy note.
+- Financials: "billing same as legal entity" checkbox (copies + locks Billing); MGT-7 uploads no longer
+  required to submit.
+- Portfolio: uploaded images (logo/facility gallery/catalogue) **actually render now** — they never did
+  anywhere in the app (a decorative placeholder `<div>` stood in regardless of upload state). New
+  `getOnboardingFileUrl()` signed-URL helper in `lib/upload.ts` (bucket is private). Also added: certification/
+  licence document upload (the `certifications.storage_path` column existed but nothing ever wrote to it),
+  work-history website field + favicon thumbnail + a supporting-evidence upload.
+- Inbox: All/Unread filter tabs.
+- Seed data expanded (more RFQs across every status, more quotes, notifications, certs) — applied to prod.
+
+**2. Buyer RFQ detail — click an application to see the supplier's submitted quote** (commit `1ab2a55`).
+Applications only showed name/price/status; clicking now expands full details (qty fulfillable, MOQ, lead
+time, incoterm, payment terms, notes) via a native `<details>`, reusing `RfqDetails`'s exported `Row` helper.
+
+**3. App-wide background-image consistency** (commits `12b4f4e`, `4ffcc25`). New sourcing-themed banner
+applied to all 7 RFQ-related pages, then extended app-wide: every page now has a background image, same
+treatment (`bg-cover bg-center bg-fixed`, **no gradient tint** — removed the wash-out overlay that existed on
+the homepage/onboarding banners), with a shared default (`discover-bg.png`) for any page that had none. See
+`web/lib/appBackground.ts` / `rfqBackground.ts`.
+
+**4. Event-tracking `/admin` dashboard** (migrations `0015`+`0016`, commits `038f62f`, `7204dd2`, `1a41628`,
+`4c03f07`). User gave a persona/event spreadsheet to track (traffic, signup/login, onboarding provided/
+verified/failed/modified, RFQ lifecycle, applications) and asked for a dashboard.
+- Extends the existing `domain_events` outbox (already populated by ~12 lifecycle triggers) rather than a new
+  analytics schema. New `SignUp`/`ProfileCreated`/`SectionModified` events folded into existing triggers; a
+  narrow allow-listed `log_event()` RPC for page-view/login/draft-save/profile-update events (granted to
+  `anon` too, for logged-out landing-page traffic); `get_event_counts()`/`get_event_timeseries()` are
+  aggregate-only reads (type/kind/count, never `org_id`) so granting them to `authenticated` can't leak one
+  org's activity — the real gate is `/admin`'s email allow-list (`prashantpps09@gmail.com`,
+  `prashant090693@gmail.com`), unlisted from nav.
+- **Real bug found during verification (not code review):** TWO independent triggers reopen a verified
+  onboarding section — `trg_content_reopen` (documents/certifications) AND `trg_detail_reopen`
+  (supplier_directors/supplier_financials, migration `0009`, easy to miss). `saveIdentity`/`saveFinancials`
+  touch the *_directors/*_financials tables first, so the second trigger is what actually fires on a real
+  edit — my first pass only extended the first one and `SectionModified` silently never emitted.
+- **Backfill:** `SignUp`/`ProfileCreated` only fire going forward, so every pre-existing org (incl. 10+
+  directory-only supplier orgs never provisioned through a login trigger at all) permanently read 0 —
+  backfilled one of each per org, backdated to `orgs.created_at`, in `seed.sql` + applied to prod.
+- **Rich visualizations** (loaded the `dataviz` skill first): time-series line chart w/ day/week/month/
+  quarter/year toggle, persona-mix stacked bars, a calendar heatmap, a KPI strip (week-over-week deltas), and
+  the funnel tables got proportional bar backgrounds. **The app's own UI colors (indigo/sage/terracotta) fail
+  the categorical chart-mark validator** (too low chroma/wrong lightness for data marks, even though they're
+  fine as UI accents) — used the skill's documented default palette's first 3 slots (blue/orange/aqua)
+  instead, re-validated against the app's actual cream surface. All hand-rolled (SVG line chart, HTML/CSS
+  bars) — no charting library added.
+- **Real hydration bug caught live:** `toLocaleDateString(undefined, …)` for chart labels resolves to a
+  different locale on the SSR host than the browser ("Jun 1" server vs "1 Jun" client) — fixed with a fixed,
+  locale-independent formatter (`web/app/admin/_components/dateFormat.ts`). Would not have been caught by
+  `tsc`/`next build` — only by actually opening the page and reading the dev overlay.
+- **GitHub Actions gotcha (twice this session):** the `db-tests` CI run sat `queued` with zero progress for
+  5–10+ minutes on two separate pushes, no concurrency/environment gate explains it — looked like a transient
+  GitHub-side runner delay. Workaround both times: `supabase db push --linked` directly (already verified
+  locally) rather than block on CI; CI finished green on its own afterward either way (its `deploy` job's
+  `db push` is idempotent, so it's a harmless no-op if you already pushed manually).
+
+**Gotcha confirmed, not new:** the header's Customer/Supplier toggle (`Header.tsx`) is a **demo-account
+switcher** (`signInAs()` to the two fixed seeded demo emails), not a real dual-persona toggle for whoever's
+logged in — clicking it while testing silently logs a real user out into a demo account. Caused real confusion
+mid-session before being traced.
+
+---
+
+## Google OAuth: two real bugs found & fixed, PKCE issue not reproduced since (historical detail below)
+
+**Status as of 2026-08-13: real Google sign-in (account-chooser flow, already-authenticated Google session)
+completed successfully multiple times this session** — logged into `/admin` as the real
+`prashantpps09@gmail.com` account via the actual `accounts.google.com` chooser, landed correctly on
+`/onboarding/finish` (never completed that form on the user's behalf — stopped short of submitting), no PKCE
+error. This does **not** prove the bug is gone for every flow/browser — it just never recurred when
+exercised live. Leaving the original investigation below for reference if it resurfaces.
 
 **Bug 1 — Redirect URLs allow-list missing `/auth/callback` (FIXED, user's dashboard change).** Supabase
 silently falls back to the first allow-listed URL instead of erroring when `redirectTo` isn't allow-listed.
@@ -429,6 +510,23 @@ Reuse the established patterns: server components fetch RLS-scoped reads; mutati
 - **Loginable seed** needs bcrypt + `email_confirmed_at` + an `auth.identities` row (all three).
 - **No frontend tests yet** — a Playwright pass over the core loop is the recommended minimum before/around
   deploy (see §7 risks).
+- **Two independent triggers reopen a verified onboarding section**, not one: `trg_content_reopen` (0004, on
+  `documents`/`certifications`) AND `trg_detail_reopen` (0009, on `supplier_directors`/`supplier_financials`).
+  Any future change to "what happens when a verified section gets edited" needs BOTH, or it'll silently only
+  half-work — `saveIdentity`/`saveFinancials` touch the *_directors/*_financials tables first, so that's the
+  one that actually fires on a real edit.
+- **Never `toLocaleDateString(undefined, …)` (or any locale-implicit date formatting) in server-rendered
+  code** — the SSR host and the browser can resolve different default locales, causing a real hydration
+  mismatch that only shows up live, never in `tsc`/`next build`. Use a fixed formatter instead
+  (`web/app/admin/_components/dateFormat.ts` is the reference pattern).
+- **Header's Customer/Supplier toggle is a demo-account switcher** (`signInAs()` in `login/actions.ts`), not a
+  dual-persona toggle for the currently logged-in user — clicking it signs into one of the two *fixed* seeded
+  demo emails regardless of who was logged in before. Don't assume it round-trips back to whatever account you
+  started as.
+- **GitHub Actions `db-tests` CI can sit `queued` with zero progress for 5–10+ minutes** for no
+  identifiable reason (happened twice, unrelated pushes) — if it's already verified locally, push the
+  migration directly (`supabase db push --linked`) rather than block on CI; the `deploy` job's own `db push`
+  is idempotent so it's a harmless no-op if CI catches up afterward.
 
 ---
 
